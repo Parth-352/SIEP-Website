@@ -69,16 +69,18 @@ const STAGES = [
 
 export default function ScrollOverlay() {
   return (
-    <div id="timeline-container" className="absolute top-0 left-0 w-full font-sans pointer-events-none">
+    <div id="timeline-container" className="relative z-10 w-full font-sans pointer-events-none">
       
       {/* 1. Hero Section */}
-      <section className="relative h-[100vh] flex flex-col justify-center items-start p-6 pt-32 md:p-24 w-full md:w-1/2">
-        <h1 className="text-5xl md:text-8xl font-black text-jet-black tracking-tighter leading-none mb-4 md:mb-6">
-          ENGINEERING THE <br/> <span className="text-orange">NEXT RIDE.</span>
-        </h1>
-        <p className="text-lg md:text-2xl text-grey font-light">
-          Smart Scrambler E-Bike by SNJB's KBJ College of Engineering.
-        </p>
+      <section className="relative h-[100dvh] flex flex-col justify-center items-start p-6 pt-32 md:p-24 w-full md:w-1/2">
+        <div className="bg-alice-blue/80 md:bg-transparent backdrop-blur-md md:backdrop-blur-none p-6 md:p-0 rounded-xl pointer-events-auto w-full">
+          <h1 className="text-5xl md:text-8xl font-black text-jet-black tracking-tighter leading-none mb-4 md:mb-6">
+            ENGINEERING THE <br/> <span className="text-orange">NEXT RIDE.</span>
+          </h1>
+          <p className="text-lg md:text-2xl text-grey font-light">
+            Smart Scrambler E-Bike by SNJB's KBJ College of Engineering.
+          </p>
+        </div>
       </section>
 
       {/* Scroll Indicator */}

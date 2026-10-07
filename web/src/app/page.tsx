@@ -10,10 +10,10 @@ export default function Home() {
       {/* Persistent Timeline */}
       <TimelineIndicator />
 
-      {/* The ScrollVideo sets the overall height (e.g. 800vh) and handles scroll sync */}
+      {/* The ScrollVideo is fixed to the background and handles scroll sync */}
       <ScrollVideo />
 
-      {/* The overlay is absolute but takes its positioning within the flow relative to the top */}
+      {/* The overlay is relative and dictates the total scroll height of the page */}
       <ScrollOverlay />
     </main>
   );
