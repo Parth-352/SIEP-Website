@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+:root {
+  /* SIEP Custom Palette */
+  --color-jet-black: #2B303A;
+  --color-grey: #7C7C7C;
+  --color-orange: #FFB347;
+  --color-alice-blue: #EDF6F9;
+  --color-pearl-aqua: #90E0DA;
+
+  --background: var(--color-alice-blue);
+  --foreground: var(--color-jet-black);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-jet-black: var(--color-jet-black);
+  --color-grey: var(--color-grey);
+  --color-orange: var(--color-orange);
+  --color-alice-blue: var(--color-alice-blue);
+  --color-pearl-aqua: var(--color-pearl-aqua);
+  
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, sans-serif;
+  overflow-x: hidden;
+}
