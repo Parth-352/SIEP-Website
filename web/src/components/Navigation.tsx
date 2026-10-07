@@ -9,12 +9,12 @@ export default function Navigation() {
       
       {/* Desktop Menu */}
       <div className="space-x-8 text-jet-black font-medium hidden md:flex items-center text-sm uppercase tracking-widest">
-        <Link href="/" className="hover:text-orange transition-colors">Home</Link>
-        <Link href="/bike" className="hover:text-orange transition-colors">The Bike</Link>
+        <Link href="/about" className="hover:text-orange transition-colors">About</Link>
         <Link href="/competition" className="hover:text-orange transition-colors">Competition</Link>
-        <Link href="/about" className="hover:text-orange transition-colors">About Us</Link>
-        <Link href="/sponsorship" className="hover:text-orange transition-colors">Sponsorship</Link>
-        <Link href="#" className="hover:text-orange transition-colors">Student Hub</Link>
+        <Link href="/bike" className="hover:text-orange transition-colors">The Bike</Link>
+        <Link href="/journey" className="hover:text-orange transition-colors">Journey</Link>
+        <Link href="/student-hub" className="hover:text-orange transition-colors">Student Hub</Link>
+        <Link href="/sponsorship" className="hover:text-orange transition-colors">Sponsors</Link>
         
         {/* Primary CTA */}
         <Link 

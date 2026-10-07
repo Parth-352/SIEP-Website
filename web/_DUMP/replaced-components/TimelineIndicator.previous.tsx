@@ -6,11 +6,8 @@ const steps = [
   { id: 1, name: 'HERO' },
   { id: 2, name: 'CHASSIS' },
   { id: 3, name: 'POWERTRAIN' },
-  { id: 4, name: 'BATTERY' },
-  { id: 5, name: 'MOTION' },
-  { id: 6, name: 'BODY' },
-  { id: 7, name: 'SMART' },
-  { id: 8, name: 'READY' },
+  { id: 4, name: 'SYSTEMS' },
+  { id: 5, name: 'FINAL' },
 ];
 
 export default function TimelineIndicator() {
@@ -18,12 +15,15 @@ export default function TimelineIndicator() {
 
   useEffect(() => {
     const handleScroll = () => {
-      const scrollTop = window.scrollY;
-      const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
-      
-      if (scrollHeight <= 0) return;
+      // The actual scroll container is .overflow-y-auto
+      const container = document.querySelector('.overflow-y-auto');
+      if (!container) return;
+
+      const scrollTop = container.scrollTop;
+      const scrollHeight = container.scrollHeight - container.clientHeight;
       const scrollPercentage = scrollTop / scrollHeight;
 
+      // 5 steps, meaning 5 segments.
       const stepIndex = Math.min(
         Math.floor(scrollPercentage * steps.length),
         steps.length - 1
@@ -32,8 +32,11 @@ export default function TimelineIndicator() {
       setActiveStep(stepIndex + 1);
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const container = document.querySelector('.overflow-y-auto');
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
   }, []);
 
   return (
@@ -43,7 +46,7 @@ export default function TimelineIndicator() {
         const isCurrent = activeStep === step.id;
 
         return (
-          <div key={step.id} className="flex items-center space-x-4 group cursor-pointer" onClick={() => window.scrollTo({ top: (step.id - 1) * (document.documentElement.scrollHeight / steps.length), behavior: 'smooth' })}>
+          <div key={step.id} className="flex items-center space-x-4 group cursor-pointer">
             <span 
               className={`text-[10px] font-mono tracking-widest uppercase transition-colors duration-300 ${
                 isCurrent ? 'text-orange' : 'text-grey opacity-0 group-hover:opacity-100'

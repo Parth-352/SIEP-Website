@@ -1,100 +1,95 @@
-import Link from 'next/link';
+"use client";
+
+import React, { useState } from 'react';
+
+const SUPPORT_AREAS = [
+  "Financial Aid",
+  "Components & Manufacturing",
+  "Technical Mentorship",
+  "Software & Sensor Support",
+  "Testing Access",
+  "Logistics & Travel Support"
+];
 
 export default function SponsorshipPage() {
+  const [formState, setFormState] = useState<'IDLE' | 'SUBMITTING' | 'SUCCESS'>('IDLE');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormState('SUBMITTING');
+    setTimeout(() => setFormState('SUCCESS'), 1000); // Mock submission
+  };
+
   return (
-    <main className="min-h-screen bg-alice-blue py-32 px-6 md:px-12 lg:px-24 font-sans text-jet-black">
-      <div className="max-w-6xl mx-auto space-y-24">
-        
-        {/* Hero Section */}
-        <section className="border-b border-jet-black/10 pb-12">
-          <Link href="/about" className="inline-block mb-12 text-sm uppercase tracking-widest text-grey hover:text-orange transition-colors">
-            &larr; Back to About Us
-          </Link>
-          <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-none mb-8">
-            PARTNER<br/><span className="text-orange">WITH US.</span>
-          </h1>
-          <p className="text-2xl text-grey font-light leading-relaxed max-w-3xl">
-            Partner with Riders Bay to drive student innovation and shape the future of electric mobility engineering.
-          </p>
-        </section>
+    <main className="min-h-screen pt-24 px-6 md:px-24 max-w-7xl mx-auto pb-24 font-sans">
+      <div className="mb-16">
+        <h1 className="text-4xl md:text-6xl font-black text-jet-black uppercase tracking-tight mb-4">Partnership</h1>
+        <p className="text-lg text-grey font-light max-w-2xl">
+          Support the next generation of engineers. Partner with Riders Bay for the SIEP E-Bike Challenge 2026-27.
+        </p>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-24">
-          
-          {/* Support Areas */}
-          <section>
-            <h2 className="text-[10px] tracking-widest uppercase text-grey font-mono mb-8 block border-b border-grey/20 pb-4">Areas of Support</h2>
-            <ul className="space-y-6">
-              <li className="flex items-start gap-4">
-                <div className="w-1.5 h-1.5 rounded-full bg-orange mt-2 flex-shrink-0"></div>
-                <div>
-                  <h3 className="text-xl font-bold tracking-tight mb-1">Financial Support</h3>
-                  <p className="text-grey font-light text-sm">Direct funding for vehicle engineering and team logistics.</p>
-                </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+        <div>
+          <h2 className="text-2xl font-bold uppercase tracking-tight text-jet-black mb-6">Areas of Support</h2>
+          <ul className="space-y-4 mb-12">
+            {SUPPORT_AREAS.map(area => (
+              <li key={area} className="flex items-center text-grey font-light border-b border-jet-black/10 pb-2">
+                <span className="w-2 h-2 bg-orange rounded-full mr-4 inline-block"></span>
+                {area}
               </li>
-              <li className="flex items-start gap-4">
-                <div className="w-1.5 h-1.5 rounded-full bg-orange mt-2 flex-shrink-0"></div>
-                <div>
-                  <h3 className="text-xl font-bold tracking-tight mb-1">Components & Technology</h3>
-                  <p className="text-grey font-light text-sm">Providing specialized EV components, sensors, and hardware.</p>
-                </div>
-              </li>
-              <li className="flex items-start gap-4">
-                <div className="w-1.5 h-1.5 rounded-full bg-orange mt-2 flex-shrink-0"></div>
-                <div>
-                  <h3 className="text-xl font-bold tracking-tight mb-1">Manufacturing Support</h3>
-                  <p className="text-grey font-light text-sm">Assistance with CNC machining, welding, and advanced fabrication.</p>
-                </div>
-              </li>
-              <li className="flex items-start gap-4">
-                <div className="w-1.5 h-1.5 rounded-full bg-orange mt-2 flex-shrink-0"></div>
-                <div>
-                  <h3 className="text-xl font-bold tracking-tight mb-1">Mentorship & Technical Guidance</h3>
-                  <p className="text-grey font-light text-sm">Industry expertise, software access (CAD/FEA), and testing facilities.</p>
-                </div>
-              </li>
-            </ul>
-          </section>
+            ))}
+          </ul>
 
-          {/* Value for Sponsors */}
-          <section>
-            <h2 className="text-[10px] tracking-widest uppercase text-grey font-mono mb-8 block border-b border-grey/20 pb-4">Value for Sponsors</h2>
-            <ul className="space-y-6">
-              <li className="flex items-start gap-4">
-                <div className="w-1.5 h-1.5 rounded-full bg-jet-black mt-2 flex-shrink-0"></div>
-                <div>
-                  <h3 className="text-xl font-bold tracking-tight mb-1">Brand Recognition</h3>
-                  <p className="text-grey font-light text-sm">Acknowledgement in all team communications, PR events, and official project materials.</p>
-                </div>
-              </li>
-              <li className="flex items-start gap-4">
-                <div className="w-1.5 h-1.5 rounded-full bg-jet-black mt-2 flex-shrink-0"></div>
-                <div>
-                  <h3 className="text-xl font-bold tracking-tight mb-1">Vehicle Visibility</h3>
-                  <p className="text-grey font-light text-sm">Prime logo placement on the finalized Smart Scrambler during the national competition.</p>
-                </div>
-              </li>
-              <li className="flex items-start gap-4">
-                <div className="w-1.5 h-1.5 rounded-full bg-jet-black mt-2 flex-shrink-0"></div>
-                <div>
-                  <h3 className="text-xl font-bold tracking-tight mb-1">Talent Pipeline</h3>
-                  <p className="text-grey font-light text-sm">Direct engagement and recruitment opportunities with top emerging engineering talent.</p>
-                </div>
-              </li>
-            </ul>
-          </section>
+          <div className="bg-jet-black p-8 rounded-xl text-alice-blue text-center">
+            <h3 className="text-xl font-bold uppercase tracking-widest mb-4">Ready to support?</h3>
+            <button className="bg-orange text-jet-black font-bold uppercase tracking-widest px-8 py-3 rounded hover:bg-white transition-colors w-full">
+              PARTNER WITH RIDERS BAY
+            </button>
+          </div>
         </div>
 
-        {/* CTA */}
-        <section className="border-t border-jet-black/10 pt-16 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight mb-2">Let's Build the Future Together.</h2>
-            <p className="text-grey font-light">We are in the early development phase and open to tailored sponsorship packages.</p>
-          </div>
-          <Link href="/contact" className="px-8 py-4 bg-jet-black text-alice-blue text-sm uppercase tracking-widest font-bold hover:bg-orange transition-colors whitespace-nowrap">
-            Discuss Sponsorship
-          </Link>
-        </section>
+        <div>
+          <h2 className="text-2xl font-bold uppercase tracking-tight text-jet-black mb-6">Resource Request</h2>
+          <p className="text-sm font-light text-grey mb-8">
+            Request access to our detailed project documentation, including the Sponsorship Proposal, Competition Brochure, Project PPT, and Cost Report. Access is granted after verification.
+          </p>
 
+          {formState === 'SUCCESS' ? (
+            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-6 rounded text-center">
+              <h3 className="font-bold uppercase tracking-wider mb-2">Request Received</h3>
+              <p className="text-sm font-light">Our team will review your request and securely deliver the requested resources.</p>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-mono uppercase tracking-widest text-grey mb-1">Organization / Name</label>
+                <input required type="text" className="w-full border border-jet-black/20 rounded p-3 bg-white focus:outline-none focus:border-orange transition-colors" />
+              </div>
+              <div>
+                <label className="block text-xs font-mono uppercase tracking-widest text-grey mb-1">Email</label>
+                <input required type="email" className="w-full border border-jet-black/20 rounded p-3 bg-white focus:outline-none focus:border-orange transition-colors" />
+              </div>
+              <div>
+                <label className="block text-xs font-mono uppercase tracking-widest text-grey mb-1">Requested Resources</label>
+                <select className="w-full border border-jet-black/20 rounded p-3 bg-white focus:outline-none focus:border-orange transition-colors">
+                  <option>Sponsorship Proposal</option>
+                  <option>Competition Brochure</option>
+                  <option>Project PPT</option>
+                  <option>Cost Report (Controlled Access)</option>
+                  <option>All of the above</option>
+                </select>
+              </div>
+              <button 
+                type="submit" 
+                disabled={formState === 'SUBMITTING'}
+                className="w-full bg-jet-black text-alice-blue font-bold uppercase tracking-widest px-8 py-3 rounded hover:bg-orange transition-colors disabled:opacity-50 mt-4"
+              >
+                {formState === 'SUBMITTING' ? 'SUBMITTING...' : 'REQUEST RESOURCE'}
+              </button>
+            </form>
+          )}
+        </div>
       </div>
     </main>
   );
