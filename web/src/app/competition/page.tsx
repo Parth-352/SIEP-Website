@@ -72,7 +72,7 @@ export default function CompetitionPage() {
             
             <div>
               <h3 className="font-bold text-lg mb-2">Acceleration Test</h3>
-              <p className="text-sm text-grey font-light">Evaluates the vehicle's acceleration on a straight line over a distance of 50m on flat pavement from a standstill start.</p>
+              <p className="text-sm text-grey font-light">Evaluates the vehicle&apos;s acceleration on a straight line over a distance of 50m on flat pavement from a standstill start.</p>
             </div>
             <div>
               <h3 className="font-bold text-lg mb-2">Hill Climb Test</h3>

@@ -41,9 +41,9 @@ export default function Navigation() {
 
       {/* Mobile Menu Overlay */}
       <div 
-        className={`fixed inset-0 bg-alice-blue z-40 transition-transform duration-500 ease-in-out flex flex-col justify-center items-center space-y-8 font-sans ${isMobileMenuOpen ? 'translate-y-0' : '-translate-y-full'}`}
+        className={`fixed inset-0 bg-alice-blue z-40 transition-transform duration-500 ease-in-out flex flex-col justify-center items-center pt-20 pb-10 overflow-y-auto font-sans ${isMobileMenuOpen ? 'translate-y-0 pointer-events-auto' : '-translate-y-full pointer-events-none'}`}
       >
-        <div className="flex flex-col items-center space-y-6 text-xl uppercase tracking-widest font-bold text-jet-black w-full px-6">
+        <div className="flex flex-col items-center space-y-4 text-xl uppercase tracking-widest font-bold text-jet-black w-full px-6 min-h-min">
           <Link href="/about" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 pb-4">About</Link>
           <Link href="/competition" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 pb-4">Competition</Link>
           <Link href="/bike" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 pb-4">The Bike</Link>

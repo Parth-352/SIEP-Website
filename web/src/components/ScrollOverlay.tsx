@@ -78,7 +78,7 @@ export default function ScrollOverlay() {
             ENGINEERING THE <br/> <span className="text-orange">NEXT RIDE.</span>
           </h1>
           <p className="text-lg md:text-2xl text-grey font-light">
-            Smart Scrambler E-Bike by SNJB's KBJ College of Engineering.
+            Smart Scrambler E-Bike by SNJB&apos;s KBJ College of Engineering.
           </p>
         </div>
       </section>
