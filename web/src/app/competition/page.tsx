@@ -146,31 +146,49 @@ export default function CompetitionPage() {
           </div>
         </section>
 
-        {/* Sponsors */}
-        <section className="pt-24 border-t border-jet-black/10">
+        {/* Sponsors Marquee */}
+        <section className="pt-24 border-t border-jet-black/10 overflow-hidden">
           <div className="flex flex-col items-center">
             <h2 className="text-[10px] tracking-widest uppercase text-grey font-mono mb-16 block text-center">Official SIEP Sponsors & Partners</h2>
-            <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 w-full max-w-5xl">
-              {[
-                { name: "Royal Enfield", file: "royal_enfield.svg" },
-                { name: "Ansys", file: "ansys.svg" },
-                { name: "EaseMyTrip", file: "easemytrip.svg" },
-                { name: "Skill AP", file: "skill_ap.svg" },
-                { name: "SMEV", file: "smev.svg" },
-                { name: "CK Birla Group", file: "ck_birla.svg" },
-                { name: "Luminous", file: "luminous.svg" },
-                { name: "Hero Electric", file: "hero_electric.svg" },
-                { name: "Roshi Motors", file: "roshi_motors.svg" },
-                { name: "Altair", file: "altair.svg" }
-              ].map((sponsor, idx) => (
-                <div key={idx} className="group relative flex items-center justify-center w-28 md:w-40 h-16 md:h-20 grayscale hover:grayscale-0 hover:scale-110 transition-all duration-500 cursor-pointer">
-                  <img 
-                    src={`/sponsors/${sponsor.file}`} 
-                    alt={sponsor.name}
-                    className="max-w-full max-h-full object-contain opacity-50 group-hover:opacity-100 transition-opacity duration-500 drop-shadow-sm"
-                  />
-                </div>
-              ))}
+            
+            <div className="relative w-full flex overflow-hidden group">
+              {/* Left/Right Fades */}
+              <div className="absolute top-0 left-0 bottom-0 w-16 md:w-32 bg-gradient-to-r from-alice-blue to-transparent z-10 pointer-events-none"></div>
+              <div className="absolute top-0 right-0 bottom-0 w-16 md:w-32 bg-gradient-to-l from-alice-blue to-transparent z-10 pointer-events-none"></div>
+              
+              <div className="flex whitespace-nowrap animate-marquee group-hover:[animation-play-state:paused] w-max">
+                {[
+                  { name: "Royal Enfield", file: "royal_enfield.svg" },
+                  { name: "Ansys", file: "ansys.svg" },
+                  { name: "EaseMyTrip", file: "easemytrip.svg" },
+                  { name: "Skill AP", file: "skill_ap.svg" },
+                  { name: "SMEV", file: "smev.svg" },
+                  { name: "CK Birla Group", file: "ck_birla.svg" },
+                  { name: "Luminous", file: "luminous.svg" },
+                  { name: "Hero Electric", file: "hero_electric.svg" },
+                  { name: "Roshi Motors", file: "roshi_motors.svg" },
+                  { name: "Altair", file: "altair.svg" }
+                ].concat([
+                  { name: "Royal Enfield", file: "royal_enfield.svg" },
+                  { name: "Ansys", file: "ansys.svg" },
+                  { name: "EaseMyTrip", file: "easemytrip.svg" },
+                  { name: "Skill AP", file: "skill_ap.svg" },
+                  { name: "SMEV", file: "smev.svg" },
+                  { name: "CK Birla Group", file: "ck_birla.svg" },
+                  { name: "Luminous", file: "luminous.svg" },
+                  { name: "Hero Electric", file: "hero_electric.svg" },
+                  { name: "Roshi Motors", file: "roshi_motors.svg" },
+                  { name: "Altair", file: "altair.svg" }
+                ]).map((sponsor, idx) => (
+                  <div key={idx} className="inline-flex items-center justify-center w-32 md:w-48 h-16 md:h-20 grayscale hover:grayscale-0 hover:scale-110 transition-all duration-500 cursor-pointer mx-6 md:mx-12 shrink-0">
+                    <img 
+                      src={`/sponsors/${sponsor.file}`} 
+                      alt={sponsor.name}
+                      className="max-w-full max-h-full object-contain opacity-50 hover:opacity-100 transition-opacity duration-500"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </section>
