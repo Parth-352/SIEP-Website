@@ -147,29 +147,31 @@ export default function CompetitionPage() {
         </section>
 
         {/* Sponsors */}
-        <section className="pt-12 border-t border-jet-black/10">
-          <h2 className="text-[10px] tracking-widest uppercase text-grey font-mono mb-8 block text-center">Official SIEP Sponsors & Partners</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {[
-              { name: "Royal Enfield", file: "royal_enfield.svg" },
-              { name: "Ansys", file: "ansys.svg" },
-              { name: "EaseMyTrip", file: "easemytrip.svg" },
-              { name: "Skill AP", file: "skill_ap.svg" },
-              { name: "SMEV", file: "smev.svg" },
-              { name: "CK Birla Group", file: "ck_birla.svg" },
-              { name: "Luminous", file: "luminous.svg" },
-              { name: "Hero Electric", file: "hero_electric.svg" },
-              { name: "Roshi Motors", file: "roshi_motors.svg" },
-              { name: "Altair", file: "altair.svg" }
-            ].map((sponsor, idx) => (
-              <div key={idx} className="aspect-[3/2] flex items-center justify-center bg-white border border-jet-black/10 rounded-sm grayscale hover:grayscale-0 hover:shadow-md transition-all duration-300 cursor-pointer p-6">
-                <img 
-                  src={`/sponsors/${sponsor.file}`} 
-                  alt={sponsor.name}
-                  className="max-w-full max-h-full object-contain opacity-70 hover:opacity-100 transition-opacity"
-                />
-              </div>
-            ))}
+        <section className="pt-24 border-t border-jet-black/10">
+          <div className="flex flex-col items-center">
+            <h2 className="text-[10px] tracking-widest uppercase text-grey font-mono mb-16 block text-center">Official SIEP Sponsors & Partners</h2>
+            <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 w-full max-w-5xl">
+              {[
+                { name: "Royal Enfield", file: "royal_enfield.svg" },
+                { name: "Ansys", file: "ansys.svg" },
+                { name: "EaseMyTrip", file: "easemytrip.svg" },
+                { name: "Skill AP", file: "skill_ap.svg" },
+                { name: "SMEV", file: "smev.svg" },
+                { name: "CK Birla Group", file: "ck_birla.svg" },
+                { name: "Luminous", file: "luminous.svg" },
+                { name: "Hero Electric", file: "hero_electric.svg" },
+                { name: "Roshi Motors", file: "roshi_motors.svg" },
+                { name: "Altair", file: "altair.svg" }
+              ].map((sponsor, idx) => (
+                <div key={idx} className="group relative flex items-center justify-center w-28 md:w-40 h-16 md:h-20 grayscale hover:grayscale-0 hover:scale-110 transition-all duration-500 cursor-pointer">
+                  <img 
+                    src={`/sponsors/${sponsor.file}`} 
+                    alt={sponsor.name}
+                    className="max-w-full max-h-full object-contain opacity-50 group-hover:opacity-100 transition-opacity duration-500 drop-shadow-sm"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
