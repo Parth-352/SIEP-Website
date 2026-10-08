@@ -152,16 +152,16 @@ export default function CompetitionPage() {
           <h2 className="text-[10px] tracking-widest uppercase text-grey font-mono mb-8 block text-center">Official SIEP Sponsors & Partners</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {[
-              { name: "Royal Enfield", file: "royal_enfield.png" },
-              { name: "Ansys", file: "ansys.png" },
-              { name: "EaseMyTrip", file: "easemytrip.png" },
+              { name: "Royal Enfield", file: "royal_enfield.svg" },
+              { name: "Ansys", file: "ansys.svg" },
+              { name: "EaseMyTrip", file: "easemytrip.svg" },
               { name: "Skill AP", file: "skill_ap.svg" },
               { name: "SMEV", file: "smev.svg" },
-              { name: "CK Birla Group", file: "ck_birla.png" },
-              { name: "Luminous", file: "luminous.png" },
-              { name: "Hero Electric", file: "hero_electric.png" },
+              { name: "CK Birla Group", file: "ck_birla.svg" },
+              { name: "Luminous", file: "luminous.svg" },
+              { name: "Hero Electric", file: "hero_electric.svg" },
               { name: "Roshi Motors", file: "roshi_motors.svg" },
-              { name: "Altair", file: "altair.png" }
+              { name: "Altair", file: "altair.svg" }
             ].map((sponsor, idx) => (
               <div key={idx} className="relative aspect-[3/2] flex items-center justify-center bg-white border border-jet-black/10 rounded-sm grayscale hover:grayscale-0 hover:shadow-md transition-all duration-300 cursor-pointer p-6">
                 <Image 
