@@ -147,14 +147,19 @@ export default function CompetitionPage() {
           </div>
         </section>
 
-        {/* Sponsors Banner */}
-        <section className="pt-24 border-t border-jet-black/10 pb-12">
-          <div className="flex flex-col items-center w-full max-w-[100rem] mx-auto px-4 md:px-8">
-            <h2 className="bg-[#0b1320] text-alice-blue px-8 py-3 text-xs md:text-sm tracking-widest uppercase font-bold mb-8 rounded-sm shadow-lg z-10 -mb-4 relative">
-              Sponsors & Partners of SIEP
-            </h2>
+        {/* Sponsors */}
+        <section className="pt-32 pb-16 border-t border-jet-black/10">
+          <div className="max-w-[90rem] mx-auto px-6 flex flex-col items-center">
             
-            <div className="flex items-center justify-between w-full bg-white border border-jet-black/10 rounded-xl py-4 md:py-6 px-2 md:px-8 shadow-sm">
+            <div className="flex items-center gap-6 mb-16 w-full max-w-4xl">
+              <div className="h-[1px] bg-jet-black/10 flex-1"></div>
+              <h2 className="text-[10px] tracking-[0.3em] uppercase text-grey font-mono font-bold">
+                Official SIEP Sponsors & Partners
+              </h2>
+              <div className="h-[1px] bg-jet-black/10 flex-1"></div>
+            </div>
+            
+            <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-16 md:gap-x-20 md:gap-y-24 w-full">
               {[
                 { name: "Royal Enfield", file: "royal_enfield.png" },
                 { name: "Ansys", file: "ansys.png" },
@@ -167,22 +172,17 @@ export default function CompetitionPage() {
                 { name: "Roshi Motors", file: "roshi_motors.png" },
                 { name: "Altair", file: "altair.png" }
               ].map((sponsor, idx) => (
-                <div key={idx} className="flex-1 flex items-center justify-center relative group px-1 md:px-3 h-8 sm:h-12 md:h-16">
-                  <div className="relative w-full h-full hover:scale-110 transition-transform duration-300">
-                    <Image 
-                      src={`/sponsors/${sponsor.file}`} 
-                      alt={sponsor.name}
-                      fill
-                      className="object-contain"
-                    />
-                  </div>
-                  {/* Vertical Divider */}
-                  {idx !== 9 && (
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[1px] h-2/3 bg-jet-black/10"></div>
-                  )}
+                <div key={idx} className="relative w-28 md:w-40 lg:w-48 h-12 md:h-16 lg:h-20 group">
+                  <Image 
+                    src={`/sponsors/${sponsor.file}`} 
+                    alt={sponsor.name}
+                    fill
+                    className="object-contain opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500 origin-center"
+                  />
                 </div>
               ))}
             </div>
+
           </div>
         </section>
 
