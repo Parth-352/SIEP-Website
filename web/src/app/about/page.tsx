@@ -104,23 +104,51 @@ export default function AboutPage() {
             {/* The Vertical Line */}
             <div className="absolute left-[7px] md:left-1/2 top-0 bottom-0 w-[2px] bg-jet-black/10 md:-translate-x-1/2"></div>
             
-            <div className="space-y-16 md:space-y-24">
+            <div className="space-y-12 md:space-y-0">
               {JOURNEY_STAGES.map((stage, index) => {
                 const isEven = index % 2 === 0;
                 return (
-                  <div key={stage.num} className={`relative flex flex-col md:flex-row items-start ${isEven ? 'md:flex-row' : 'md:flex-row-reverse'} group`}>
+                  <div key={stage.num} className="relative flex flex-col md:flex-row md:items-center group py-4 md:py-16">
                     
                     {/* The Node */}
-                    <div className="absolute left-0 md:left-1/2 top-1.5 w-4 h-4 bg-alice-blue border-2 border-jet-black group-hover:border-orange group-hover:bg-orange/10 rounded-full md:-translate-x-1/2 transition-all duration-300 z-10 group-hover:scale-150"></div>
+                    <div className="absolute left-[-1px] md:left-1/2 top-6 md:top-1/2 w-4 h-4 bg-alice-blue border-2 border-jet-black group-hover:border-orange group-hover:bg-orange/10 rounded-full md:-translate-x-1/2 md:-translate-y-1/2 transition-all duration-300 z-10 group-hover:scale-150"></div>
 
-                    {/* Content Box */}
-                    <div className={`w-full md:w-1/2 pl-10 md:pl-0 ${isEven ? 'md:pr-16 md:text-right' : 'md:pl-16 md:text-left'}`}>
-                      <span className="text-[10px] font-mono tracking-widest text-orange block mb-2">{stage.num}</span>
-                      <h4 className="text-2xl md:text-3xl font-bold uppercase text-jet-black mb-3">{stage.title}</h4>
-                      <p className="text-grey font-light text-base md:text-lg">
+                    {/* Mobile Content (Always Left-Aligned) */}
+                    <div className="md:hidden w-full pl-10">
+                      <span className="text-[10px] font-mono tracking-widest text-orange block mb-1">{stage.num}</span>
+                      <h4 className="text-2xl font-bold uppercase text-jet-black mb-2">{stage.title}</h4>
+                      <p className="text-grey font-light text-base">
                         {stage.desc}
                       </p>
                     </div>
+
+                    {/* Desktop Content (Alternating) */}
+                    <div className="hidden md:flex w-full">
+                      {isEven ? (
+                        <>
+                          <div className="w-1/2 pr-16 text-right flex flex-col justify-center">
+                            <span className="text-[10px] font-mono tracking-widest text-orange block mb-2">{stage.num}</span>
+                            <h4 className="text-3xl font-bold uppercase text-jet-black mb-3">{stage.title}</h4>
+                            <p className="text-grey font-light text-lg">
+                              {stage.desc}
+                            </p>
+                          </div>
+                          <div className="w-1/2"></div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-1/2"></div>
+                          <div className="w-1/2 pl-16 text-left flex flex-col justify-center">
+                            <span className="text-[10px] font-mono tracking-widest text-orange block mb-2">{stage.num}</span>
+                            <h4 className="text-3xl font-bold uppercase text-jet-black mb-3">{stage.title}</h4>
+                            <p className="text-grey font-light text-lg">
+                              {stage.desc}
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
                   </div>
                 );
               })}
