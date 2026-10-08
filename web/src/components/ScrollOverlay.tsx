@@ -1,4 +1,6 @@
-import React from 'react';
+"use client";
+
+import React, { useState, useEffect } from 'react';
 import EngineeringStage from './EngineeringStage';
 
 const STAGES = [
@@ -68,6 +70,24 @@ const STAGES = [
 ];
 
 export default function ScrollOverlay() {
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 50) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+    
+    // Check initial scroll position
+    handleScroll();
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
     <div id="timeline-container" className="relative z-10 w-full font-sans pointer-events-none">
       
@@ -84,7 +104,10 @@ export default function ScrollOverlay() {
       </section>
 
       {/* Scroll Indicator */}
-      <div id="scroll-indicator" className="absolute top-[85vh] left-1/2 -translate-x-1/2 animate-bounce flex flex-col items-center z-50 pointer-events-none">
+      <div 
+        id="scroll-indicator" 
+        className={`absolute top-[85vh] left-1/2 -translate-x-1/2 animate-bounce flex flex-col items-center z-50 pointer-events-none transition-opacity duration-700 ${isScrolled ? 'opacity-0' : 'opacity-100'}`}
+      >
         <div className="bg-jet-black px-4 py-2 rounded-full shadow-lg">
           <span className="text-[10px] tracking-[0.2em] uppercase text-alice-blue font-bold font-mono whitespace-nowrap">Scroll to Explore</span>
         </div>
