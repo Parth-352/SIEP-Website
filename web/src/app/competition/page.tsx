@@ -67,35 +67,38 @@ export default function CompetitionPage() {
         </section>
 
         {/* Dynamic Testing Rounds */}
-        <section className="bg-jet-black/5 p-8 md:p-16 rounded-sm border border-jet-black/10">
-          <h2 className="text-[10px] tracking-widest uppercase text-grey font-mono mb-12 block text-center">Dynamic Performance Tests</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-            
-            <div>
-              <h3 className="font-bold text-lg mb-2">Acceleration Test</h3>
-              <p className="text-sm text-grey font-light">Evaluates the vehicle&apos;s acceleration on a straight line over a distance of 50m on flat pavement from a standstill start.</p>
-            </div>
-            <div>
-              <h3 className="font-bold text-lg mb-2">Hill Climb Test</h3>
-              <p className="text-sm text-grey font-light">Tests the gradient traveling ability against a 40-degree total inclination, proving powertrain torque and vehicle dynamics.</p>
-            </div>
-            <div>
-              <h3 className="font-bold text-lg mb-2">Off-Road Test</h3>
-              <p className="text-sm text-grey font-light">Pushes suspension dynamics to the limit through mud trails, deep potholes (140mm), and severe speed breakers.</p>
-            </div>
-            <div>
-              <h3 className="font-bold text-lg mb-2">Self-Balancing Run</h3>
-              <p className="text-sm text-grey font-light">Riders must complete a sharp turning track without using their legs. The bike must not topple and must remain standstill at the finish line.</p>
-            </div>
-            <div>
-              <h3 className="font-bold text-lg mb-2">Driverless Parking</h3>
-              <p className="text-sm text-grey font-light">Vehicles must navigate into a narrow patch using voice activation or remote-controlled mechanisms without rider intervention.</p>
-            </div>
-            <div>
-              <h3 className="font-bold text-lg mb-2 text-orange">Durability Test (The Ultimate Trial)</h3>
-              <p className="text-sm text-grey font-light">Vehicles must run continuously for 40-50 Kms on a single charge. Any electrical breakdown or mechanical failure results in severe penalties or elimination.</p>
-            </div>
-
+        <section className="bg-jet-black text-alice-blue p-8 md:p-16 rounded-2xl shadow-2xl relative overflow-hidden">
+          {/* Subtle background glow */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-orange/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+          
+          <h2 className="text-[10px] tracking-[0.2em] uppercase text-grey font-mono mb-16 block border-b border-white/10 pb-4">Dynamic Performance Tests</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-16 relative z-10">
+            {[
+              { title: "Acceleration Test", desc: "Evaluates the vehicle's acceleration on a straight line over a distance of 50m on flat pavement from a standstill start." },
+              { title: "Hill Climb Test", desc: "Tests the gradient traveling ability against a 40-degree total inclination, proving powertrain torque and vehicle dynamics." },
+              { title: "Off-Road Test", desc: "Pushes suspension dynamics to the limit through mud trails, deep potholes (140mm), and severe speed breakers." },
+              { title: "Self-Balancing Run", desc: "Riders must complete a sharp turning track without using their legs. The bike must not topple and must remain standstill at the finish line." },
+              { title: "Driverless Parking", desc: "Vehicles must navigate into a narrow patch using voice activation or remote-controlled mechanisms without rider intervention." },
+              { title: "Durability Test", subtitle: "(The Ultimate Trial)", desc: "Vehicles must run continuously for 40-50 Kms on a single charge. Any electrical breakdown or mechanical failure results in severe penalties or elimination.", isUltimate: true }
+            ].map((test, idx) => (
+              <div key={idx} className="relative group cursor-default">
+                {/* Number */}
+                <div className="text-6xl font-black text-white/5 font-mono absolute -top-8 -left-4 group-hover:text-orange/10 transition-colors duration-500 pointer-events-none select-none">
+                  0{idx + 1}
+                </div>
+                
+                {/* Content */}
+                <div className="relative border-l-2 border-white/10 pl-6 group-hover:border-orange transition-colors duration-300">
+                  <h3 className={`font-bold text-xl mb-3 tracking-tight ${test.isUltimate ? 'text-orange' : 'text-alice-blue'}`}>
+                    {test.title} {test.subtitle && <span className="block text-sm opacity-80 mt-1">{test.subtitle}</span>}
+                  </h3>
+                  <p className="text-sm text-grey font-light leading-relaxed">
+                    {test.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 
