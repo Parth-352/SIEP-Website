@@ -16,7 +16,7 @@ function ChassisModel() {
   return (
     <Center scale={0.01}>
       {/* Adjusted rotation to make the chassis stand upright instead of laying flat */}
-      <mesh geometry={geom} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
+      <mesh geometry={geom} rotation={[0, 0, 0]}>
         <meshStandardMaterial 
           color="#FFB347" 
           metalness={0.7} 
