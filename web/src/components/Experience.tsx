@@ -1,6 +1,5 @@
 "use client";
 
-import { useLoader, useFrame } from '@react-three/fiber';
 import { useRef, useLayoutEffect, useState, useEffect } from 'react';
 import * as THREE from 'three';
 import gsap from 'gsap';
@@ -82,7 +81,6 @@ export default function Experience() {
     const tl = gsap.timeline({
       scrollTrigger: {
         trigger: '#timeline-container',
-        scroller: '.overflow-y-auto',
         start: 'top top',
         end: 'bottom bottom',
         scrub: 1,
