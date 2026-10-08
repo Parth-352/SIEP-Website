@@ -67,13 +67,17 @@ export default function CompetitionPage() {
         </section>
 
         {/* Dynamic Testing Rounds */}
-        <section className="bg-jet-black text-alice-blue p-8 md:p-16 rounded-2xl shadow-2xl relative overflow-hidden">
+        <section className="bg-jet-black text-alice-blue p-8 md:p-12 lg:p-20 rounded-3xl shadow-2xl relative overflow-hidden">
           {/* Subtle background glow */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-orange/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-orange/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-pearl-aqua/5 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
           
-          <h2 className="text-[10px] tracking-[0.2em] uppercase text-grey font-mono mb-16 block border-b border-white/10 pb-4">Dynamic Performance Tests</h2>
+          <div className="mb-16 md:mb-24 relative z-10">
+            <h2 className="text-[10px] tracking-[0.3em] uppercase text-grey font-mono mb-4 block">The Proving Ground</h2>
+            <h3 className="text-3xl md:text-5xl font-bold tracking-tighter">Dynamic Performance Tests</h3>
+          </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-16 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
             {[
               { title: "Acceleration Test", desc: "Evaluates the vehicle's acceleration on a straight line over a distance of 50m on flat pavement from a standstill start." },
               { title: "Hill Climb Test", desc: "Tests the gradient traveling ability against a 40-degree total inclination, proving powertrain torque and vehicle dynamics." },
@@ -82,20 +86,22 @@ export default function CompetitionPage() {
               { title: "Driverless Parking", desc: "Vehicles must navigate into a narrow patch using voice activation or remote-controlled mechanisms without rider intervention." },
               { title: "Durability Test", subtitle: "(The Ultimate Trial)", desc: "Vehicles must run continuously for 40-50 Kms on a single charge. Any electrical breakdown or mechanical failure results in severe penalties or elimination.", isUltimate: true }
             ].map((test, idx) => (
-              <div key={idx} className="relative group cursor-default">
-                {/* Number */}
-                <div className="text-6xl font-black text-white/5 font-mono absolute -top-8 -left-4 group-hover:text-orange/10 transition-colors duration-500 pointer-events-none select-none">
-                  0{idx + 1}
-                </div>
+              <div key={idx} className="relative group cursor-default bg-white/[0.02] border border-white/[0.05] p-8 md:p-10 rounded-2xl hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-500 overflow-hidden flex flex-col justify-between h-full min-h-[280px]">
                 
                 {/* Content */}
-                <div className="relative border-l-2 border-white/10 pl-6 group-hover:border-orange transition-colors duration-300">
-                  <h3 className={`font-bold text-xl mb-3 tracking-tight ${test.isUltimate ? 'text-orange' : 'text-alice-blue'}`}>
-                    {test.title} {test.subtitle && <span className="block text-sm opacity-80 mt-1">{test.subtitle}</span>}
+                <div className="relative z-10">
+                  <div className={`w-8 h-1 mb-6 rounded-full transition-colors duration-500 ${test.isUltimate ? 'bg-orange' : 'bg-white/20 group-hover:bg-white/60'}`}></div>
+                  <h3 className={`font-bold text-2xl mb-4 tracking-tight ${test.isUltimate ? 'text-orange' : 'text-alice-blue'}`}>
+                    {test.title} {test.subtitle && <span className="block text-sm opacity-80 mt-1 font-mono font-normal tracking-widest">{test.subtitle}</span>}
                   </h3>
                   <p className="text-sm text-grey font-light leading-relaxed">
                     {test.desc}
                   </p>
+                </div>
+
+                {/* Massive Number Background */}
+                <div className="text-8xl md:text-9xl font-black text-white/[0.02] font-mono absolute -bottom-6 -right-2 group-hover:text-white/[0.06] transition-colors duration-500 pointer-events-none select-none leading-none tracking-tighter">
+                  0{idx + 1}
                 </div>
               </div>
             ))}
