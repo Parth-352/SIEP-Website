@@ -14,7 +14,7 @@ function ChassisModel() {
   }, [geom]);
 
   return (
-    <Center scale={0.01}>
+    <Center scale={0.002}>
       {/* Adjusted rotation to make the chassis stand upright instead of laying flat */}
       <mesh geometry={geom} rotation={[0, 0, 0]}>
         <meshStandardMaterial 
