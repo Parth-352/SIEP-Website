@@ -37,16 +37,20 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* The Project & Methodology */}
-        <section className="mb-32 grid grid-cols-1 lg:grid-cols-12 gap-12">
-          <div className="lg:col-span-5 space-y-16">
+        {/* The 4 Pillars */}
+        <section className="mb-32 border-t border-jet-black/10 pt-24">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-16">
+            
+            {/* 01 */}
             <div>
               <h2 className="text-[10px] tracking-widest uppercase text-orange font-mono mb-4 block">01 / The Project</h2>
-              <h3 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">The Smart Scrambler.</h3>
+              <h3 className="text-3xl font-bold tracking-tight mb-6">The Smart Scrambler.</h3>
               <p className="text-lg text-grey font-light leading-relaxed">
                 We are engineering a high-performance electric Scrambler from the ground up for the prestigious SIEP E-Bike Challenge 2026–27. This machine embodies rugged capability, intelligent energy systems, and advanced rider safety dynamics.
               </p>
             </div>
+            
+            {/* 02 */}
             <div>
               <h2 className="text-[10px] tracking-widest uppercase text-orange font-mono mb-4 block">02 / Methodology</h2>
               <h3 className="text-3xl font-bold tracking-tight mb-6">Design. Test. Fabricate.</h3>
@@ -54,29 +58,35 @@ export default function AboutPage() {
                 Every component is rigorously simulated in CAD before manufacturing. Our workflow mandates strict testing standards, ensuring structural integrity, thermal management, and power delivery are flawless before the wheels touch the ground.
               </p>
             </div>
-          </div>
-          
-          <div className="lg:col-span-7 bg-jet-black/5 rounded-sm p-8 md:p-16 flex flex-col justify-center border border-jet-black/10">
-            <h2 className="text-[10px] tracking-widest uppercase text-grey font-mono mb-8 block text-center">Engineering Philosophy</h2>
-            <blockquote className="text-2xl md:text-4xl font-bold tracking-tight text-center leading-tight">
-              &quot;Our goal is not just to participate, but to <span className="text-orange">innovate</span>. We bridge the gap between theoretical knowledge and real-world application.&quot;
-            </blockquote>
+
+            {/* 03 */}
+            <div>
+              <h2 className="text-[10px] tracking-widest uppercase text-orange font-mono mb-4 block">03 / The Team</h2>
+              <h3 className="text-3xl font-bold tracking-tight mb-6">Guided by Experts.</h3>
+              <p className="text-lg text-grey font-light leading-relaxed">
+                Guided by experienced faculty and industry mentors, Riders Bay operates like a modern engineering firm. Our cross-disciplinary team spans mechanical design, powertrain engineering, software development, and project logistics.
+              </p>
+            </div>
+
+            {/* 04 */}
+            <div>
+              <h2 className="text-[10px] tracking-widest uppercase text-orange font-mono mb-4 block">04 / Impact</h2>
+              <h3 className="text-3xl font-bold tracking-tight mb-6">Why It Matters.</h3>
+              <p className="text-lg text-grey font-light leading-relaxed">
+                We are shaping the next generation of engineers. By designing complex electric vehicle architectures, our students gain invaluable experience that immediately translates to the rapidly evolving EV industry.
+              </p>
+            </div>
+
           </div>
         </section>
-
-        {/* Mentorship & Impact */}
-        <section className="mb-32 grid grid-cols-1 md:grid-cols-2 gap-16 border-t border-jet-black/10 pt-24">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight mb-6">Mentorship & Team</h2>
-            <p className="text-lg text-grey font-light leading-relaxed mb-6">
-              Guided by experienced faculty and industry mentors, Riders Bay operates like a modern engineering firm. Our cross-disciplinary team spans mechanical design, powertrain engineering, software development, and project logistics.
-            </p>
-          </div>
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight mb-6">Why It Matters</h2>
-            <p className="text-lg text-grey font-light leading-relaxed">
-              We are shaping the next generation of engineers. By designing complex electric vehicle architectures, our students gain invaluable experience that immediately translates to the rapidly evolving EV industry.
-            </p>
+        
+        {/* Philosophy Block */}
+        <section className="mb-32">
+          <div className="bg-jet-black/5 rounded-sm p-8 md:p-24 flex flex-col items-center justify-center border border-jet-black/10">
+            <h2 className="text-[10px] tracking-widest uppercase text-grey font-mono mb-8 block text-center">Engineering Philosophy</h2>
+            <blockquote className="text-3xl md:text-5xl font-bold tracking-tight text-center leading-tight max-w-4xl mx-auto">
+              &quot;Our goal is not just to participate, but to <span className="text-orange">innovate</span>. We bridge the gap between theoretical knowledge and real-world application.&quot;
+            </blockquote>
           </div>
         </section>
 
