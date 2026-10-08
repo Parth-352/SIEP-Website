@@ -147,17 +147,15 @@ export default function CompetitionPage() {
           </div>
         </section>
 
-        {/* Sponsors Marquee */}
-        <section className="pt-24 border-t border-jet-black/10 overflow-hidden">
-          <div className="flex flex-col items-center">
-            <h2 className="text-[10px] tracking-widest uppercase text-grey font-mono mb-16 block text-center">Official SIEP Sponsors & Partners</h2>
+        {/* Sponsors Banner */}
+        <section className="pt-24 border-t border-jet-black/10 pb-12">
+          <div className="flex flex-col items-center w-full max-w-[100rem] mx-auto px-4 md:px-8">
+            <h2 className="bg-[#0b1320] text-alice-blue px-8 py-3 text-xs md:text-sm tracking-widest uppercase font-bold mb-8 rounded-sm shadow-lg z-10 -mb-4 relative">
+              Sponsors & Partners of SIEP
+            </h2>
             
-            <div className="relative w-full flex overflow-hidden group">
-              {/* Left/Right Fades */}
-              <div className="absolute top-0 left-0 bottom-0 w-16 md:w-32 bg-gradient-to-r from-alice-blue to-transparent z-10 pointer-events-none"></div>
-              <div className="absolute top-0 right-0 bottom-0 w-16 md:w-32 bg-gradient-to-l from-alice-blue to-transparent z-10 pointer-events-none"></div>
-              
-              <div className="flex whitespace-nowrap animate-marquee group-hover:[animation-play-state:paused] w-max">
+            <div className="flex items-center w-full bg-white border border-jet-black/10 rounded-xl py-6 px-4 md:px-8 overflow-x-auto shadow-sm hide-scrollbar">
+              <div className="flex items-center justify-between min-w-max mx-auto w-full gap-2">
                 {[
                   { name: "Royal Enfield", file: "royal_enfield.png" },
                   { name: "Ansys", file: "ansys.png" },
@@ -169,25 +167,20 @@ export default function CompetitionPage() {
                   { name: "Hero Electric", file: "hero_electric.png" },
                   { name: "Roshi Motors", file: "roshi_motors.png" },
                   { name: "Altair", file: "altair.png" }
-                ].concat([
-                  { name: "Royal Enfield", file: "royal_enfield.png" },
-                  { name: "Ansys", file: "ansys.png" },
-                  { name: "EaseMyTrip", file: "easemytrip.png" },
-                  { name: "Skill AP", file: "skill_ap.png" },
-                  { name: "SMEV", file: "smev.png" },
-                  { name: "CK Birla Group", file: "ck_birla.png" },
-                  { name: "Luminous", file: "luminous.png" },
-                  { name: "Hero Electric", file: "hero_electric.png" },
-                  { name: "Roshi Motors", file: "roshi_motors.png" },
-                  { name: "Altair", file: "altair.png" }
-                ]).map((sponsor, idx) => (
-                  <div key={idx} className="relative inline-flex items-center justify-center w-40 md:w-56 h-20 md:h-28 hover:scale-110 transition-transform duration-500 cursor-pointer mx-8 md:mx-16 shrink-0">
-                    <Image 
-                      src={`/sponsors/${sponsor.file}`} 
-                      alt={sponsor.name}
-                      fill
-                      className="object-contain opacity-80 hover:opacity-100 transition-opacity duration-300 drop-shadow-sm"
-                    />
+                ].map((sponsor, idx) => (
+                  <div key={idx} className="flex items-center shrink-0 relative group px-2 md:px-4 lg:px-6">
+                    <div className="relative w-20 md:w-24 lg:w-28 h-10 md:h-12 lg:h-16 hover:scale-110 transition-transform duration-300">
+                      <Image 
+                        src={`/sponsors/${sponsor.file}`} 
+                        alt={sponsor.name}
+                        fill
+                        className="object-contain"
+                      />
+                    </div>
+                    {/* Vertical Divider */}
+                    {idx !== 9 && (
+                      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[1px] h-2/3 bg-jet-black/10"></div>
+                    )}
                   </div>
                 ))}
               </div>
