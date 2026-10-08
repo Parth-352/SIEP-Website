@@ -1,6 +1,7 @@
 "use client";
 
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function CompetitionPage() {
   return (
@@ -151,22 +152,23 @@ export default function CompetitionPage() {
           <h2 className="text-[10px] tracking-widest uppercase text-grey font-mono mb-8 block text-center">Official SIEP Sponsors & Partners</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {[
-              { name: "Royal Enfield", id: "royal_enfield" },
-              { name: "Ansys", id: "ansys" },
-              { name: "EaseMyTrip", id: "easemytrip" },
-              { name: "Skill AP", id: "skill_ap" },
-              { name: "SMEV", id: "smev" },
-              { name: "CK Birla Group", id: "ck_birla" },
-              { name: "Luminous", id: "luminous" },
-              { name: "Hero Electric", id: "hero_electric" },
-              { name: "Roshi Motors", id: "roshi_motors" },
-              { name: "Altair", id: "altair" }
+              { name: "Royal Enfield", file: "royal_enfield.png" },
+              { name: "Ansys", file: "ansys.png" },
+              { name: "EaseMyTrip", file: "easemytrip.png" },
+              { name: "Skill AP", file: "skill_ap.svg" },
+              { name: "SMEV", file: "smev.svg" },
+              { name: "CK Birla Group", file: "ck_birla.png" },
+              { name: "Luminous", file: "luminous.png" },
+              { name: "Hero Electric", file: "hero_electric.png" },
+              { name: "Roshi Motors", file: "roshi_motors.svg" },
+              { name: "Altair", file: "altair.png" }
             ].map((sponsor, idx) => (
-              <div key={idx} className="aspect-[3/2] flex items-center justify-center bg-white border border-jet-black/10 rounded-sm grayscale hover:grayscale-0 hover:shadow-md transition-all duration-300 cursor-pointer p-6">
-                <img 
-                  src={`/sponsors/${sponsor.id}.svg`} 
+              <div key={idx} className="relative aspect-[3/2] flex items-center justify-center bg-white border border-jet-black/10 rounded-sm grayscale hover:grayscale-0 hover:shadow-md transition-all duration-300 cursor-pointer p-6">
+                <Image 
+                  src={`/sponsors/${sponsor.file}`} 
                   alt={sponsor.name}
-                  className="max-w-full max-h-full object-contain opacity-70 hover:opacity-100 transition-opacity"
+                  fill
+                  className="object-contain p-4 opacity-70 hover:opacity-100 transition-opacity"
                 />
               </div>
             ))}
