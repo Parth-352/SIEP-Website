@@ -1,20 +1,33 @@
 "use client";
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
+
   return (
     <>
-      <nav className="fixed top-0 left-0 w-full px-6 py-4 flex justify-between items-center z-50 bg-alice-blue/70 backdrop-blur-lg border-b border-jet-black/10 shadow-sm pointer-events-auto font-sans transition-all duration-300">
-        <Link href="/" className="text-2xl font-black text-jet-black tracking-tighter z-50 relative">
+      <nav className="fixed top-0 left-0 w-full px-6 py-4 flex justify-between items-center z-[60] bg-alice-blue/70 backdrop-blur-lg border-b border-jet-black/10 shadow-sm pointer-events-auto font-sans transition-all duration-300">
+        <Link href="/" className="text-2xl font-black text-jet-black tracking-tighter z-[60] relative">
           Riders Bay<span className="text-orange">.</span>
         </Link>
         
         {/* Desktop Menu */}
         <div className="space-x-8 text-jet-black font-medium hidden md:flex items-center text-sm uppercase tracking-widest">
+          <Link href="/" className="hover:text-orange transition-colors">Home</Link>
           <Link href="/about" className="hover:text-orange transition-colors">About</Link>
           <Link href="/competition" className="hover:text-orange transition-colors">Competition</Link>
           <Link href="/bike" className="hover:text-orange transition-colors">The Bike</Link>
@@ -32,18 +45,28 @@ export default function Navigation() {
 
         {/* Mobile Menu Button */}
         <button 
-          className="md:hidden text-jet-black font-bold uppercase tracking-widest text-sm z-50 relative px-2 py-1"
+          className="md:hidden text-jet-black z-[60] relative p-2 focus:outline-none"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          aria-label="Toggle Menu"
         >
-          {isMobileMenuOpen ? 'Close' : 'Menu'}
+          {isMobileMenuOpen ? (
+            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
         </button>
       </nav>
 
       {/* Mobile Menu Overlay */}
       <div 
-        className={`fixed inset-0 bg-alice-blue z-40 transition-transform duration-500 ease-in-out flex flex-col justify-center items-center pt-20 pb-10 overflow-y-auto font-sans ${isMobileMenuOpen ? 'translate-y-0 pointer-events-auto' : '-translate-y-full pointer-events-none'}`}
+        className={`fixed inset-0 w-full h-[100dvh] bg-alice-blue z-50 transition-all duration-300 ease-in-out flex flex-col justify-center items-center overflow-y-auto font-sans ${isMobileMenuOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-8 pointer-events-none'}`}
       >
-        <div className="flex flex-col items-center space-y-4 text-xl uppercase tracking-widest font-bold text-jet-black w-full px-6 min-h-min">
+        <div className="flex flex-col items-center space-y-6 text-xl uppercase tracking-widest font-bold text-jet-black w-full px-8 py-24">
+          <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 pb-4">Home</Link>
           <Link href="/about" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 pb-4">About</Link>
           <Link href="/competition" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 pb-4">Competition</Link>
           <Link href="/bike" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 pb-4">The Bike</Link>
@@ -54,7 +77,7 @@ export default function Navigation() {
           <Link 
             href="/contact" 
             onClick={() => setIsMobileMenuOpen(false)}
-            className="w-full text-center px-6 py-4 bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold mt-4"
+            className="w-full text-center px-6 py-4 bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold mt-4 rounded-sm"
           >
             Contact
           </Link>
