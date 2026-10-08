@@ -181,12 +181,12 @@ export default function CompetitionPage() {
                   { name: "Roshi Motors", file: "roshi_motors.png" },
                   { name: "Altair", file: "altair.png" }
                 ]).map((sponsor, idx) => (
-                  <div key={idx} className="relative inline-flex items-center justify-center w-32 md:w-48 h-16 md:h-20 grayscale hover:grayscale-0 hover:scale-110 transition-all duration-500 cursor-pointer mx-6 md:mx-12 shrink-0">
+                  <div key={idx} className="relative inline-flex items-center justify-center w-40 md:w-56 h-20 md:h-28 hover:scale-110 transition-transform duration-500 cursor-pointer mx-8 md:mx-16 shrink-0">
                     <Image 
                       src={`/sponsors/${sponsor.file}`} 
                       alt={sponsor.name}
                       fill
-                      className="object-contain opacity-70 hover:opacity-100 transition-opacity duration-500 drop-shadow-sm"
+                      className="object-contain opacity-80 hover:opacity-100 transition-opacity duration-300 drop-shadow-sm"
                     />
                   </div>
                 ))}
