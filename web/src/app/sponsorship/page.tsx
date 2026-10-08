@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 
+import Image from 'next/image';
+
 const SUPPORT_AREAS = [
   "Financial Aid",
   "Components & Manufacturing",
@@ -9,6 +11,16 @@ const SUPPORT_AREAS = [
   "Software & Sensor Support",
   "Testing Access",
   "Logistics & Travel Support"
+];
+
+const SPONSORS = [
+  { name: 'Altair', logo: '/sponsors/altair.png' },
+  { name: 'Ansys', logo: '/sponsors/ansys.png' },
+  { name: 'CK Birla', logo: '/sponsors/ck_birla.png' },
+  { name: 'EaseMyTrip', logo: '/sponsors/easemytrip.png' },
+  { name: 'Hero Electric', logo: '/sponsors/hero_electric.png' },
+  { name: 'Luminous', logo: '/sponsors/luminous.png' },
+  { name: 'Royal Enfield', logo: '/sponsors/royal_enfield.png' }
 ];
 
 export default function SponsorshipPage() {
@@ -91,6 +103,22 @@ export default function SponsorshipPage() {
           )}
         </div>
       </div>
+
+      <section className="mt-32 pt-24 border-t border-jet-black/10">
+        <h2 className="text-3xl font-bold uppercase tracking-tight text-jet-black mb-12 text-center">Our Current Sponsors</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-16 items-center justify-items-center opacity-80">
+          {SPONSORS.map((sponsor) => (
+            <div key={sponsor.name} className="relative w-32 h-20 md:w-48 md:h-24 hover:scale-105 transition-transform duration-300 grayscale hover:grayscale-0">
+              <Image 
+                src={sponsor.logo} 
+                alt={`${sponsor.name} Logo`} 
+                fill
+                style={{ objectFit: 'contain' }}
+              />
+            </div>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }
