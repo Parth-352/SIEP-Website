@@ -2,7 +2,7 @@
 
 import React, { Suspense, useMemo } from 'react';
 import { Canvas, useLoader } from '@react-three/fiber';
-import { OrbitControls, Environment, ContactShadows, Center } from '@react-three/drei';
+import { OrbitControls, Environment, Center } from '@react-three/drei';
 import { STLLoader } from 'three-stdlib';
 
 function ChassisModel() {
@@ -36,7 +36,6 @@ export default function BikeExplorer() {
           <ambientLight intensity={0.5} />
           <directionalLight position={[5, 5, 5]} intensity={1} />
           <ChassisModel />
-          <ContactShadows position={[0, -1.2, 0]} opacity={0.5} scale={10} blur={2} />
           <OrbitControls 
             enableZoom={true} 
             enablePan={false}
