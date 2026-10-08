@@ -38,18 +38,20 @@ export default function AboutPage() {
             </div>
             <div>
               <h2 className="text-[10px] tracking-widest uppercase text-orange font-mono mb-4 block">02 / Methodology</h2>
-              <h3 className="text-3xl font-bold tracking-tight mb-6">Design. Test. Fabricate.</h3>
+              <h3 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">Design. Test. Fabricate.</h3>
               <p className="text-lg text-grey font-light leading-relaxed">
                 Every component is rigorously simulated in CAD before manufacturing. Our workflow mandates strict testing standards, ensuring structural integrity, thermal management, and power delivery are flawless before the wheels touch the ground.
               </p>
             </div>
           </div>
           
-          <div className="lg:col-span-7 flex flex-col justify-center pl-8 md:pl-16 border-l-[3px] border-orange">
-            <h2 className="text-[10px] tracking-widest uppercase text-grey font-mono mb-8 block">Engineering Philosophy</h2>
-            <blockquote className="text-3xl md:text-5xl font-bold tracking-tighter leading-[1.1] text-jet-black">
-              &quot;Our goal is not just to participate, but to <span className="text-orange">innovate</span>. We bridge the gap between theoretical knowledge and real-world application.&quot;
-            </blockquote>
+          <div className="lg:col-span-7 flex flex-col justify-center">
+            <div className="pl-8 md:pl-16 border-l-[3px] border-orange">
+              <h2 className="text-[10px] tracking-widest uppercase text-grey font-mono mb-8 block">Engineering Philosophy</h2>
+              <blockquote className="text-3xl md:text-5xl font-bold tracking-tighter leading-[1.1] text-jet-black">
+                &quot;Our goal is not just to participate, but to <span className="text-orange">innovate</span>. We bridge the gap between theoretical knowledge and real-world application.&quot;
+              </blockquote>
+            </div>
           </div>
         </section>
 
