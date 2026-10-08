@@ -1,6 +1,7 @@
 "use client";
 
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function CompetitionPage() {
   return (
@@ -158,33 +159,34 @@ export default function CompetitionPage() {
               
               <div className="flex whitespace-nowrap animate-marquee group-hover:[animation-play-state:paused] w-max">
                 {[
-                  { name: "Royal Enfield", file: "royal_enfield.svg" },
-                  { name: "Ansys", file: "ansys.svg" },
-                  { name: "EaseMyTrip", file: "easemytrip.svg" },
-                  { name: "Skill AP", file: "skill_ap.svg" },
-                  { name: "SMEV", file: "smev.svg" },
-                  { name: "CK Birla Group", file: "ck_birla.svg" },
-                  { name: "Luminous", file: "luminous.svg" },
-                  { name: "Hero Electric", file: "hero_electric.svg" },
-                  { name: "Roshi Motors", file: "roshi_motors.svg" },
-                  { name: "Altair", file: "altair.svg" }
+                  { name: "Royal Enfield", file: "royal_enfield.png" },
+                  { name: "Ansys", file: "ansys.png" },
+                  { name: "EaseMyTrip", file: "easemytrip.png" },
+                  { name: "Skill AP", file: "skill_ap.png" },
+                  { name: "SMEV", file: "smev.png" },
+                  { name: "CK Birla Group", file: "ck_birla.png" },
+                  { name: "Luminous", file: "luminous.png" },
+                  { name: "Hero Electric", file: "hero_electric.png" },
+                  { name: "Roshi Motors", file: "roshi_motors.png" },
+                  { name: "Altair", file: "altair.png" }
                 ].concat([
-                  { name: "Royal Enfield", file: "royal_enfield.svg" },
-                  { name: "Ansys", file: "ansys.svg" },
-                  { name: "EaseMyTrip", file: "easemytrip.svg" },
-                  { name: "Skill AP", file: "skill_ap.svg" },
-                  { name: "SMEV", file: "smev.svg" },
-                  { name: "CK Birla Group", file: "ck_birla.svg" },
-                  { name: "Luminous", file: "luminous.svg" },
-                  { name: "Hero Electric", file: "hero_electric.svg" },
-                  { name: "Roshi Motors", file: "roshi_motors.svg" },
-                  { name: "Altair", file: "altair.svg" }
+                  { name: "Royal Enfield", file: "royal_enfield.png" },
+                  { name: "Ansys", file: "ansys.png" },
+                  { name: "EaseMyTrip", file: "easemytrip.png" },
+                  { name: "Skill AP", file: "skill_ap.png" },
+                  { name: "SMEV", file: "smev.png" },
+                  { name: "CK Birla Group", file: "ck_birla.png" },
+                  { name: "Luminous", file: "luminous.png" },
+                  { name: "Hero Electric", file: "hero_electric.png" },
+                  { name: "Roshi Motors", file: "roshi_motors.png" },
+                  { name: "Altair", file: "altair.png" }
                 ]).map((sponsor, idx) => (
-                  <div key={idx} className="inline-flex items-center justify-center w-32 md:w-48 h-16 md:h-20 grayscale hover:grayscale-0 hover:scale-110 transition-all duration-500 cursor-pointer mx-6 md:mx-12 shrink-0">
-                    <img 
+                  <div key={idx} className="relative inline-flex items-center justify-center w-32 md:w-48 h-16 md:h-20 grayscale hover:grayscale-0 hover:scale-110 transition-all duration-500 cursor-pointer mx-6 md:mx-12 shrink-0">
+                    <Image 
                       src={`/sponsors/${sponsor.file}`} 
                       alt={sponsor.name}
-                      className="max-w-full max-h-full object-contain opacity-50 hover:opacity-100 transition-opacity duration-500"
+                      fill
+                      className="object-contain opacity-70 hover:opacity-100 transition-opacity duration-500 drop-shadow-sm"
                     />
                   </div>
                 ))}
