@@ -27,8 +27,10 @@ export default function AboutPage() {
         </section>
 
         {/* The Project & Methodology */}
-        <section className="mb-32 grid grid-cols-1 lg:grid-cols-12 gap-12">
-          <div className="lg:col-span-5 space-y-16">
+        <section className="mb-32 flex flex-col gap-24">
+          
+          {/* Top row: The Project & Methodology */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
             <div>
               <h2 className="text-[10px] tracking-widest uppercase text-orange font-mono mb-4 block">01 / The Project</h2>
               <h3 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">The Smart Scrambler.</h3>
@@ -45,14 +47,19 @@ export default function AboutPage() {
             </div>
           </div>
           
-          <div className="lg:col-span-7 flex flex-col justify-center">
-            <div className="pl-8 md:pl-16 border-l-[3px] border-orange">
-              <h2 className="text-[10px] tracking-widest uppercase text-grey font-mono mb-8 block">Engineering Philosophy</h2>
-              <blockquote className="text-3xl md:text-5xl font-bold tracking-tighter leading-[1.1] text-jet-black">
-                &quot;Our goal is not just to participate, but to <span className="text-orange">innovate</span>. We bridge the gap between theoretical knowledge and real-world application.&quot;
+          {/* Bottom row: The Philosophy */}
+          <div className="w-full border-t border-jet-black/10 pt-16 grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+            <div className="md:col-span-3">
+              <h2 className="text-[10px] tracking-widest uppercase text-grey font-mono mb-2 block">Engineering Philosophy</h2>
+              <p className="text-sm text-grey font-light">The core mandate driving the team forward.</p>
+            </div>
+            <div className="md:col-span-9">
+              <blockquote className="text-2xl md:text-4xl font-light tracking-tight leading-tight text-jet-black border-l-2 border-orange pl-8 md:pl-12 py-2">
+                &quot;Our goal is not just to participate, but to <span className="font-bold text-orange">innovate</span>. We bridge the gap between theoretical knowledge and real-world application.&quot;
               </blockquote>
             </div>
           </div>
+
         </section>
 
         {/* Mentorship & Impact */}
