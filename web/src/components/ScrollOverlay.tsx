@@ -85,10 +85,9 @@ export default function ScrollOverlay() {
 
       {/* Scroll Indicator */}
       <div id="scroll-indicator" className="absolute top-[85vh] left-1/2 -translate-x-1/2 animate-bounce flex flex-col items-center z-50 pointer-events-none">
-        <div className="bg-jet-black px-4 py-2 rounded-full mb-3 shadow-lg">
+        <div className="bg-jet-black px-4 py-2 rounded-full shadow-lg">
           <span className="text-[10px] tracking-[0.2em] uppercase text-alice-blue font-bold font-mono whitespace-nowrap">Scroll to Explore</span>
         </div>
-        <div className="w-[2px] h-8 bg-jet-black"></div>
       </div>
 
       {STAGES.map((stage) => (

@@ -66,36 +66,33 @@ export default function CompetitionPage() {
         </section>
 
         {/* Dynamic Testing Rounds */}
-        <section className="bg-white p-8 md:p-16 rounded-xl border border-jet-black/10 shadow-sm">
+        <section className="bg-jet-black/5 p-8 md:p-16 rounded-sm border border-jet-black/10">
           <h2 className="text-[10px] tracking-widest uppercase text-grey font-mono mb-12 block text-center">Dynamic Performance Tests</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
             
             <div>
               <h3 className="font-bold text-lg mb-2">Acceleration Test</h3>
-              <p className="text-sm text-jet-black/70 font-light leading-relaxed">Evaluates the vehicle&apos;s acceleration on a straight line over a distance of 50m on flat pavement from a standstill start.</p>
+              <p className="text-sm text-grey font-light">Evaluates the vehicle&apos;s acceleration on a straight line over a distance of 50m on flat pavement from a standstill start.</p>
             </div>
             <div>
               <h3 className="font-bold text-lg mb-2">Hill Climb Test</h3>
-              <p className="text-sm text-jet-black/70 font-light leading-relaxed">Tests the gradient traveling ability against a 40-degree total inclination, proving powertrain torque and vehicle dynamics.</p>
+              <p className="text-sm text-grey font-light">Tests the gradient traveling ability against a 40-degree total inclination, proving powertrain torque and vehicle dynamics.</p>
             </div>
             <div>
               <h3 className="font-bold text-lg mb-2">Off-Road Test</h3>
-              <p className="text-sm text-jet-black/70 font-light leading-relaxed">Pushes suspension dynamics to the limit through mud trails, deep potholes (140mm), and severe speed breakers.</p>
+              <p className="text-sm text-grey font-light">Pushes suspension dynamics to the limit through mud trails, deep potholes (140mm), and severe speed breakers.</p>
             </div>
             <div>
               <h3 className="font-bold text-lg mb-2">Self-Balancing Run</h3>
-              <p className="text-sm text-jet-black/70 font-light leading-relaxed">Riders must complete a sharp turning track without using their legs. The bike must not topple and must remain standstill at the finish line.</p>
+              <p className="text-sm text-grey font-light">Riders must complete a sharp turning track without using their legs. The bike must not topple and must remain standstill at the finish line.</p>
             </div>
             <div>
               <h3 className="font-bold text-lg mb-2">Driverless Parking</h3>
-              <p className="text-sm text-jet-black/70 font-light leading-relaxed">Vehicles must navigate into a narrow patch using voice activation or remote-controlled mechanisms without rider intervention.</p>
+              <p className="text-sm text-grey font-light">Vehicles must navigate into a narrow patch using voice activation or remote-controlled mechanisms without rider intervention.</p>
             </div>
             <div>
-              <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
-                Durability Test
-                <span className="bg-orange/20 text-orange text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-sm">The Ultimate Trial</span>
-              </h3>
-              <p className="text-sm text-jet-black/70 font-light leading-relaxed">Vehicles must run continuously for 40-50 Kms on a single charge. Any electrical breakdown or mechanical failure results in severe penalties or elimination.</p>
+              <h3 className="font-bold text-lg mb-2 text-orange">Durability Test (The Ultimate Trial)</h3>
+              <p className="text-sm text-grey font-light">Vehicles must run continuously for 40-50 Kms on a single charge. Any electrical breakdown or mechanical failure results in severe penalties or elimination.</p>
             </div>
 
           </div>
