@@ -154,36 +154,34 @@ export default function CompetitionPage() {
               Sponsors & Partners of SIEP
             </h2>
             
-            <div className="flex items-center w-full bg-white border border-jet-black/10 rounded-xl py-6 px-4 md:px-8 overflow-x-auto shadow-sm hide-scrollbar">
-              <div className="flex items-center justify-between min-w-max mx-auto w-full gap-2">
-                {[
-                  { name: "Royal Enfield", file: "royal_enfield.png" },
-                  { name: "Ansys", file: "ansys.png" },
-                  { name: "EaseMyTrip", file: "easemytrip.png" },
-                  { name: "Skill AP", file: "skill_ap.png" },
-                  { name: "SMEV", file: "smev.png" },
-                  { name: "CK Birla Group", file: "ck_birla.png" },
-                  { name: "Luminous", file: "luminous.png" },
-                  { name: "Hero Electric", file: "hero_electric.png" },
-                  { name: "Roshi Motors", file: "roshi_motors.png" },
-                  { name: "Altair", file: "altair.png" }
-                ].map((sponsor, idx) => (
-                  <div key={idx} className="flex items-center shrink-0 relative group px-2 md:px-4 lg:px-6">
-                    <div className="relative w-20 md:w-24 lg:w-28 h-10 md:h-12 lg:h-16 hover:scale-110 transition-transform duration-300">
-                      <Image 
-                        src={`/sponsors/${sponsor.file}`} 
-                        alt={sponsor.name}
-                        fill
-                        className="object-contain"
-                      />
-                    </div>
-                    {/* Vertical Divider */}
-                    {idx !== 9 && (
-                      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[1px] h-2/3 bg-jet-black/10"></div>
-                    )}
+            <div className="flex items-center justify-between w-full bg-white border border-jet-black/10 rounded-xl py-4 md:py-6 px-2 md:px-8 shadow-sm">
+              {[
+                { name: "Royal Enfield", file: "royal_enfield.png" },
+                { name: "Ansys", file: "ansys.png" },
+                { name: "EaseMyTrip", file: "easemytrip.png" },
+                { name: "Skill AP", file: "skill_ap.png" },
+                { name: "SMEV", file: "smev.png" },
+                { name: "CK Birla Group", file: "ck_birla.png" },
+                { name: "Luminous", file: "luminous.png" },
+                { name: "Hero Electric", file: "hero_electric.png" },
+                { name: "Roshi Motors", file: "roshi_motors.png" },
+                { name: "Altair", file: "altair.png" }
+              ].map((sponsor, idx) => (
+                <div key={idx} className="flex-1 flex items-center justify-center relative group px-1 md:px-3 h-8 sm:h-12 md:h-16">
+                  <div className="relative w-full h-full hover:scale-110 transition-transform duration-300">
+                    <Image 
+                      src={`/sponsors/${sponsor.file}`} 
+                      alt={sponsor.name}
+                      fill
+                      className="object-contain"
+                    />
                   </div>
-                ))}
-              </div>
+                  {/* Vertical Divider */}
+                  {idx !== 9 && (
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[1px] h-2/3 bg-jet-black/10"></div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </section>
