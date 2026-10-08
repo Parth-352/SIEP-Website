@@ -90,17 +90,31 @@ export default function AboutPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-12 gap-y-16">
-            {JOURNEY_STAGES.map((stage) => (
-              <div key={stage.num} className="relative border-l-2 border-jet-black/10 pl-6 group hover:border-orange transition-colors">
-                <div className="absolute w-3 h-3 bg-alice-blue border-2 border-jet-black group-hover:border-orange rounded-full -left-[7px] top-1 transition-colors"></div>
-                <span className="text-xs font-mono tracking-widest text-orange block mb-2">{stage.num}</span>
-                <h4 className="text-xl font-bold uppercase text-jet-black mb-2">{stage.title}</h4>
-                <p className="text-grey font-light text-sm">
-                  {stage.desc}
-                </p>
-              </div>
-            ))}
+          <div className="relative max-w-4xl mx-auto mt-24">
+            {/* The Vertical Line */}
+            <div className="absolute left-[7px] md:left-1/2 top-0 bottom-0 w-[2px] bg-jet-black/10 md:-translate-x-1/2"></div>
+            
+            <div className="space-y-16 md:space-y-24">
+              {JOURNEY_STAGES.map((stage, index) => {
+                const isEven = index % 2 === 0;
+                return (
+                  <div key={stage.num} className={`relative flex flex-col md:flex-row items-start ${isEven ? 'md:flex-row' : 'md:flex-row-reverse'} group`}>
+                    
+                    {/* The Node */}
+                    <div className="absolute left-0 md:left-1/2 top-1.5 w-4 h-4 bg-alice-blue border-2 border-jet-black group-hover:border-orange group-hover:bg-orange/10 rounded-full md:-translate-x-1/2 transition-all duration-300 z-10 group-hover:scale-150"></div>
+
+                    {/* Content Box */}
+                    <div className={`w-full md:w-1/2 pl-10 md:pl-0 ${isEven ? 'md:pr-16 md:text-right' : 'md:pl-16 md:text-left'}`}>
+                      <span className="text-[10px] font-mono tracking-widest text-orange block mb-2">{stage.num}</span>
+                      <h4 className="text-2xl md:text-3xl font-bold uppercase text-jet-black mb-3">{stage.title}</h4>
+                      <p className="text-grey font-light text-base md:text-lg">
+                        {stage.desc}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </section>
 
