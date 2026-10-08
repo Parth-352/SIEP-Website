@@ -31,7 +31,6 @@ export default function Navigation() {
           <Link href="/about" className="hover:text-orange transition-colors">About</Link>
           <Link href="/competition" className="hover:text-orange transition-colors">Competition</Link>
           <Link href="/bike" className="hover:text-orange transition-colors">The Bike</Link>
-          <Link href="/journey" className="hover:text-orange transition-colors">Journey</Link>
           <Link href="/student-hub" className="hover:text-orange transition-colors">Student Hub</Link>
           <Link href="/sponsorship" className="hover:text-orange transition-colors">Sponsors</Link>
           
@@ -70,7 +69,6 @@ export default function Navigation() {
           <Link href="/about" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 pb-4">About</Link>
           <Link href="/competition" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 pb-4">Competition</Link>
           <Link href="/bike" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 pb-4">The Bike</Link>
-          <Link href="/journey" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 pb-4">Journey</Link>
           <Link href="/student-hub" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 pb-4">Student Hub</Link>
           <Link href="/sponsorship" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 pb-4">Sponsors</Link>
           

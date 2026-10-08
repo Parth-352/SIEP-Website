@@ -97,3 +97,25 @@ Implemented /sponsorship page with resource request flow (cost report NOT public
 ### Reason
 Fulfill Engineering Story requirements, Sponsorship architecture, and 3D Asset strategy.
 
+
+### 2026-10-08 — Journey Page Consolidation
+
+#### Modified
+src/app/about/page.tsx
+src/components/Navigation.tsx
+
+#### Previous behaviour
+The Journey section was a standalone page at `/journey`.
+
+#### New behaviour
+The Journey section is now embedded at the bottom of the `/about` page (The Roadmap). The standalone page has been removed, and the navigation links have been updated accordingly.
+
+#### Removed
+src/app/journey/page.tsx
+Journey link from Navigation.tsx
+
+#### Archived
+_DUMP/removed-pages/journey.page.previous.tsx
+
+#### Reason
+User requested to consolidate the Journey content into the About page.

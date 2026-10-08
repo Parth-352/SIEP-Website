@@ -1,5 +1,16 @@
 import Link from 'next/link';
 
+const JOURNEY_STAGES = [
+  { num: '01', title: 'RESEARCH', desc: 'Market analysis and baseline metrics definition.' },
+  { num: '02', title: 'CONCEPT', desc: 'Initial sketches, packaging studies, and ergonomics.' },
+  { num: '03', title: 'CAD', desc: 'Detailed 3D modeling and structural assembly.' },
+  { num: '04', title: 'ENGINEERING', desc: 'FEA, CFD, and subsystem simulation.' },
+  { num: '05', title: 'FABRICATION', desc: 'Machining, welding, and component manufacturing.' },
+  { num: '06', title: 'INTEGRATION', desc: 'Assembling mechanical and electrical systems.' },
+  { num: '07', title: 'TESTING', desc: 'Real-world validation, dyno runs, and safety checks.' },
+  { num: '08', title: 'COMPETITION', desc: 'SIEP E-Bike Challenge 2026-27.' }
+];
+
 export default function AboutPage() {
   return (
     <main className="min-h-screen bg-alice-blue pt-32 pb-24 px-6 md:px-12 lg:px-24 font-sans text-jet-black">
@@ -66,6 +77,30 @@ export default function AboutPage() {
             <p className="text-lg text-grey font-light leading-relaxed">
               We are shaping the next generation of engineers. By designing complex electric vehicle architectures, our students gain invaluable experience that immediately translates to the rapidly evolving EV industry.
             </p>
+          </div>
+        </section>
+
+        {/* Project Journey */}
+        <section className="mb-32 border-t border-jet-black/10 pt-24">
+          <div className="mb-16">
+            <h2 className="text-[10px] tracking-widest uppercase text-orange font-mono mb-4 block">03 / The Roadmap</h2>
+            <h3 className="text-4xl md:text-5xl font-bold text-jet-black tracking-tight mb-4">Project Journey</h3>
+            <p className="text-lg text-grey font-light max-w-2xl">
+              The roadmap from an empty slate to a competition-ready machine.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-12 gap-y-16">
+            {JOURNEY_STAGES.map((stage) => (
+              <div key={stage.num} className="relative border-l-2 border-jet-black/10 pl-6 group hover:border-orange transition-colors">
+                <div className="absolute w-3 h-3 bg-alice-blue border-2 border-jet-black group-hover:border-orange rounded-full -left-[7px] top-1 transition-colors"></div>
+                <span className="text-xs font-mono tracking-widest text-orange block mb-2">{stage.num}</span>
+                <h4 className="text-xl font-bold uppercase text-jet-black mb-2">{stage.title}</h4>
+                <p className="text-grey font-light text-sm">
+                  {stage.desc}
+                </p>
+              </div>
+            ))}
           </div>
         </section>
 
