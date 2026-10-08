@@ -1,7 +1,6 @@
 "use client";
 
 import Link from 'next/link';
-import Image from 'next/image';
 
 export default function CompetitionPage() {
   return (
@@ -163,12 +162,11 @@ export default function CompetitionPage() {
               { name: "Roshi Motors", file: "roshi_motors.svg" },
               { name: "Altair", file: "altair.svg" }
             ].map((sponsor, idx) => (
-              <div key={idx} className="relative aspect-[3/2] flex items-center justify-center bg-white border border-jet-black/10 rounded-sm grayscale hover:grayscale-0 hover:shadow-md transition-all duration-300 cursor-pointer p-6">
-                <Image 
+              <div key={idx} className="aspect-[3/2] flex items-center justify-center bg-white border border-jet-black/10 rounded-sm grayscale hover:grayscale-0 hover:shadow-md transition-all duration-300 cursor-pointer p-6">
+                <img 
                   src={`/sponsors/${sponsor.file}`} 
                   alt={sponsor.name}
-                  fill
-                  className="object-contain p-4 opacity-70 hover:opacity-100 transition-opacity"
+                  className="max-w-full max-h-full object-contain opacity-70 hover:opacity-100 transition-opacity"
                 />
               </div>
             ))}
