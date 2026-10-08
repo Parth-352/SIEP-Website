@@ -45,11 +45,14 @@ export default function AboutPage() {
             </div>
           </div>
           
-          <div className="lg:col-span-7 bg-jet-black/5 rounded-sm p-8 md:p-16 flex flex-col justify-center border border-jet-black/10">
-            <h2 className="text-[10px] tracking-widest uppercase text-grey font-mono mb-8 block text-center">Engineering Philosophy</h2>
-            <blockquote className="text-2xl md:text-4xl font-bold tracking-tight text-center leading-tight">
-              &quot;Our goal is not just to participate, but to <span className="text-orange">innovate</span>. We bridge the gap between theoretical knowledge and real-world application.&quot;
+          <div className="lg:col-span-7 flex flex-col justify-center pl-8 md:pl-16 border-l-[3px] border-orange">
+            <h2 className="text-[10px] tracking-widest uppercase text-grey font-mono mb-8 block">Engineering Philosophy</h2>
+            <blockquote className="text-3xl md:text-5xl font-black tracking-tighter leading-[1.1] text-jet-black mb-6">
+              &quot;Our goal is not just to participate, but to <span className="text-orange">innovate</span>.&quot;
             </blockquote>
+            <p className="text-xl md:text-2xl font-light text-grey leading-relaxed">
+              We bridge the gap between theoretical knowledge and real-world application.
+            </p>
           </div>
         </section>
 
