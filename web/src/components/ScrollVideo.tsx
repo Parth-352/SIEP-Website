@@ -53,7 +53,7 @@ export default function ScrollVideo() {
           <source src="/video/ebike-story.mp4" type="video/mp4" />
         </video>
       ) : (
-        <div className="w-full h-full flex flex-col items-center justify-center bg-jet-black text-alice-blue">
+        <div className="w-full h-full flex flex-col items-center justify-center bg-white text-jet-black border border-jet-black/10">
           <h2 className="text-2xl font-bold font-mono tracking-widest text-grey text-center px-4">VIDEO ASSET PENDING</h2>
           <p className="text-sm text-grey mt-2 text-center px-4">Cinematic render will be placed here.</p>
         </div>
