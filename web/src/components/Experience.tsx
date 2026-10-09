@@ -87,9 +87,9 @@ export default function Experience() {
       },
     });
 
-    // Initial positioning (Hero) - Cinematic 3/4 beauty shot
-    gsap.set(groupRef.current.position, { x: 0, y: -0.5, z: 0 });
-    gsap.set(groupRef.current.rotation, { x: 0.05, y: -Math.PI / 4, z: 0 });
+    // Initial positioning (Hero) - Cinematic 3/4 beauty shot, positioned to the right to avoid overlapping text
+    gsap.set(groupRef.current.position, { x: 2.2, y: -1.2, z: 0 });
+    gsap.set(groupRef.current.rotation, { x: 0.1, y: -Math.PI / 5, z: 0 });
 
     // 0. Fade out the "Scroll to Explore" indicator immediately upon scrolling
     tl.to('#scroll-indicator', { opacity: 0, duration: 0.2, ease: 'power1.out' }, 0);
