@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import TeamSection from '@/components/TeamSection';
 
 const JOURNEY_STAGES = [
   { num: '01', title: 'RESEARCH', desc: 'Market analysis and baseline metrics definition.' },
@@ -63,9 +64,12 @@ export default function AboutPage() {
             <div>
               <h2 className="text-[10px] tracking-widest uppercase text-orange font-mono mb-4 block">03 / The Team</h2>
               <h3 className="text-3xl font-bold tracking-tight mb-6">Guided by Experts.</h3>
-              <p className="text-lg text-grey font-light leading-relaxed">
+              <p className="text-lg text-grey font-light leading-relaxed mb-4">
                 Guided by experienced faculty and industry mentors, Riders Bay operates like a modern engineering firm. Our cross-disciplinary team spans mechanical design, powertrain engineering, software development, and project logistics.
               </p>
+              <a href="#team" className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-orange hover:text-jet-black transition-colors font-semibold">
+                Explore Roster <span>↓</span>
+              </a>
             </div>
 
             {/* 04 */}
@@ -90,10 +94,13 @@ export default function AboutPage() {
           </div>
         </section>
 
+        {/* The Team */}
+        <TeamSection />
+
         {/* Project Journey */}
         <section className="mb-32 border-t border-jet-black/10 pt-24">
           <div className="mb-16">
-            <h2 className="text-[10px] tracking-widest uppercase text-orange font-mono mb-4 block">03 / The Roadmap</h2>
+            <h2 className="text-[10px] tracking-widest uppercase text-orange font-mono mb-4 block">05 / The Roadmap</h2>
             <h3 className="text-4xl md:text-5xl font-bold text-jet-black tracking-tight mb-4">Project Journey</h3>
             <p className="text-lg text-grey font-light max-w-2xl">
               The roadmap from an empty slate to a competition-ready machine.
