@@ -22,30 +22,21 @@ export default function ContactPage() {
     const formData = new FormData(form);
 
     try {
-      // TODO: Replace with your Web3Forms access key or Formspree endpoint
-      // Option 1 — Web3Forms (recommended, free & unlimited):
-      //   1. Go to https://web3forms.com and enter your email
-      //   2. Copy the access key they give you
-      //   3. Uncomment the line below and paste your key
-      //
-      // formData.append("access_key", "YOUR_WEB3FORMS_ACCESS_KEY_HERE");
-      // const res = await fetch("https://api.web3forms.com/submit", {
-      //   method: "POST",
-      //   body: formData,
-      // });
-      //
-      // Option 2 — Formspree (free, 50/month):
-      //   Replace the URL below with your Formspree form ID
-      // const res = await fetch("https://formspree.io/f/YOUR_FORM_ID", {
-      //   method: "POST",
-      //   body: formData,
-      //   headers: { Accept: "application/json" },
-      // });
+      formData.append("access_key", "1cfe077b-7899-43da-9049-69680003cb32");
+      formData.append("subject", "New Inquiry — Riders Bay SIEP Website");
+      formData.append("from_name", "SIEP Website Contact Form");
 
-      // Mock submission for now (remove this when you wire up a real service)
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setFormState('success');
-      form.reset();
+      const res = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        setFormState('success');
+        form.reset();
+      } else {
+        setFormState('error');
+      }
     } catch {
       setFormState('error');
     }
