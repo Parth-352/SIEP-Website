@@ -237,25 +237,25 @@ export default function TeamSection() {
             Meet The Team<span className="text-orange">.</span>
           </h3>
           <p className="text-lg text-grey font-light max-w-2xl mt-4 leading-relaxed">
-            The student engineers, subsystem leads, and faculty mentors behind SNJB&apos;s Smart Scrambler E-Bike for the SIEP National Championship 2026–27.
+            25 student engineers guided by 1 dedicated faculty mentor designing, simulating, and fabricating SNJB&apos;s Smart Scrambler E-Bike for the SIEP National Championship 2026–27.
           </p>
         </div>
 
         {/* Stats Pill */}
-        <div className="bg-jet-black text-alice-blue px-6 py-4 rounded-xl flex items-center gap-8 shadow-sm shrink-0">
+        <div className="bg-jet-black text-alice-blue px-6 py-4 rounded-xl flex items-center gap-6 md:gap-8 shadow-sm shrink-0">
           <div>
-            <div className="text-2xl font-black font-mono text-orange">35+</div>
-            <div className="text-[10px] uppercase font-mono tracking-widest text-grey">Engineers</div>
+            <div className="text-2xl font-black font-mono text-orange">25</div>
+            <div className="text-[10px] uppercase font-mono tracking-widest text-grey">Students</div>
           </div>
           <div className="w-[1px] h-8 bg-white/10"></div>
           <div>
-            <div className="text-2xl font-black font-mono text-alice-blue">4</div>
-            <div className="text-[10px] uppercase font-mono tracking-widest text-grey">Branches</div>
+            <div className="text-2xl font-black font-mono text-alice-blue">1</div>
+            <div className="text-[10px] uppercase font-mono tracking-widest text-grey">Mentor</div>
           </div>
           <div className="w-[1px] h-8 bg-white/10"></div>
           <div>
             <div className="text-2xl font-black font-mono text-orange">1</div>
-            <div className="text-[10px] uppercase font-mono tracking-widest text-grey">Goal</div>
+            <div className="text-[10px] uppercase font-mono tracking-widest text-grey">Mission</div>
           </div>
         </div>
       </div>
@@ -297,10 +297,10 @@ export default function TeamSection() {
             Collective Strength
           </span>
           <h4 className="text-2xl md:text-3xl font-black tracking-tight mb-2">
-            35+ Multidisciplinary Student Innovators
+            25 Student Innovators &amp; 1 Faculty Mentor
           </h4>
           <p className="text-sm text-grey font-light leading-relaxed">
-            Spanning Mechanical Design, Powertrain Integration, Battery Management, Embedded Telemetry, and Vehicle Dynamics from SNJB&apos;s KBJ College of Engineering, Chandwad.
+            A dedicated collective of 25 student engineers guided by 1 faculty mentor across Mechanical, Electrical, and Computer disciplines from SNJB&apos;s KBJ College of Engineering, Chandwad.
           </p>
         </div>
         <Link
