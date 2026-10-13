@@ -12,13 +12,43 @@ const SUPPORT_AREAS = [
 ];
 
 export default function ContactPage() {
-  const [formState, setFormState] = useState<'idle' | 'submitting' | 'success'>('idle');
-  const [inquiryType, setInquiryType] = useState('sponsorship');
+  const [formState, setFormState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFormState('submitting');
-    setTimeout(() => setFormState('success'), 1500);
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    try {
+      // TODO: Replace with your Web3Forms access key or Formspree endpoint
+      // Option 1 — Web3Forms (recommended, free & unlimited):
+      //   1. Go to https://web3forms.com and enter your email
+      //   2. Copy the access key they give you
+      //   3. Uncomment the line below and paste your key
+      //
+      // formData.append("access_key", "YOUR_WEB3FORMS_ACCESS_KEY_HERE");
+      // const res = await fetch("https://api.web3forms.com/submit", {
+      //   method: "POST",
+      //   body: formData,
+      // });
+      //
+      // Option 2 — Formspree (free, 50/month):
+      //   Replace the URL below with your Formspree form ID
+      // const res = await fetch("https://formspree.io/f/YOUR_FORM_ID", {
+      //   method: "POST",
+      //   body: formData,
+      //   headers: { Accept: "application/json" },
+      // });
+
+      // Mock submission for now (remove this when you wire up a real service)
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      setFormState('success');
+      form.reset();
+    } catch {
+      setFormState('error');
+    }
   };
 
   return (
@@ -32,7 +62,7 @@ export default function ContactPage() {
             PARTNER WITH<br/><span className="text-orange">RIDERS BAY.</span>
           </h1>
           <p className="text-lg md:text-xl text-grey font-light leading-relaxed max-w-2xl">
-            Whether you&apos;re looking to sponsor the project, request official documentation, or discuss technical collaboration — our team is ready to connect.
+            Whether you&apos;re looking to sponsor the project, request official documentation, or discuss technical collaboration — drop us a message and we&apos;ll get back to you.
           </p>
         </div>
 
@@ -100,9 +130,9 @@ export default function ContactPage() {
           
           <div className="relative z-10 max-w-4xl mx-auto">
             <h2 className="text-[10px] tracking-[0.3em] uppercase text-grey font-mono mb-4 block">Reach Out</h2>
-            <h3 className="text-3xl md:text-5xl font-bold tracking-tighter mb-4">Send Us a Request</h3>
+            <h3 className="text-3xl md:text-5xl font-bold tracking-tighter mb-4">Send Us a Message</h3>
             <p className="text-sm text-grey font-light mb-12 max-w-xl">
-              Submit your details below to request controlled project documents, discuss sponsorship, or start a technical collaboration.
+              Tell us what you need — sponsorship details, project documents, collaboration proposals — we&apos;ll respond personally.
             </p>
 
             {formState === 'success' ? (
@@ -110,78 +140,51 @@ export default function ContactPage() {
                 <div className="w-16 h-16 bg-orange/20 rounded-full flex items-center justify-center mx-auto mb-6">
                   <svg className="w-8 h-8 text-orange" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                 </div>
-                <h3 className="font-bold text-2xl mb-3">Request Received</h3>
-                {inquiryType === 'cost_report' ? (
-                  <p className="text-grey font-light text-sm max-w-md mx-auto">
-                    Your request for the Estimated Cost Report has been submitted for manual review. Due to the sensitive nature of these documents, they are not available for public download. We will contact you shortly.
-                  </p>
-                ) : (
-                  <p className="text-grey font-light text-sm max-w-md mx-auto">
-                    Thank you for reaching out. A team member will follow up with you regarding your request shortly.
-                  </p>
-                )}
+                <h3 className="font-bold text-2xl mb-3">Message Sent!</h3>
+                <p className="text-grey font-light text-sm max-w-md mx-auto">
+                  We&apos;ve received your message. A team member will get back to you shortly.
+                </p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
-                
-                <div>
-                  <label className="block text-[10px] uppercase font-bold tracking-widest text-grey mb-2">I&apos;m Interested In *</label>
-                  <select 
-                    required
-                    value={inquiryType}
-                    onChange={(e) => setInquiryType(e.target.value)}
-                    className="w-full p-4 bg-white/5 border border-white/10 focus:border-orange focus:outline-none transition-colors rounded-xl text-alice-blue"
-                  >
-                    <option value="sponsorship" className="text-jet-black">Sponsorship / Partnership</option>
-                    <option value="collaboration" className="text-jet-black">Technical Collaboration</option>
-                    <option value="project_ppt" className="text-jet-black">Project PPT</option>
-                    <option value="competition_brochure" className="text-jet-black">Competition Brochure</option>
-                    <option value="cost_report" className="text-jet-black">Cost Report (Manual Review Required)</option>
-                    <option value="general" className="text-jet-black">General Inquiry</option>
-                  </select>
-                  {inquiryType === 'cost_report' && (
-                    <p className="text-xs text-orange mt-2 italic">* This document requires manual approval and is not publicly downloadable.</p>
-                  )}
-                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] uppercase font-bold tracking-widest text-grey mb-2">Full Name *</label>
-                    <input type="text" required className="w-full p-4 bg-white/5 border border-white/10 focus:border-orange focus:outline-none transition-colors rounded-xl text-alice-blue placeholder-grey/50" placeholder="Your name" />
+                    <input name="name" type="text" required className="w-full p-4 bg-white/5 border border-white/10 focus:border-orange focus:outline-none transition-colors rounded-xl text-alice-blue placeholder-grey/50" placeholder="Your name" />
                   </div>
                   <div>
-                    <label className="block text-[10px] uppercase font-bold tracking-widest text-grey mb-2">Organization / Role *</label>
-                    <input type="text" required className="w-full p-4 bg-white/5 border border-white/10 focus:border-orange focus:outline-none transition-colors rounded-xl text-alice-blue placeholder-grey/50" placeholder="Company or college" />
+                    <label className="block text-[10px] uppercase font-bold tracking-widest text-grey mb-2">Organization / Role</label>
+                    <input name="organization" type="text" className="w-full p-4 bg-white/5 border border-white/10 focus:border-orange focus:outline-none transition-colors rounded-xl text-alice-blue placeholder-grey/50" placeholder="Company or college" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] uppercase font-bold tracking-widest text-grey mb-2">Email *</label>
-                    <input type="email" required className="w-full p-4 bg-white/5 border border-white/10 focus:border-orange focus:outline-none transition-colors rounded-xl text-alice-blue placeholder-grey/50" placeholder="you@example.com" />
+                    <input name="email" type="email" required className="w-full p-4 bg-white/5 border border-white/10 focus:border-orange focus:outline-none transition-colors rounded-xl text-alice-blue placeholder-grey/50" placeholder="you@example.com" />
                   </div>
                   <div>
                     <label className="block text-[10px] uppercase font-bold tracking-widest text-grey mb-2">WhatsApp / Phone</label>
-                    <input type="tel" className="w-full p-4 bg-white/5 border border-white/10 focus:border-orange focus:outline-none transition-colors rounded-xl text-alice-blue placeholder-grey/50" placeholder="+91 XXXXX XXXXX" />
+                    <input name="phone" type="tel" className="w-full p-4 bg-white/5 border border-white/10 focus:border-orange focus:outline-none transition-colors rounded-xl text-alice-blue placeholder-grey/50" placeholder="+91 XXXXX XXXXX" />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[10px] uppercase font-bold tracking-widest text-grey mb-2">Message</label>
-                  <textarea rows={4} className="w-full p-4 bg-white/5 border border-white/10 focus:border-orange focus:outline-none transition-colors rounded-xl text-alice-blue placeholder-grey/50 resize-none" placeholder="Tell us how you'd like to get involved..."></textarea>
+                  <label className="block text-[10px] uppercase font-bold tracking-widest text-grey mb-2">Message *</label>
+                  <textarea name="message" rows={5} required className="w-full p-4 bg-white/5 border border-white/10 focus:border-orange focus:outline-none transition-colors rounded-xl text-alice-blue placeholder-grey/50 resize-none" placeholder="Tell us what you're looking for — sponsorship info, project documents, collaboration ideas..."></textarea>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <input type="checkbox" id="consent" required className="accent-orange w-4 h-4" />
-                  <label htmlFor="consent" className="text-xs text-grey font-light">I consent to being contacted regarding this request.</label>
-                </div>
+                {formState === 'error' && (
+                  <p className="text-red-400 text-sm">Something went wrong. Please try again or email us directly.</p>
+                )}
 
                 <button 
                   type="submit" 
                   disabled={formState === 'submitting'}
                   className="w-full py-4 bg-orange text-jet-black font-bold uppercase tracking-widest text-sm hover:bg-white transition-colors disabled:opacity-50 rounded-xl"
                 >
-                  {formState === 'submitting' ? 'Submitting...' : 'Submit Request'}
+                  {formState === 'submitting' ? 'Sending...' : 'Send Message'}
                 </button>
               </form>
             )}
