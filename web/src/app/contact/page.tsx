@@ -116,7 +116,8 @@ export default function ContactPage() {
 
         {/* Form Section */}
         <section className="max-w-2xl mx-auto">
-          <h2 className="text-[10px] tracking-[0.3em] uppercase text-grey font-mono mb-4 block border-b border-jet-black/10 pb-3">Send a Message</h2>
+          <h2 className="text-3xl md:text-4xl font-black tracking-tight text-jet-black mb-2">Send a Message</h2>
+          <div className="w-12 h-1 bg-orange rounded-full mb-8"></div>
 
           {formState === 'success' ? (
             <div className="text-center py-16">
