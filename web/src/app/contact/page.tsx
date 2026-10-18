@@ -37,53 +37,65 @@ export default function ContactPage() {
     const form = e.currentTarget;
     const formData = new FormData(form);
 
-    const payload = {
-      name: formData.get("name"),
-      organization: formData.get("organization"),
-      email: formData.get("email"),
-      phone: formData.get("phone"),
-      message: formData.get("message"),
-    };
+    const name = String(formData.get("name") || "").trim();
+    const email = String(formData.get("email") || "").trim();
+    const organization = String(formData.get("organization") || "").trim();
+    const phone = String(formData.get("phone") || "").trim();
+    const message = String(formData.get("message") || "").trim();
+
+    // Prepare Web3Forms payload
+    formData.set("access_key", "1cfe077b-7899-43da-9049-69680003cb32");
+    formData.set("subject", `⚡ Partner Inquiry: ${name} (${organization || "Individual"})`);
+    formData.set("from_name", "Riders Bay Partner Portal");
+    formData.set("replyto", email);
+
+    // Save backup to internal server store in background
+    fetch("/api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, organization, phone, message }),
+    }).catch((err) => console.warn("Internal backup error:", err));
 
     try {
-      // 1. Submit to internal Next.js API route (saves to store and forwards to ebikeclubcoe@snjb.org)
-      const res = await fetch("/api/contact", {
+      // 1. Submit directly to Web3Forms (delivers immediately to ebikeclubcoe@snjb.org)
+      const web3Res = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
-      const data = await res.json();
-
-      if (res.ok && data.success) {
+      if (web3Res.ok) {
         setFormState('success');
         form.reset();
-      } else {
-        // Fallback: Attempt direct Web3Forms submission if server route had an issue
-        try {
-          formData.append("access_key", "1cfe077b-7899-43da-9049-69680003cb32");
-          formData.append("subject", "New Partner Inquiry — Riders Bay");
-          formData.append("from_name", "Riders Bay Contact Form");
-
-          const fallbackRes = await fetch("https://api.web3forms.com/submit", {
-            method: "POST",
-            body: formData,
-          });
-
-          if (fallbackRes.ok) {
-            setFormState('success');
-            form.reset();
-            return;
-          }
-        } catch {
-          // Fallback also failed
-        }
-
-        setErrorMessage(data.error || "Failed to submit. Please try again or email ebikeclubcoe@snjb.org.");
-        setFormState('error');
+        return;
       }
+
+      // 2. Secondary fallback: FormSubmit API
+      const fsRes = await fetch("https://formsubmit.co/ajax/ebikeclubcoe@snjb.org", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          organization: organization || "Not specified",
+          phone: phone || "Not specified",
+          message,
+          _subject: `⚡ Partner Inquiry: ${name} (${organization || "Individual"})`,
+          _template: "table",
+        }),
+      });
+
+      if (fsRes.ok) {
+        setFormState('success');
+        form.reset();
+        return;
+      }
+
+      throw new Error("Automated dispatch failed.");
     } catch {
-      setErrorMessage("Network error. Please verify your connection or email ebikeclubcoe@snjb.org directly.");
+      setErrorMessage("Could not dispatch inquiry email automatically. Please email ebikeclubcoe@snjb.org directly.");
       setFormState('error');
     }
   };
@@ -254,8 +266,12 @@ export default function ContactPage() {
                 </div>
                 <h3 className="font-bold text-2xl text-jet-black">Inquiry Transmitted!</h3>
                 <p className="text-grey font-light text-sm max-w-md mx-auto leading-relaxed">
-                  Thank you for reaching out. Your message has been dispatched to the team leadership at <strong className="text-jet-black">ebikeclubcoe@snjb.org</strong>. We will review and reply shortly.
+                  Thank you for reaching out. Your message has been dispatched directly to <strong className="text-jet-black">ebikeclubcoe@snjb.org</strong>. Our leadership team will review and reply shortly.
                 </p>
+                <div className="p-3.5 bg-alice-blue border border-jet-black/10 rounded-xl text-xs font-mono text-grey max-w-md mx-auto text-left leading-relaxed">
+                  <span className="font-bold text-jet-black block mb-0.5">📬 Inbox Notice:</span>
+                  If you are checking the recipient inbox (<code className="text-orange">ebikeclubcoe@snjb.org</code>), automated inquiries may take 1–2 minutes to appear or may filter into your <strong>Spam / Junk</strong> folder.
+                </div>
                 <button
                   type="button"
                   onClick={() => setFormState('idle')}
