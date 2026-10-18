@@ -152,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return {
       success: false,
-      error: `Invalid credentials. Expected format: teamName@ridersbay.com and password: teamName@9352`,
+      error: 'Invalid credentials. Please verify your team email and password.',
     };
   }
 

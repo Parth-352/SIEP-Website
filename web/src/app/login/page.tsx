@@ -70,7 +70,7 @@ function LoginForm() {
     try {
       const res = await login(team.email, password);
       if (!res.success) {
-        setError(res.error || `Invalid password for [${team.code}] ${team.name}. Check format: ${team.shortName}@9352`);
+        setError(res.error || `Invalid password for [${team.code}] ${team.name}. Please enter your authorized team password.`);
         setIsSubmitting(false);
       } else {
         // Successful login: navigate to target page
@@ -175,7 +175,11 @@ function LoginForm() {
                       {t.code}
                     </span>
                     {isSelected && (
-                      <span className="text-orange text-xs font-bold">&check;</span>
+                      <span className="w-4 h-4 rounded-full bg-orange text-white flex items-center justify-center shrink-0">
+                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </span>
                     )}
                   </div>
 
@@ -248,9 +252,6 @@ function LoginForm() {
                 <label className="text-xs font-mono uppercase tracking-wider text-grey font-medium">
                   Team Password *
                 </label>
-                <span className="text-[10px] font-mono text-grey/70">
-                  Format: teamName@9352
-                </span>
               </div>
               <div className="relative">
                 <input
@@ -259,7 +260,7 @@ function LoginForm() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={selectedTeam ? `e.g. ${selectedTeam.shortName}@9352` : 'Select a team first...'}
+                  placeholder={selectedTeam ? "Enter team password..." : "Select a team first..."}
                   disabled={!selectedTeamId}
                   className="w-full px-4 py-3 pr-11 rounded-xl border border-jet-black/15 bg-alice-blue/40 text-jet-black placeholder:text-grey/40 text-sm focus:outline-none focus:ring-2 focus:ring-orange focus:border-transparent transition-all font-mono disabled:opacity-50 disabled:cursor-not-allowed"
                 />

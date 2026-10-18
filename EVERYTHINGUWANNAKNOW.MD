@@ -139,7 +139,7 @@ The **SIEP E-Bike Challenge (Student Innovation and Engineering Program)** is In
 
 The Riders Bay team is structured exactly like an agile engineering corporation, divided into 8 technical and operational divisions overseen by Core Leadership.
 
-### 4.1 Faculty Mentor & Core Leadership
+### 4.1 Faculty Mentor & Domain Leads
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -148,87 +148,88 @@ The Riders Bay team is structured exactly like an agile engineering corporation,
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
 ┌───────────────────────────────────┴────────────────────────────────────┐
-│                            CORE LEADERSHIP                             │
-│   • Meet Samdadiya (Captain & Mechanical/Design Lead)                  │
-│   • Pratik Desarda (Vice Captain & Documentation Lead)                 │
-│   • Tirthraj Pawale (Technical Lead & EnTC Lead)                       │
-│   • Parth Kshirsagar (Software Lead & Telemetry Architect)             │
-│   • Aditya Fuldeore (Research Lead & Simulation Specialist)            │
-│   • Shravani Gadekar (Sponsorship Lead & Outreach Head)                │
-│   • Nishant Shinde (Social Media Lead & Creative Director)             │
+│                             DOMAIN LEADS                               │
+│   1. Software        : Parth Kshirsagar (Parth Prashant Kshirsagar)    │
+│   2. EnTC            : Tirthraj Pawale                                 │
+│   3. Mechanical      : Meet Samdadiya (Meet Nayan Samdadiya)           │
+│   4. Design          : Meet Samdadiya (Meet Nayan Samdadiya)           │
+│   5. Research        : Aditya Fuldeore (Aditya Namdeo Fuldeore)        │
+│   6. Sponsorship     : Shravani Gadekar (Shravani Chaitanya Gadekar)   │
+│   7. Social Media    : Nishant Shinde (Nishant Rajendra Shinde)        │
+│   8. Documentation   : Pratik Desarda (Desarda Pratik Sachin)          │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 4.2 The 8 Subsystems & Complete 25-Student Roster
+### 4.2 The 8 Domains & Complete Roster (From Official Records)
 
-#### 1. Software & Telemetry (`software`)
-- **Parth Kshirsagar** *(Lead)*: Software Lead & Telemetry Architect
-- **Samiksha Patole**: Frontend & Dashboard Developer
-- **Shravani Gadekar**: Data & Telemetry Engineer
-- **Riddhi Munot**: Embedded Software Engineer
-- **Nishant Shinde**: CAN Bus & Sensor Integration
+#### 1. Software
+- **Parth Prashant Kshirsagar** *(Domain Lead)*
+- Samiksha Vasant Patole
+- Shravani Chaitanya Gadekar
+- Riddhi Niraj Munot
+- Nishant Rajendra Shinde
 
-#### 2. Electronics & Telecommunication (`entc`)
-- **Tirthraj Pawale** *(Lead)*: EnTC Lead & Powertrain Engineer
-- **Ankita Bachhav**: BMS Architecture Engineer
-- **Pratik Desarda**: Electronics Systems Engineer
-- **Nayan Jain**: Power Electronics & Inverter
-- **Snehal Shinde**: Sensor Wiring & Wire Harness
-- **Prathamesh Deshmukh**: Microcontroller Firmware
-- **Prem Chaudhari**: Safety Interlocks & Fusing
-- **Sharvari Bhambar**: Hardware Testing & QC
-- **Mohit Pagar**: Telemetry & Circuit Design
+#### 2. EnTC
+- **Tirthraj Pawale** *(Domain Lead)*
+- Bachhav Ankita Rakesh
+- Desarda Pratik Sachin
+- Nayan Punamchand Jain
+- Snehal Ravsaheb Shinde
+- Prathamesh Sanjay Deshmukh
+- Prem Manohar Chaudhari
+- Sharvari Prashant Bhambar
+- Pagar Mohit Yogesh
 
-#### 3. Mechanical & Chassis (`mechanical`)
-- **Meet Samdadiya** *(Lead)*: Team Captain & Mechanical Lead
-- **Ganesh Sonawane**: Chassis & Spaceframe Fabrication
-- **Mohit Pagar**: TIG Welding & Prototyping
-- **Prathamesh Tidake**: Suspension Kinematics & Tuning
-- **Siddhesh Raskar**: Braking & Steering Dynamics
-- **Ajay Kate**: Drivetrain & Machining
-- **Kiran Nyaharkar**: Structural Assembly & Fitting
+#### 3. Mechanical
+- **Meet Nayan Samdadiya** *(Domain Lead)*
+- Ganesh Santosh Sonawane
+- Pagar Mohit Yogesh
+- Prathamesh Vilas Tidake
+- Siddhesh Raskar
+- Ajay Dilip Kate
+- Nyaharkar Kiran Balasaheb
 
-#### 4. Design & Ergonomics (`design`)
-- **Meet Samdadiya** *(Lead)*: Design Lead & CAD Architect
-- **Aditya Fuldeore**: Aerodynamics & Fairing Modeling
-- **Prathamesh Tidake**: Suspension Geometry Modeling
-- **Prem Chaudhari**: Ergonomics & Rider Packaging
-- **Siddhesh Raskar**: Chassis 3D Modeling
+#### 4. Design
+- **Meet Nayan Samdadiya** *(Domain Lead)*
+- Aditya Namdeo Fuldeore
+- Prathamesh Vilas Tidake
+- Prem Manohar Chaudhari
+- Siddhesh Raskar
 
-#### 5. Research & Simulation (`research`)
-- **Aditya Fuldeore** *(Lead)*: Research Lead & Simulation Specialist
-- **Omshri Ahire**: FEA Structural Stress Analysis
-- **Ankita Bachhav**: Thermal & Battery Simulation
-- **Shravani Gadekar**: Materials & Composites R&D
-- **Meet Samdadiya**: Dynamic Load Testing
-- **Tirthraj Pawale**: Motor Efficiency Research
-- **Nayan Jain**: Regenerative Braking Analysis
+#### 5. Research
+- **Aditya Namdeo Fuldeore** *(Domain Lead)*
+- Ahire Omshri Shrikant
+- Bachhav Ankita Rakesh
+- Shravani Chaitanya Gadekar
+- Meet Nayan Samdadiya
+- Tirthraj Pawale
+- Nayan Punamchand Jain
 
-#### 6. Sponsorship & Outreach (`sponsorship`)
-- **Shravani Gadekar** *(Lead)*: Sponsorship Lead & Outreach Head
-- **Pratik Desarda**: Corporate Relations & Budgeting
-- **Nishant Shinde**: Sponsor Pitch Decks & Proposals
-- **Snehal Shinde**: Vendor & Industry Partnerships
-- **Meet Samdadiya**: Technical Deliverables Liaison
-- **Parth Kshirsagar**: Digital Sponsorship Collateral
-- **Riddhi Munot**: Alumni & Outreach Network
-- **Omshri Ahire**: Procurement & Financial Audit
+#### 6. Sponsorship
+- **Shravani Chaitanya Gadekar** *(Domain Lead)*
+- Desarda Pratik Sachin
+- Nishant Rajendra Shinde
+- Snehal Ravsaheb Shinde
+- Meet Nayan Samdadiya
+- Parth Prashant Kshirsagar
+- Riddhi Niraj Munot
+- Ahire Omshri Shrikant
 
-#### 7. Social Media & Media (`socialmedia`)
-- **Nishant Shinde** *(Lead)*: Social Media Lead & Creative Director
-- **Nikhil Patil**: Cinematography & Video Production
-- **Tirthraj Pawale**: Technical Storytelling & Reels
-- **Ajay Kate**: Behind-the-Scenes & Photography
-- **Ankita Bachhav**: Public Relations & Campaign Copy
+#### 7. Social Media
+- **Nishant Rajendra Shinde** *(Domain Lead)*
+- Nikhil Prabhakar Patil
+- Tirthraj Pawale
+- Ajay Dilip Kate
+- Bachhav Ankita Rakesh
 
-#### 8. Documentation & Compliance (`documentation`)
-- **Pratik Desarda** *(Lead)*: Documentation Lead & Rulebook Compliance
-- **Nikhil Patil**: Design Report Compilation
-- **Sharvari Bhambar**: Technical Regulations & Audit
-- **Snehal Shinde**: Bill of Materials (BOM) Tracking
-- **Parth Kshirsagar**: System Documentation & Archives
-- **Riddhi Munot**: Submission Compliance Officer
-- **Ajay Kate**: Fabrication Records & Step Log
+#### 8. Documentation
+- **Desarda Pratik Sachin** *(Domain Lead)*
+- Nikhil Prabhakar Patil
+- Sharvari Prashant Bhambar
+- Snehal Ravsaheb Shinde
+- Parth Prashant Kshirsagar
+- Riddhi Niraj Munot
+- Ajay Dilip Kate
 
 ---
 
@@ -301,7 +302,7 @@ The internal portal provides role-based access for the team.
 | Team Division | Short Code | Portal Login Email | Default Password | Role Access |
 | :--- | :---: | :--- | :--- | :---: |
 | **Core Leadership** | `CORE` | `core@ridersbay.com` | `Core@9352` | Admin |
-| **Software & Telemetry** | `SOFT` | `software@ridersbay.com` | `Software@9352` | Admin |
+| **Software** | `SOFT` | `software@ridersbay.com` | `Software@9352` | Admin |
 | **Mechanical & Chassis** | `MECH` | `mechanical@ridersbay.com` | `Mechanical@9352` | Admin |
 | **Electronics & Telecom** | `ENTC` | `entc@ridersbay.com` | `EnTC@9352` | Team |
 | **Design & Ergonomics** | `DSGN` | `design@ridersbay.com` | `Design@9352` | Team |
