@@ -7,7 +7,7 @@ const JOURNEY_STAGES = [
   { num: '03', title: 'CAD', desc: 'Detailed 3D modeling and structural assembly.' },
   { num: '04', title: 'ENGINEERING', desc: 'FEA, CFD, and subsystem simulation.' },
   { num: '05', title: 'FABRICATION', desc: 'Machining, welding, and component manufacturing.' },
-  { num: '06', title: 'INTEGRATION', desc: 'Assembling mechanical and electrical systems.' },
+  { num: '06', title: 'INTEGRATION', desc: 'Assembling mechanical and vehicle systems.' },
   { num: '07', title: 'TESTING', desc: 'Real-world validation, dyno runs, and safety checks.' },
   { num: '08', title: 'COMPETITION', desc: 'SIEP E-Bike Challenge 2026-27.' }
 ];

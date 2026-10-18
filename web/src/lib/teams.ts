@@ -3,7 +3,7 @@ import { TeamConfig, TeamId } from './types';
 export const TEAMS: Record<TeamId, TeamConfig> = {
   software: {
     id: 'software',
-    name: 'Software & Telemetry',
+    name: 'Software',
     shortName: 'Software',
     code: 'SOFT',
     email: 'software@ridersbay.com',
@@ -12,7 +12,7 @@ export const TEAMS: Record<TeamId, TeamConfig> = {
     color: '#8B5CF6',
     badgeBg: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
     badgeText: 'text-purple-400',
-    description: 'CAN bus telemetry, real-time sensor dashboards, digital cluster UI, and cloud analytics',
+    description: 'CAN bus communication, real-time sensor dashboards, digital cluster UI, and cloud analytics',
     lead: 'Parth Kshirsagar',
   },
   entc: {
@@ -26,7 +26,7 @@ export const TEAMS: Record<TeamId, TeamConfig> = {
     color: '#38BDF8',
     badgeBg: 'bg-sky-500/10 text-sky-400 border-sky-500/30',
     badgeText: 'text-sky-400',
-    description: 'Battery management systems (BMS), 72V powertrain wiring, microcontroller integration, and hardware telemetry',
+    description: 'Battery management systems (BMS), 72V powertrain wiring, microcontroller integration, and hardware systems',
     lead: 'Tirthraj Pawale',
   },
   mechanical: {

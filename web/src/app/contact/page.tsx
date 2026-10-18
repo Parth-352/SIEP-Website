@@ -57,20 +57,8 @@ export default function ContactPage() {
     }).catch((err) => console.warn("Internal backup error:", err));
 
     try {
-      // 1. Submit directly to Web3Forms (delivers immediately to ebikeclubcoe@snjb.org)
-      const web3Res = await fetch("https://api.web3forms.com/submit", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (web3Res.ok) {
-        setFormState('success');
-        form.reset();
-        return;
-      }
-
-      // 2. Secondary fallback: FormSubmit API
-      const fsRes = await fetch("https://formsubmit.co/ajax/ebikeclubcoe@snjb.org", {
+      // 1. Primary: Direct submission to FormSubmit (verified active for ebikeclubcoe@snjb.org)
+      const fsRes = await fetch("https://formsubmit.co/ajax/1fdf7ecce72981c4ea938c45aeb47357", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -82,12 +70,26 @@ export default function ContactPage() {
           organization: organization || "Not specified",
           phone: phone || "Not specified",
           message,
-          _subject: `⚡ Partner Inquiry: ${name} (${organization || "Individual"})`,
+          _subject: `⚡ New Partner Inquiry: ${name} (${organization || "Individual"})`,
           _template: "table",
+          _captcha: "false",
+          _replyto: email,
         }),
       });
 
       if (fsRes.ok) {
+        setFormState('success');
+        form.reset();
+        return;
+      }
+
+      // 2. Secondary fallback: Web3Forms
+      const web3Res = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (web3Res.ok) {
         setFormState('success');
         form.reset();
         return;
