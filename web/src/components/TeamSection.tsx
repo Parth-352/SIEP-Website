@@ -72,10 +72,10 @@ const TEAM_MEMBERS_DATA: TeamMember[] = [
     image: '/team/prof_deore.jpg',
   },
 
-  // 1. Meet Nayan Samdadiya (Domain Lead: Mechanical & Design; Member: Research, Sponsorship)
+  // 1. Meet Samdadiya (Domain Lead: Mechanical & Design; Member: Research, Sponsorship)
   {
     id: 'meet',
-    name: 'Meet Nayan Samdadiya',
+    name: 'Meet Samdadiya',
     department: 'Mechanical Engineering',
     domains: ['mechanical', 'design', 'research', 'sponsorship'],
     leadDomains: ['mechanical', 'design'],
@@ -92,146 +92,146 @@ const TEAM_MEMBERS_DATA: TeamMember[] = [
     image: '/team/tirthraj_pawale.jpg',
   },
 
-  // 3. Desarda Pratik Sachin (Domain Lead: Documentation; Member: EnTC, Sponsorship)
+  // 3. Pratik Desarda (Domain Lead: Documentation; Member: EnTC, Sponsorship)
   {
     id: 'pratik',
-    name: 'Desarda Pratik Sachin',
+    name: 'Pratik Desarda',
     department: 'Electronics & Telecommunication',
     domains: ['documentation', 'entc', 'sponsorship'],
     leadDomains: ['documentation'],
     image: '/team/pratik_desarda.jpg',
   },
 
-  // 4. Parth Prashant Kshirsagar (Domain Lead: Software; Member: Sponsorship, Documentation)
+  // 4. Parth Kshirsagar (Domain Lead: Software; Member: Sponsorship, Documentation)
   {
     id: 'parth',
-    name: 'Parth Prashant Kshirsagar',
+    name: 'Parth Kshirsagar',
     department: 'Computer Engineering',
     domains: ['software', 'sponsorship', 'documentation'],
     leadDomains: ['software'],
   },
 
-  // 5. Aditya Namdeo Fuldeore (Domain Lead: Research; Member: Design)
+  // 5. Aditya Fuldeore (Domain Lead: Research; Member: Design)
   {
     id: 'aditya',
-    name: 'Aditya Namdeo Fuldeore',
+    name: 'Aditya Fuldeore',
     department: 'Mechanical Engineering',
     domains: ['research', 'design'],
     leadDomains: ['research'],
   },
 
-  // 6. Shravani Chaitanya Gadekar (Domain Lead: Sponsorship; Member: Software, Research)
+  // 6. Shravani Gadekar (Domain Lead: Sponsorship; Member: Software, Research)
   {
     id: 'shravani',
-    name: 'Shravani Chaitanya Gadekar',
+    name: 'Shravani Gadekar',
     department: 'Computer Engineering',
     domains: ['sponsorship', 'software', 'research'],
     leadDomains: ['sponsorship'],
   },
 
-  // 7. Nishant Rajendra Shinde (Domain Lead: Social Media; Member: Software, Sponsorship)
+  // 7. Nishant Shinde (Domain Lead: Social Media; Member: Software, Sponsorship)
   {
     id: 'nishant',
-    name: 'Nishant Rajendra Shinde',
+    name: 'Nishant Shinde',
     department: 'Computer Engineering',
     domains: ['socialmedia', 'software', 'sponsorship'],
     leadDomains: ['socialmedia'],
   },
 
-  // 8. Samiksha Vasant Patole (Software)
+  // 8. Samiksha Patole (Software)
   {
     id: 'samiksha',
-    name: 'Samiksha Vasant Patole',
+    name: 'Samiksha Patole',
     department: 'Computer Engineering',
     domains: ['software'],
     leadDomains: [],
   },
 
-  // 9. Riddhi Niraj Munot (Software, Sponsorship, Documentation)
+  // 9. Riddhi Munot (Software, Sponsorship, Documentation)
   {
     id: 'riddhi',
-    name: 'Riddhi Niraj Munot',
+    name: 'Riddhi Munot',
     department: 'Computer Engineering',
     domains: ['software', 'sponsorship', 'documentation'],
     leadDomains: [],
   },
 
-  // 10. Bachhav Ankita Rakesh (EnTC, Research, Social Media)
+  // 10. Ankita Bachhav (EnTC, Research, Social Media)
   {
     id: 'ankita',
-    name: 'Bachhav Ankita Rakesh',
+    name: 'Ankita Bachhav',
     department: 'Electronics & Telecommunication',
     domains: ['entc', 'research', 'socialmedia'],
     leadDomains: [],
   },
 
-  // 11. Nayan Punamchand Jain (EnTC, Research)
+  // 11. Nayan Jain (EnTC, Research)
   {
     id: 'nayan',
-    name: 'Nayan Punamchand Jain',
+    name: 'Nayan Jain',
     department: 'Electronics & Telecommunication',
     domains: ['entc', 'research'],
     leadDomains: [],
   },
 
-  // 12. Snehal Ravsaheb Shinde (EnTC, Sponsorship, Documentation)
+  // 12. Snehal Shinde (EnTC, Sponsorship, Documentation)
   {
     id: 'snehal',
-    name: 'Snehal Ravsaheb Shinde',
+    name: 'Snehal Shinde',
     department: 'Electronics & Telecommunication',
     domains: ['entc', 'sponsorship', 'documentation'],
     leadDomains: [],
   },
 
-  // 13. Prathamesh Sanjay Deshmukh (EnTC)
+  // 13. Prathamesh Deshmukh (EnTC)
   {
     id: 'prathamesh-d',
-    name: 'Prathamesh Sanjay Deshmukh',
+    name: 'Prathamesh Deshmukh',
     department: 'Electronics & Telecommunication',
     domains: ['entc'],
     leadDomains: [],
   },
 
-  // 14. Prem Manohar Chaudhari (EnTC, Design)
+  // 14. Prem Chaudhari (EnTC, Design)
   {
     id: 'prem',
-    name: 'Prem Manohar Chaudhari',
+    name: 'Prem Chaudhari',
     department: 'Electronics & Telecommunication',
     domains: ['entc', 'design'],
     leadDomains: [],
   },
 
-  // 15. Sharvari Prashant Bhambar (EnTC, Documentation)
+  // 15. Sharvari Bhambar (EnTC, Documentation)
   {
     id: 'sharvari',
-    name: 'Sharvari Prashant Bhambar',
+    name: 'Sharvari Bhambar',
     department: 'Electronics & Telecommunication',
     domains: ['entc', 'documentation'],
     leadDomains: [],
   },
 
-  // 16. Pagar Mohit Yogesh (EnTC, Mechanical)
+  // 16. Mohit Pagar (EnTC, Mechanical)
   {
     id: 'mohit',
-    name: 'Pagar Mohit Yogesh',
+    name: 'Mohit Pagar',
     department: 'Mechanical Engineering',
     domains: ['entc', 'mechanical'],
     leadDomains: [],
   },
 
-  // 17. Ganesh Santosh Sonawane (Mechanical)
+  // 17. Ganesh Sonawane (Mechanical)
   {
     id: 'ganesh',
-    name: 'Ganesh Santosh Sonawane',
+    name: 'Ganesh Sonawane',
     department: 'Mechanical Engineering',
     domains: ['mechanical'],
     leadDomains: [],
   },
 
-  // 18. Prathamesh Vilas Tidake (Mechanical, Design)
+  // 18. Prathamesh Tidake (Mechanical, Design)
   {
     id: 'prathamesh-t',
-    name: 'Prathamesh Vilas Tidake',
+    name: 'Prathamesh Tidake',
     department: 'Mechanical Engineering',
     domains: ['mechanical', 'design'],
     leadDomains: [],
@@ -246,37 +246,37 @@ const TEAM_MEMBERS_DATA: TeamMember[] = [
     leadDomains: [],
   },
 
-  // 20. Ajay Dilip Kate (Mechanical, Social Media, Documentation)
+  // 20. Ajay Kate (Mechanical, Social Media, Documentation)
   {
     id: 'ajay',
-    name: 'Ajay Dilip Kate',
+    name: 'Ajay Kate',
     department: 'Mechanical Engineering',
     domains: ['mechanical', 'socialmedia', 'documentation'],
     leadDomains: [],
   },
 
-  // 21. Nyaharkar Kiran Balasaheb (Mechanical)
+  // 21. Kiran Nyaharkar (Mechanical)
   {
     id: 'kiran',
-    name: 'Nyaharkar Kiran Balasaheb',
+    name: 'Kiran Nyaharkar',
     department: 'Mechanical Engineering',
     domains: ['mechanical'],
     leadDomains: [],
   },
 
-  // 22. Ahire Omshri Shrikant (Research, Sponsorship)
+  // 22. Omshri Ahire (Research, Sponsorship)
   {
     id: 'omshri',
-    name: 'Ahire Omshri Shrikant',
+    name: 'Omshri Ahire',
     department: 'Mechanical Engineering',
     domains: ['research', 'sponsorship'],
     leadDomains: [],
   },
 
-  // 23. Nikhil Prabhakar Patil (Social Media, Documentation)
+  // 23. Nikhil Patil (Social Media, Documentation)
   {
     id: 'nikhil',
-    name: 'Nikhil Prabhakar Patil',
+    name: 'Nikhil Patil',
     department: 'Computer Engineering',
     domains: ['socialmedia', 'documentation'],
     leadDomains: [],
@@ -400,77 +400,259 @@ function MemberCard({
   );
 }
 
-function AccordionMemberItem({
+export interface MobileTeamGroup {
+  id: string;
+  name: string;
+  subtitle: string;
+  memberIds: { id: string; role: string; isLead?: boolean; isMentor?: boolean }[];
+}
+
+export const NINE_MOBILE_TEAMS: MobileTeamGroup[] = [
+  {
+    id: 'core',
+    name: 'Core Team',
+    subtitle: 'Faculty Guidance & Executive Leadership',
+    memberIds: [
+      { id: 'deore', role: 'Faculty Mentor & Advisor', isMentor: true },
+      { id: 'meet', role: 'Team Captain', isLead: true },
+      { id: 'tirthraj', role: 'Vice Captain', isLead: true },
+      { id: 'pratik', role: 'Core Member', isLead: true },
+    ],
+  },
+  {
+    id: 'software',
+    name: 'Software Team',
+    subtitle: 'Firmware, Telemetry & IoT Architecture',
+    memberIds: [
+      { id: 'parth', role: 'Domain Lead', isLead: true },
+      { id: 'shravani', role: 'Team Member' },
+      { id: 'nishant', role: 'Team Member' },
+      { id: 'samiksha', role: 'Team Member' },
+      { id: 'riddhi', role: 'Team Member' },
+    ],
+  },
+  {
+    id: 'entc',
+    name: 'EnTC Team',
+    subtitle: 'Powertrain, Wiring Harness & Power Distribution',
+    memberIds: [
+      { id: 'tirthraj', role: 'Domain Lead', isLead: true },
+      { id: 'pratik', role: 'Team Member' },
+      { id: 'ankita', role: 'Team Member' },
+      { id: 'nayan', role: 'Team Member' },
+      { id: 'snehal', role: 'Team Member' },
+      { id: 'prathamesh-d', role: 'Team Member' },
+      { id: 'prem', role: 'Team Member' },
+      { id: 'sharvari', role: 'Team Member' },
+      { id: 'mohit', role: 'Team Member' },
+    ],
+  },
+  {
+    id: 'mechanical',
+    name: 'Mechanical Team',
+    subtitle: 'Chassis, Suspension & Braking Dynamics',
+    memberIds: [
+      { id: 'meet', role: 'Domain Lead', isLead: true },
+      { id: 'mohit', role: 'Team Member' },
+      { id: 'ganesh', role: 'Team Member' },
+      { id: 'prathamesh-t', role: 'Team Member' },
+      { id: 'siddhesh', role: 'Team Member' },
+      { id: 'ajay', role: 'Team Member' },
+      { id: 'kiran', role: 'Team Member' },
+    ],
+  },
+  {
+    id: 'design',
+    name: 'Design Team',
+    subtitle: 'Ergonomics, Aero & Industrial CAD',
+    memberIds: [
+      { id: 'meet', role: 'Domain Lead', isLead: true },
+      { id: 'aditya', role: 'Team Member' },
+      { id: 'prem', role: 'Team Member' },
+      { id: 'prathamesh-t', role: 'Team Member' },
+      { id: 'siddhesh', role: 'Team Member' },
+    ],
+  },
+  {
+    id: 'research',
+    name: 'Research Team',
+    subtitle: 'Battery Chemistries & Simulation Analysis',
+    memberIds: [
+      { id: 'aditya', role: 'Domain Lead', isLead: true },
+      { id: 'meet', role: 'Team Member' },
+      { id: 'tirthraj', role: 'Team Member' },
+      { id: 'shravani', role: 'Team Member' },
+      { id: 'ankita', role: 'Team Member' },
+      { id: 'nayan', role: 'Team Member' },
+      { id: 'omshri', role: 'Team Member' },
+    ],
+  },
+  {
+    id: 'sponsorship',
+    name: 'Sponsorship Team',
+    subtitle: 'Corporate Outreach, PR & Financial Backing',
+    memberIds: [
+      { id: 'shravani', role: 'Domain Lead', isLead: true },
+      { id: 'meet', role: 'Team Member' },
+      { id: 'pratik', role: 'Team Member' },
+      { id: 'parth', role: 'Team Member' },
+      { id: 'nishant', role: 'Team Member' },
+      { id: 'riddhi', role: 'Team Member' },
+      { id: 'snehal', role: 'Team Member' },
+      { id: 'omshri', role: 'Team Member' },
+    ],
+  },
+  {
+    id: 'socialmedia',
+    name: 'Social Media Team',
+    subtitle: 'Digital Brand Identity & Launch Campaigns',
+    memberIds: [
+      { id: 'nishant', role: 'Domain Lead', isLead: true },
+      { id: 'tirthraj', role: 'Team Member' },
+      { id: 'ankita', role: 'Team Member' },
+      { id: 'ajay', role: 'Team Member' },
+      { id: 'nikhil', role: 'Team Member' },
+    ],
+  },
+  {
+    id: 'documentation',
+    name: 'Documentation Team',
+    subtitle: 'Rulebook Compliance & Technical Reports',
+    memberIds: [
+      { id: 'pratik', role: 'Domain Lead', isLead: true },
+      { id: 'parth', role: 'Team Member' },
+      { id: 'riddhi', role: 'Team Member' },
+      { id: 'snehal', role: 'Team Member' },
+      { id: 'sharvari', role: 'Team Member' },
+      { id: 'ajay', role: 'Team Member' },
+      { id: 'nikhil', role: 'Team Member' },
+    ],
+  },
+];
+
+function MobilePlayerCard({
   member,
-  activeCategory,
-  isExpanded,
-  onToggle,
+  role,
+  isLead,
+  isMentor,
 }: {
   member: TeamMember;
-  activeCategory: string;
-  isExpanded: boolean;
-  onToggle: () => void;
+  role: string;
+  isLead?: boolean;
+  isMentor?: boolean;
 }) {
   const [imgError, setImgError] = useState(false);
 
   const initials = member.name
     .split(' ')
-    .filter(n => !n.startsWith('Prof.'))
-    .map(n => n[0])
+    .filter((n) => !n.startsWith('Prof.'))
+    .map((n) => n[0])
     .join('')
     .slice(0, 2)
     .toUpperCase();
 
-  const isDomainLead = activeCategory === 'all'
-    ? member.leadDomains.length > 0
-    : member.leadDomains.includes(activeCategory as DomainId);
+  return (
+    <div className="flex items-center gap-3.5 p-3 rounded-xl bg-white border border-jet-black/5 hover:border-orange/30 transition-all shadow-xs">
+      {/* Avatar / Monogram */}
+      <div className="relative w-12 h-12 rounded-xl bg-gradient-to-b from-[#1b222d] via-jet-black to-[#151a22] overflow-hidden shrink-0 flex items-center justify-center border border-jet-black/10 shadow-xs">
+        {member.image && !imgError ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={member.image}
+            alt={member.name}
+            onError={() => setImgError(true)}
+            className="w-full h-full object-cover object-center"
+          />
+        ) : (
+          <div className="font-mono text-sm font-black text-alice-blue">
+            {initials || 'RB'}
+          </div>
+        )}
+      </div>
 
-  const roleLabel = member.isMentor
-    ? 'Faculty Mentor'
-    : isDomainLead
-    ? 'Domain Lead'
-    : 'Team Member';
+      {/* Details */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <h4 className="text-sm font-bold text-jet-black truncate">
+            {member.name}
+          </h4>
+          <span
+            className={`text-[9px] font-mono uppercase tracking-wider font-bold px-2 py-0.5 rounded shrink-0 ${
+              isMentor
+                ? 'bg-jet-black text-alice-blue'
+                : isLead
+                ? 'bg-orange/15 text-orange border border-orange/30'
+                : 'bg-jet-black/5 text-jet-black/70'
+            }`}
+          >
+            {role}
+          </span>
+        </div>
+        <p className="text-[11px] text-grey font-light truncate mt-0.5">
+          {member.department}
+        </p>
+      </div>
+    </div>
+  );
+}
 
-  const domainFullList = member.isMentor
-    ? 'Technical Advisory & Guidance'
-    : member.domains.map(d => DOMAIN_LABELS[d]).join(' • ');
-
+function MobileTeamAccordion({
+  team,
+  index,
+  isOpen,
+  onToggle,
+  memberLookup,
+}: {
+  team: MobileTeamGroup;
+  index: number;
+  isOpen: boolean;
+  onToggle: () => void;
+  memberLookup: Map<string, TeamMember>;
+}) {
   return (
     <div
-      className={`bg-white border rounded-xl overflow-hidden transition-all duration-200 ${
-        isExpanded ? 'border-orange/60 shadow-md' : 'border-jet-black/10 hover:border-jet-black/30'
+      id={`team-accordion-${team.id}`}
+      className={`bg-white border rounded-2xl overflow-hidden transition-all duration-300 ${
+        isOpen
+          ? 'border-orange shadow-md ring-1 ring-orange/30'
+          : 'border-jet-black/10 hover:border-jet-black/25'
       }`}
     >
-      {/* Collapsed Header / Toggle Button */}
+      {/* Accordion Toggle Header */}
       <button
         type="button"
         onClick={onToggle}
-        aria-expanded={isExpanded}
-        className="w-full min-h-[56px] px-4 py-3 flex items-center justify-between text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-orange"
+        aria-expanded={isOpen}
+        className="w-full px-5 py-4 flex items-center justify-between text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-orange select-none"
       >
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          {/* Initials Avatar */}
-          <div className="w-10 h-10 rounded-full bg-jet-black text-alice-blue flex items-center justify-center font-mono text-xs font-bold shrink-0 shadow-sm">
-            {initials || 'RB'}
+        <div className="flex items-center gap-3.5 min-w-0 flex-1">
+          <div
+            className={`w-9 h-9 rounded-xl flex items-center justify-center font-mono text-xs font-bold shrink-0 transition-colors ${
+              isOpen
+                ? 'bg-orange text-jet-black shadow-sm'
+                : 'bg-jet-black/5 text-jet-black'
+            }`}
+          >
+            {String(index + 1).padStart(2, '0')}
           </div>
-
-          {/* Name & Role */}
           <div className="min-w-0 flex-1 pr-2">
-            <h4 className="text-sm font-bold text-jet-black truncate">
-              {member.name}
-            </h4>
-            <p className={`text-xs font-mono uppercase tracking-wider truncate ${
-              member.isMentor || isDomainLead ? 'text-orange font-bold' : 'text-grey'
-            }`}>
-              {roleLabel}
+            <div className="flex items-center gap-2">
+              <h4 className="text-base font-bold text-jet-black tracking-tight truncate">
+                {team.name}
+              </h4>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-jet-black/5 text-grey font-semibold shrink-0">
+                {team.memberIds.length}
+              </span>
+            </div>
+            <p className="text-[11px] text-grey font-light truncate mt-0.5">
+              {team.subtitle}
             </p>
           </div>
         </div>
 
-        {/* Chevron Icon */}
         <svg
           className={`w-5 h-5 text-grey transition-transform duration-300 shrink-0 ${
-            isExpanded ? 'rotate-180 text-orange' : ''
+            isOpen ? 'rotate-180 text-orange' : ''
           }`}
           fill="none"
           viewBox="0 0 24 24"
@@ -481,52 +663,27 @@ function AccordionMemberItem({
         </svg>
       </button>
 
-      {/* Expanded Details Drawer */}
+      {/* Expanded Player List */}
       <div
         className={`grid transition-[grid-template-rows] duration-300 ease-out ${
-          isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+          isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
         }`}
       >
         <div className="overflow-hidden min-h-0">
-          <div className="px-4 pb-4 pt-2 border-t border-jet-black/5 bg-jet-black/[0.02]">
-            <div className="flex gap-4 items-center">
-              <div className="relative w-16 h-16 rounded-xl bg-gradient-to-b from-[#1b222d] via-jet-black to-[#151a22] overflow-hidden shrink-0 flex items-center justify-center border border-jet-black/10 shadow-inner">
-                {member.image && !imgError ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={member.image}
-                    alt={member.name}
-                    onError={() => setImgError(true)}
-                    className="w-full h-full object-cover object-center"
-                  />
-                ) : (
-                  <div className="flex flex-col items-center justify-center text-center select-none">
-                    <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center font-mono text-xs font-black text-alice-blue mb-0.5">
-                      {initials || 'RB'}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0 space-y-1.5">
-                <div>
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-grey block">
-                    Domain
-                  </span>
-                  <span className="text-xs font-semibold text-jet-black block mt-0.5 truncate">
-                    {domainFullList}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-grey block">
-                    Department
-                  </span>
-                  <span className="text-xs text-grey font-light block mt-0.5 truncate">
-                    {member.department}
-                  </span>
-                </div>
-              </div>
-            </div>
+          <div className="px-4 pb-4 pt-2 border-t border-jet-black/5 bg-[#fafbfc] space-y-2.5">
+            {team.memberIds.map((item) => {
+              const member = memberLookup.get(item.id);
+              if (!member) return null;
+              return (
+                <MobilePlayerCard
+                  key={`${team.id}-${item.id}`}
+                  member={member}
+                  role={item.role}
+                  isLead={item.isLead}
+                  isMentor={item.isMentor}
+                />
+              );
+            })}
           </div>
         </div>
       </div>
@@ -536,9 +693,16 @@ function AccordionMemberItem({
 
 export default function TeamSection() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
-  const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
+  const [openTeamId, setOpenTeamId] = useState<string | null>(null);
 
-  // Filter members strictly based on domain selection without artificial team grouping
+  // Quick lookup map for members
+  const memberLookup = useMemo(() => {
+    const map = new Map<string, TeamMember>();
+    TEAM_MEMBERS_DATA.forEach((m) => map.set(m.id, m));
+    return map;
+  }, []);
+
+  // Filter members strictly based on domain selection for desktop view
   const filteredMembers = useMemo(() => {
     if (activeCategory === 'all') {
       return TEAM_MEMBERS_DATA;
@@ -562,10 +726,10 @@ export default function TeamSection() {
   return (
     <section id="team" className="mb-32 border-t border-jet-black/10 pt-24 font-sans">
       
-      {/* Section Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-8">
-        <div>
-          <div className="flex items-center gap-3 mb-4">
+      {/* Section Header & Centered Stats */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 sm:mb-16 gap-8 text-center md:text-left">
+        <div className="max-w-2xl mx-auto md:mx-0">
+          <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
             <span className="w-2 h-2 rounded-full bg-orange animate-pulse"></span>
             <h2 className="text-[10px] tracking-[0.3em] uppercase text-grey font-mono font-bold">
               04 / The Collective
@@ -574,26 +738,26 @@ export default function TeamSection() {
           <h3 className="text-4xl md:text-6xl font-black text-jet-black tracking-tight leading-none">
             Meet The Team<span className="text-orange">.</span>
           </h3>
-          <p className="text-lg text-grey font-light max-w-2xl mt-4 leading-relaxed">
+          <p className="text-base sm:text-lg text-grey font-light mt-4 leading-relaxed">
             {uniqueStudentCount} members guided by 1 dedicated faculty mentor across 8 specialized domains designing, simulating, and fabricating SNJB&apos;s Smart Scrambler E-Bike for the SIEP National Championship 2026–27.
           </p>
         </div>
 
-        {/* Stats Pill */}
-        <div className="bg-jet-black text-alice-blue px-4 py-3 sm:px-6 sm:py-4 rounded-xl flex items-center gap-4 sm:gap-6 md:gap-8 shadow-sm shrink-0">
-          <div>
-            <div className="text-xl sm:text-2xl font-black font-mono text-orange">{uniqueStudentCount}</div>
-            <div className="text-[9px] sm:text-[10px] uppercase font-mono tracking-widest text-grey">Members</div>
+        {/* Stats Pill - Perfectly Centered on Mobile */}
+        <div className="w-full sm:w-auto max-w-sm mx-auto md:mx-0 bg-jet-black text-alice-blue px-6 py-4 rounded-xl flex items-center justify-between shadow-sm shrink-0">
+          <div className="flex-1 text-center">
+            <div className="text-2xl font-black font-mono text-orange">{uniqueStudentCount}</div>
+            <div className="text-[10px] uppercase font-mono tracking-widest text-grey">Members</div>
           </div>
-          <div className="w-[1px] h-8 bg-white/10"></div>
-          <div>
-            <div className="text-xl sm:text-2xl font-black font-mono text-alice-blue">1</div>
-            <div className="text-[9px] sm:text-[10px] uppercase font-mono tracking-widest text-grey">Mentor</div>
+          <div className="w-[1px] h-8 bg-white/10 shrink-0 mx-2"></div>
+          <div className="flex-1 text-center">
+            <div className="text-2xl font-black font-mono text-alice-blue">1</div>
+            <div className="text-[10px] uppercase font-mono tracking-widest text-grey">Mentor</div>
           </div>
-          <div className="w-[1px] h-8 bg-white/10"></div>
-          <div>
-            <div className="text-xl sm:text-2xl font-black font-mono text-orange">8</div>
-            <div className="text-[9px] sm:text-[10px] uppercase font-mono tracking-widest text-grey">Domains</div>
+          <div className="w-[1px] h-8 bg-white/10 shrink-0 mx-2"></div>
+          <div className="flex-1 text-center">
+            <div className="text-2xl font-black font-mono text-orange">8</div>
+            <div className="text-[10px] uppercase font-mono tracking-widest text-grey">Domains</div>
           </div>
         </div>
       </div>
@@ -601,8 +765,8 @@ export default function TeamSection() {
       {/* Auto Sliding Team Gallery */}
       <TeamGallerySlider />
 
-      {/* 8 Ungrouped Domain Filter Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-12 hide-scrollbar">
+      {/* 8 Ungrouped Domain Filter Tabs - Desktop Only */}
+      <div className="hidden md:flex items-center gap-2 overflow-x-auto pb-4 mb-12 hide-scrollbar">
         {DOMAIN_FILTER_TABS.map((tab) => {
           const isActive = activeCategory === tab.id;
           const count = tab.id === 'all' 
@@ -612,10 +776,7 @@ export default function TeamSection() {
           return (
             <button
               key={tab.id}
-              onClick={() => {
-                setActiveCategory(tab.id);
-                setExpandedMemberId(null);
-              }}
+              onClick={() => setActiveCategory(tab.id)}
               className={`min-h-[44px] px-4 py-2.5 rounded-full text-xs font-mono uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
                 isActive
                   ? 'bg-jet-black text-alice-blue shadow-md font-bold'
@@ -629,22 +790,69 @@ export default function TeamSection() {
         })}
       </div>
 
-      {/* Mobile Accordion */}
-      <div className="md:hidden space-y-2">
-        {filteredMembers.map((member) => (
-          <AccordionMemberItem 
-            key={member.id} 
-            member={member} 
-            activeCategory={activeCategory}
-            isExpanded={expandedMemberId === member.id}
-            onToggle={() => setExpandedMemberId(
-              expandedMemberId === member.id ? null : member.id
-            )}
-          />
-        ))}
+      {/* Mobile-Only 9 Teams Section (md:hidden) */}
+      <div className="md:hidden space-y-4">
+        {/* Mobile Dropdown Option for Quick Jump */}
+        <div className="bg-white border border-jet-black/10 rounded-2xl p-4 shadow-xs">
+          <label
+            htmlFor="mobile-team-select"
+            className="block text-[10px] font-mono uppercase tracking-widest text-grey font-bold mb-2"
+          >
+            Select Team (9 Teams):
+          </label>
+          <div className="relative">
+            <select
+              id="mobile-team-select"
+              value={openTeamId || 'all'}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === 'all') {
+                  setOpenTeamId(null);
+                } else {
+                  setOpenTeamId(val);
+                  setTimeout(() => {
+                    const el = document.getElementById(`team-accordion-${val}`);
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                  }, 50);
+                }
+              }}
+              className="w-full bg-[#fafbfc] border border-jet-black/15 rounded-xl px-4 py-3 text-sm font-bold text-jet-black appearance-none pr-10 focus:outline-none focus:ring-2 focus:ring-orange cursor-pointer"
+            >
+              <option value="all">⚡ Browse All 9 Teams</option>
+              {NINE_MOBILE_TEAMS.map((team, idx) => (
+                <option key={team.id} value={team.id}>
+                  {idx + 1}. {team.name} ({team.memberIds.length} {team.memberIds.length === 1 ? 'member' : 'members'})
+                </option>
+              ))}
+            </select>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-grey">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* 9 Team Dropdowns */}
+        <div className="space-y-3">
+          {NINE_MOBILE_TEAMS.map((team, index) => (
+            <MobileTeamAccordion
+              key={team.id}
+              team={team}
+              index={index}
+              isOpen={openTeamId === team.id}
+              onToggle={() =>
+                setOpenTeamId(openTeamId === team.id ? null : team.id)
+              }
+              memberLookup={memberLookup}
+            />
+          ))}
+        </div>
       </div>
 
-      {/* Desktop Grid */}
+      {/* Desktop Grid - Preserved */}
       <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
         {filteredMembers.map((member) => (
           <MemberCard key={member.id} member={member} activeCategory={activeCategory} />

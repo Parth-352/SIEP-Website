@@ -9,6 +9,7 @@ import { Task, WorkLog, TeamId, TaskStatus, TaskPriority } from '@/lib/types';
 import { getEmbeddableVideoUrl } from '@/lib/driveUpload';
 import MemberSelect from '@/components/MemberSelect';
 import TaskDetailModal from '@/components/TaskDetailModal';
+import TaskCompleteModal from '@/components/TaskCompleteModal';
 
 const STATUS_COLUMNS: { id: TaskStatus; label: string; color: string; dotColor: string }[] = [
   { id: 'todo', label: 'To Do', color: 'bg-zinc-100 text-zinc-700', dotColor: 'bg-zinc-400' },
@@ -47,6 +48,10 @@ export default function DashboardPage() {
   // Task Detail Modal state
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  // Task Complete with Video Modal state
+  const [taskToComplete, setTaskToComplete] = useState<Task | null>(null);
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
 
   // New task form modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -223,6 +228,16 @@ export default function DashboardPage() {
   // Move Task Status (Kanban quick advance / rewind)
   const handleMoveStatus = async (e: React.MouseEvent, taskId: string, nextStatus: TaskStatus) => {
     e.stopPropagation(); // Don't open detail modal
+
+    if (nextStatus === 'done') {
+      const task = tasks.find((t) => t.id === taskId);
+      if (task) {
+        setTaskToComplete(task);
+        setIsCompleteModalOpen(true);
+        return;
+      }
+    }
+
     const updatedTasks = tasks.map((t) =>
       t.id === taskId ? { ...t, status: nextStatus, updatedAt: Date.now() } : t
     );
@@ -1115,6 +1130,35 @@ export default function DashboardPage() {
         canEdit={isCoreAdmin || (selectedTask ? user.teamId === selectedTask.teamId : false)}
         canDelete={isCoreAdmin || (selectedTask ? user.teamId === selectedTask.teamId : false)}
         isAdmin={isCoreAdmin}
+        onCompleteWithVideo={(task) => {
+          setIsDetailModalOpen(false);
+          setSelectedTask(null);
+          setTaskToComplete(task);
+          setIsCompleteModalOpen(true);
+        }}
+      />
+
+      {/* =========================================================================
+          TASK COMPLETE WITH VIDEO EVIDENCE MODAL
+          When marking a task done, allows uploading video or pasting link,
+          with all metadata carried forward into the work log!
+         ========================================================================= */}
+      <TaskCompleteModal
+        task={taskToComplete}
+        isOpen={isCompleteModalOpen}
+        onClose={() => {
+          setIsCompleteModalOpen(false);
+          setTaskToComplete(null);
+        }}
+        onTaskCompleted={(updatedTask, createdLog) => {
+          const nextTasks = tasks.map((t) => (t.id === updatedTask.id ? updatedTask : t));
+          persistTasksLocal(nextTasks);
+          if (createdLog) {
+            setLogs((prev) => [createdLog, ...prev]);
+          }
+          setIsCompleteModalOpen(false);
+          setTaskToComplete(null);
+        }}
       />
 
       {/* =========================================================================

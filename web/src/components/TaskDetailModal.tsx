@@ -12,6 +12,7 @@ interface TaskDetailModalProps {
   onClose: () => void;
   onTaskUpdated: (updatedTask: Task) => void;
   onTaskDeleted: (taskId: string) => void;
+  onCompleteWithVideo?: (task: Task) => void;
   canEdit: boolean;
   canDelete: boolean;
   isAdmin: boolean;
@@ -37,6 +38,7 @@ export default function TaskDetailModal({
   onClose,
   onTaskUpdated,
   onTaskDeleted,
+  onCompleteWithVideo,
   canEdit,
   canDelete,
   isAdmin,
@@ -96,6 +98,13 @@ export default function TaskDetailModal({
   // Fast Status Switcher Handler
   const handleQuickStatusChange = async (nextStatus: TaskStatus) => {
     if (task.status === nextStatus) return;
+    
+    // If transitioning to 'done', trigger Video Log & Completion Modal!
+    if (nextStatus === 'done' && onCompleteWithVideo) {
+      onCompleteWithVideo(task);
+      return;
+    }
+
     setIsSaving(true);
     setError(null);
 
@@ -124,6 +133,20 @@ export default function TaskDetailModal({
     e.preventDefault();
     if (!editTitle.trim()) {
       setError('Task title is required');
+      return;
+    }
+
+    // If marked done in edit mode, prompt for video log!
+    if (editStatus === 'done' && task.status !== 'done' && onCompleteWithVideo) {
+      onCompleteWithVideo({
+        ...task,
+        title: editTitle.trim(),
+        description: editDescription.trim(),
+        teamId: editTeamId,
+        assignedMembers: editAssignedMembers,
+        priority: editPriority,
+        dueDate: editDueDate || undefined,
+      });
       return;
     }
 
@@ -330,7 +353,17 @@ export default function TaskDetailModal({
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {task.status !== 'done' && canEdit && onCompleteWithVideo && (
+                  <button
+                    type="button"
+                    onClick={() => onCompleteWithVideo(task)}
+                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase font-mono tracking-wider shadow-sm transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>✓ Complete &amp; Attach Video</span>
+                  </button>
+                )}
+
                 {/* Pre-fill Log Entry */}
                 <Link
                   href={`/log?team=${task.teamId}&task=${encodeURIComponent(task.title)}`}

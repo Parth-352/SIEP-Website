@@ -8,6 +8,7 @@ import { TEAMS, TEAMS_LIST } from '@/lib/teams';
 import { WorkLog, TeamId, Task, TaskStatus, TaskPriority } from '@/lib/types';
 import { uploadFileToGoogleDrive, getEmbeddableVideoUrl } from '@/lib/driveUpload';
 import MemberSelect from '@/components/MemberSelect';
+import TaskCompleteModal from '@/components/TaskCompleteModal';
 
 function LogLoadingSkeleton() {
   return (
@@ -32,6 +33,10 @@ function LogPageContent() {
   // Active tasks for squad context
   const [teamTasks, setTeamTasks] = useState<Task[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
+
+  // Task Complete with Video Modal state
+  const [taskToComplete, setTaskToComplete] = useState<Task | null>(null);
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
 
   // Form state (Create)
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -164,6 +169,12 @@ function LogPageContent() {
     };
     const nextStatus = nextStatusMap[task.status];
     if (!nextStatus) return;
+
+    if (nextStatus === 'done') {
+      setTaskToComplete(task);
+      setIsCompleteModalOpen(true);
+      return;
+    }
 
     setTeamTasks((prev) =>
       prev.map((t) => (t.id === task.id ? { ...t, status: nextStatus, updatedAt: Date.now() } : t))
@@ -573,22 +584,35 @@ function LogPageContent() {
                         )}
                       </div>
 
-                      <div className="pt-2 border-t border-jet-black/5 flex items-center justify-between gap-2">
+                      <div className="pt-2 border-t border-jet-black/5 flex items-center justify-between gap-1.5">
                         <button
                           type="button"
                           onClick={() => handleSelectTaskForLog(task)}
-                          className="px-2.5 py-1 bg-jet-black text-alice-blue hover:bg-orange rounded-lg text-[10px] font-mono font-bold uppercase transition-colors cursor-pointer"
+                          className="px-2 py-1 bg-jet-black text-alice-blue hover:bg-orange rounded-lg text-[10px] font-mono font-bold uppercase transition-colors cursor-pointer"
                         >
                           Log Work ✎
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => handleQuickAdvanceTask(task)}
-                          className="px-2.5 py-1 bg-white hover:bg-jet-black/5 border border-jet-black/15 rounded-lg text-[10px] font-mono font-bold text-jet-black transition-colors cursor-pointer"
-                          title="Advance task status"
-                        >
-                          Advance →
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTaskToComplete(task);
+                              setIsCompleteModalOpen(true);
+                            }}
+                            className="px-2 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border border-emerald-300 rounded-lg text-[10px] font-mono font-bold transition-colors cursor-pointer"
+                            title="Mark completed with video evidence"
+                          >
+                            Done + Video ✓
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleQuickAdvanceTask(task)}
+                            className="px-2 py-1 bg-white hover:bg-jet-black/5 border border-jet-black/15 rounded-lg text-[10px] font-mono font-bold text-jet-black transition-colors cursor-pointer"
+                            title="Advance task status"
+                          >
+                            {task.status === 'review' ? 'Mark Done' : 'Advance →'}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -1481,6 +1505,30 @@ function LogPageContent() {
         </div>
 
       </div>
+
+      {/* =========================================================================
+          TASK COMPLETE WITH VIDEO EVIDENCE MODAL
+          When marking a task done, allows uploading video or pasting link,
+          with all metadata carried forward into the work log!
+         ========================================================================= */}
+      <TaskCompleteModal
+        task={taskToComplete}
+        isOpen={isCompleteModalOpen}
+        onClose={() => {
+          setIsCompleteModalOpen(false);
+          setTaskToComplete(null);
+        }}
+        onTaskCompleted={(updatedTask, createdLog) => {
+          setTeamTasks((prev) =>
+            prev.map((t) => (t.id === updatedTask.id ? updatedTask : t))
+          );
+          if (createdLog) {
+            setLogs((prev) => [createdLog, ...prev]);
+          }
+          setIsCompleteModalOpen(false);
+          setTaskToComplete(null);
+        }}
+      />
 
     </main>
   );

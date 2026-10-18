@@ -54,26 +54,29 @@ export default function TeamGallerySlider() {
                 isActive ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'
               }`}
             >
-              {!hasError ? (
+              {/* Clean Minimal Placeholder is always rendered underneath */}
+              <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-[#18202d] via-jet-black to-[#0f141c]">
+                <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-3 shadow-inner">
+                  <span className="font-mono text-2xl font-black text-orange">
+                    RB
+                  </span>
+                </div>
+                <span className="text-xs font-mono uppercase tracking-[0.25em] text-white/40">
+                  Riders Bay Workshop Slide {idx + 1}
+                </span>
+              </div>
+
+              {!hasError && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={slide.image}
                   alt={`Team photo ${idx + 1}`}
+                  onLoad={(e) => {
+                    (e.currentTarget as HTMLElement).classList.remove('opacity-0');
+                  }}
                   onError={() => handleImageError(slide.id)}
-                  className="w-full h-full object-cover object-center"
+                  className="absolute inset-0 w-full h-full object-cover object-center opacity-0 transition-opacity duration-500"
                 />
-              ) : (
-                /* Clean Minimal Placeholder when image file has not been added yet */
-                <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-[#18202d] via-jet-black to-[#0f141c]">
-                  <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-3 shadow-inner">
-                    <span className="font-mono text-2xl font-black text-orange">
-                      RB
-                    </span>
-                  </div>
-                  <span className="text-xs font-mono uppercase tracking-[0.25em] text-white/40">
-                    Team Photo Slide {idx + 1}
-                  </span>
-                </div>
               )}
             </div>
           );

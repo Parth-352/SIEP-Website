@@ -1,6 +1,25 @@
 {
   "logs": [
     {
+      "stepTitle": "Completed: Playwright Automated E2E Test Deliverable",
+      "phase": "Deliverable Completed",
+      "teamId": "mechanical",
+      "teamName": "Mechanical & Chassis",
+      "authorName": "Mechanical Squad Lead",
+      "date": "2026-10-18",
+      "workTime": "16:30",
+      "membersPresent": [],
+      "hoursSpent": 4.5,
+      "description": "Testing end-to-end task creation, persistence, and status movement.",
+      "achievements": "Passed all mechanical tolerance checks and stress tests.",
+      "blockers": "",
+      "videoUrl": "https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs/view?usp=sharing",
+      "videoSource": "drive",
+      "id": "log-1792363667817",
+      "stepNumber": 9,
+      "createdAt": 1792363667817
+    },
+    {
       "id": "log-008",
       "stepNumber": 8,
       "stepTitle": "Technical Design Report (TDR) Section 3 Compilation & Rulebook Audit",
@@ -180,11 +199,55 @@
       "description": "Testing end-to-end task creation, persistence, and status movement.",
       "teamId": "mechanical",
       "assignedMembers": [],
-      "status": "todo",
+      "status": "done",
+      "priority": "medium",
+      "id": "task-1792361165063",
+      "createdAt": 1792361165063,
+      "updatedAt": 1792363667806
+    },
+    {
+      "title": "Playwright Automated E2E Test Deliverable (Verified)",
+      "description": "Testing end-to-end task creation, persistence, and status movement.",
+      "teamId": "mechanical",
+      "assignedMembers": [],
+      "status": "in_progress",
+      "priority": "medium",
+      "id": "task-1792361114070",
+      "createdAt": 1792361114070,
+      "updatedAt": 1792361163586
+    },
+    {
+      "title": "Playwright Automated E2E Test Deliverable (Verified)",
+      "description": "Testing end-to-end task creation, persistence, and status movement.",
+      "teamId": "mechanical",
+      "assignedMembers": [],
+      "status": "in_progress",
+      "priority": "medium",
+      "id": "task-1792361058137",
+      "createdAt": 1792361058137,
+      "updatedAt": 1792361112603
+    },
+    {
+      "title": "Playwright Automated E2E Test Deliverable (Verified)",
+      "description": "Testing end-to-end task creation, persistence, and status movement.",
+      "teamId": "mechanical",
+      "assignedMembers": [],
+      "status": "in_progress",
+      "priority": "medium",
+      "id": "task-1792361031254",
+      "createdAt": 1792361031254,
+      "updatedAt": 1792361056681
+    },
+    {
+      "title": "Playwright Automated E2E Test Deliverable (Verified)",
+      "description": "Testing end-to-end task creation, persistence, and status movement.",
+      "teamId": "mechanical",
+      "assignedMembers": [],
+      "status": "in_progress",
       "priority": "medium",
       "id": "task-1792360986885",
       "createdAt": 1792360986885,
-      "updatedAt": 1792360986885
+      "updatedAt": 1792361029792
     },
     {
       "title": "Playwright Automated E2E Test Deliverable (Verified)",
