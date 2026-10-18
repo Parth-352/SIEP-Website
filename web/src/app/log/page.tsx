@@ -133,7 +133,7 @@ function LogPageContent() {
   const loadTeamTasks = useCallback(async () => {
     if (!user) return;
     setLoadingTasks(true);
-    const teamQuery = !isAdmin && user ? user.teamId : (selectedTeamFilter !== 'all' ? selectedTeamFilter : '');
+    const teamQuery = user.teamId !== 'core' ? user.teamId : (selectedTeamFilter !== 'all' ? selectedTeamFilter : '');
     const url = teamQuery ? `/api/tasks?teamId=${teamQuery}` : '/api/tasks';
 
     try {
@@ -513,7 +513,7 @@ function LogPageContent() {
             SQUAD ACTIVE PIPELINE TASKS WIDGET
             Shows assigned deliverables for the team, allowing 1-click step prefill
            ========================================================================= */}
-        {teamTasks.filter((t) => t.status !== 'done').length > 0 && (
+        {teamTasks.length > 0 && (
           <div className="bg-white border border-jet-black/10 rounded-2xl p-6 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-jet-black/10">
               <div className="flex items-center gap-2">
