@@ -101,15 +101,14 @@ export default function Experience() {
     });
 
     if (isMobile) {
-      // Mobile positioning - centered to avoid cutoff and text overlap
-      // Initial positioning (Hero) - centered, not pushed right
-      gsap.set(groupRef.current.position, { x: 0, y: -0.5, z: 0 });
+      // Mobile positioning - anchored in lower viewport so Hero text at top never overlaps
+      gsap.set(groupRef.current.position, { x: 0, y: -1.2, z: 0.2 });
       gsap.set(groupRef.current.rotation, { x: 0.1, y: -Math.PI / 5, z: 0 });
 
       // 0. Fade out the "Scroll to Explore" indicator immediately upon scrolling
       tl.to('#scroll-indicator', { opacity: 0, duration: 0.2, ease: 'power1.out' }, 0);
 
-      // 1. Hero -> Chassis — centered, slightly above
+      // 1. Hero -> Chassis — smoothly rises above stage text cards
       tl.to(groupRef.current.position, { x: 0, y: 0.8, z: 1.5, duration: 1, ease: 'power2.inOut' }, 0);
       tl.to(groupRef.current.rotation, { x: -0.3, y: -Math.PI / 8, z: 0.1, duration: 1, ease: 'power2.inOut' }, 0);
 
@@ -158,7 +157,7 @@ export default function Experience() {
   if (!obj) return null;
 
   return (
-    <group ref={groupRef} scale={isMobile ? 0.8 : 1.1}>
+    <group ref={groupRef} scale={isMobile ? 0.72 : 1.1}>
       
       {/* Photorealistic Environment Reflections */}
       <Environment preset="city" />

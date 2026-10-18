@@ -5,7 +5,7 @@ Drop wide team / workshop action photos into `public/team/`:
 - `team_workshop_1.jpg` - Chassis Fabrication & TIG Welding
 - `team_workshop_2.jpg` - Powertrain & 72V Battery Pack Bench Test
 - `team_workshop_3.jpg` - CAD Cockpit Packaging & Aerodynamics
-- `team_collective.jpg` - Full 25-Student Crew & Faculty Mentor Group Photo
+- `team_collective.jpg` - Full 23-Member Crew & Faculty Mentor Group Photo
 
 ### 2. Team Member Portraits (4:5 portrait aspect ratio)
 - `prof_deore.jpg` - Prof. Deore H.S. (Faculty Mentor)

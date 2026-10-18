@@ -92,16 +92,16 @@ export default function ScrollOverlay() {
     <div id="timeline-container" className="relative z-10 w-full font-sans pointer-events-none">
       
       {/* 1. Hero Section */}
-      <section className="relative h-[100dvh] flex flex-col justify-center items-start pt-32 w-full max-w-7xl mx-auto px-6 sm:px-8 md:px-12 lg:px-16 pointer-events-none">
-        <div className="bg-alice-blue/85 md:bg-transparent backdrop-blur-md md:backdrop-blur-none p-6 md:p-0 rounded-xl border border-jet-black/5 md:border-none shadow-sm md:shadow-none pointer-events-auto w-full md:w-3/5 lg:w-1/2">
-          <span className="text-xs font-mono uppercase tracking-[0.25em] text-orange font-bold mb-4 block">
+      <section className="relative h-[100dvh] flex flex-col justify-start md:justify-center items-start pt-24 sm:pt-28 md:pt-32 w-full max-w-7xl mx-auto px-5 sm:px-8 md:px-12 lg:px-16 pointer-events-none">
+        <div className="bg-white/80 md:bg-transparent backdrop-blur-md md:backdrop-blur-none p-5 sm:p-6 md:p-0 rounded-2xl border border-jet-black/5 md:border-none shadow-sm md:shadow-none pointer-events-auto w-full md:w-3/5 lg:w-1/2">
+          <span className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.25em] text-orange font-bold mb-2 sm:mb-4 block">
             SNJB&apos;s KBJ College of Engineering
           </span>
-          <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-jet-black tracking-tighter leading-[0.9] mb-6 uppercase">
+          <h1 className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-black text-jet-black tracking-tighter leading-[0.95] md:leading-[0.9] mb-3 sm:mb-4 md:mb-6 uppercase">
             Engineering<br />
             <span className="text-orange">The Next Ride.</span>
           </h1>
-          <p className="text-lg md:text-xl text-grey font-light leading-relaxed max-w-xl">
+          <p className="text-xs sm:text-base md:text-xl text-grey font-light leading-relaxed max-w-xl">
             Smart Scrambler E-Bike by SNJB&apos;s KBJ College of Engineering.
           </p>
         </div>
@@ -110,10 +110,10 @@ export default function ScrollOverlay() {
       {/* Scroll Indicator */}
       <div 
         id="scroll-indicator" 
-        className={`absolute top-[85dvh] left-1/2 -translate-x-1/2 animate-bounce flex flex-col items-center z-30 pointer-events-none transition-opacity duration-700 ${isScrolled ? 'opacity-0' : 'opacity-100'}`}
+        className={`fixed bottom-14 md:bottom-16 left-1/2 -translate-x-1/2 animate-bounce flex flex-col items-center z-30 pointer-events-none transition-opacity duration-700 ${isScrolled ? 'opacity-0' : 'opacity-100'}`}
       >
-        <div className="bg-jet-black px-4 py-2 rounded-full shadow-lg">
-          <span className="text-[10px] tracking-[0.2em] uppercase text-alice-blue font-bold font-mono whitespace-nowrap">Scroll to Explore</span>
+        <div className="bg-jet-black/90 backdrop-blur-md px-3.5 py-1.5 md:px-4 md:py-2 rounded-full shadow-lg border border-white/10">
+          <span className="text-[9px] md:text-[10px] tracking-[0.2em] uppercase text-alice-blue font-bold font-mono whitespace-nowrap">Scroll to Explore</span>
         </div>
       </div>
 

@@ -87,18 +87,16 @@ export default function Navigation() {
           ) : isPortalPage && user ? (
             /* ================= Portal Dedicated View ================= */
             <>
-              {isAdmin && (
-                <Link
-                  href="/dashboard"
-                  className={`h-9 px-3.5 rounded-xl text-xs font-sans uppercase tracking-wider font-bold transition-all inline-flex items-center justify-center ${
-                    pathname === '/dashboard'
-                      ? 'bg-jet-black text-alice-blue shadow-sm'
-                      : 'text-jet-black hover:text-orange hover:bg-jet-black/5'
-                  }`}
-                >
-                  Dashboard
-                </Link>
-              )}
+              <Link
+                href="/dashboard"
+                className={`h-9 px-3.5 rounded-xl text-xs font-sans uppercase tracking-wider font-bold transition-all inline-flex items-center justify-center ${
+                  pathname === '/dashboard'
+                    ? 'bg-jet-black text-alice-blue shadow-sm'
+                    : 'text-jet-black hover:text-orange hover:bg-jet-black/5'
+                }`}
+              >
+                Dashboard
+              </Link>
               <Link
                 href="/log"
                 className={`h-9 px-3.5 rounded-xl text-xs font-sans uppercase tracking-wider font-bold transition-all inline-flex items-center justify-center ${
@@ -287,15 +285,13 @@ export default function Navigation() {
           {isMounted && (
             user ? (
               <>
-                {isAdmin && (
-                  <Link
-                    href="/dashboard"
-                    onClick={closeMenu}
-                    className="hover:text-orange text-orange transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center font-bold"
-                  >
-                    Dashboard
-                  </Link>
-                )}
+                <Link
+                  href="/dashboard"
+                  onClick={closeMenu}
+                  className="hover:text-orange text-orange transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center font-bold"
+                >
+                  Dashboard
+                </Link>
                 <Link
                   href="/log"
                   onClick={closeMenu}

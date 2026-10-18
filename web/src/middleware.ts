@@ -36,12 +36,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // 2. If trying to access /dashboard but not an Admin / Core team:
-  if (isDashboardRoute && session.role !== 'admin' && session.teamId !== 'core') {
-    const logUrl = new URL('/log', request.url);
-    return NextResponse.redirect(logUrl);
-  }
-
+  // Authenticated sessions have access to internal portal routes (/dashboard, /log)
   return NextResponse.next();
 }
 

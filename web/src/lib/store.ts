@@ -18,42 +18,115 @@ interface StoreData {
   inquiries?: PartnerInquiry[];
 }
 
-const DATA_DIR = path.join(process.cwd(), 'data');
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const SEED_FILE = path.join(process.cwd(), 'data', 'siep_store.json');
+const DATA_DIR = isServerless ? '/tmp/siep_data' : path.join(process.cwd(), 'data');
 const STORE_FILE = path.join(DATA_DIR, 'siep_store.json');
 
 const INITIAL_LOGS: WorkLog[] = [];
 const INITIAL_TASKS: Task[] = [];
 const INITIAL_INQUIRIES: PartnerInquiry[] = [];
 
+// In-memory cache for ultra-fast, serverless-instance-persistent reads
+let memoryStore: StoreData | null = null;
+
 // Read from store
 function readStore(): StoreData {
+  if (memoryStore) {
+    return memoryStore;
+  }
+
   try {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
+
     if (!fs.existsSync(STORE_FILE)) {
-      const initial: StoreData = { logs: INITIAL_LOGS, tasks: INITIAL_TASKS };
+      // Seed from repository data/siep_store.json if available
+      if (fs.existsSync(SEED_FILE)) {
+        try {
+          const seedContent = fs.readFileSync(SEED_FILE, 'utf-8');
+          const parsedSeed = JSON.parse(seedContent);
+          fs.writeFileSync(STORE_FILE, JSON.stringify(parsedSeed, null, 2), 'utf-8');
+          memoryStore = parsedSeed;
+          return parsedSeed;
+        } catch (seedErr) {
+          console.warn('Could not read seed file, using defaults:', seedErr);
+        }
+      }
+
+      const initial: StoreData = { logs: INITIAL_LOGS, tasks: INITIAL_TASKS, inquiries: INITIAL_INQUIRIES };
       fs.writeFileSync(STORE_FILE, JSON.stringify(initial, null, 2), 'utf-8');
+      memoryStore = initial;
       return initial;
     }
+
     const content = fs.readFileSync(STORE_FILE, 'utf-8');
-    return JSON.parse(content);
+    const parsed = JSON.parse(content);
+    memoryStore = parsed;
+    return parsed;
   } catch (err) {
     console.error('Error reading store file, using in-memory defaults:', err);
-    return { logs: INITIAL_LOGS, tasks: INITIAL_TASKS };
+    // If SEED_FILE is readable directly (read-only mode)
+    if (fs.existsSync(SEED_FILE)) {
+      try {
+        const seedContent = fs.readFileSync(SEED_FILE, 'utf-8');
+        memoryStore = JSON.parse(seedContent);
+        return memoryStore!;
+      } catch {
+        // fallback to empty
+      }
+    }
+    return { logs: INITIAL_LOGS, tasks: INITIAL_TASKS, inquiries: INITIAL_INQUIRIES };
   }
 }
 
 // Write to store
 function writeStore(data: StoreData) {
+  memoryStore = data;
   try {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
     fs.writeFileSync(STORE_FILE, JSON.stringify(data, null, 2), 'utf-8');
   } catch (err) {
-    console.error('Error writing store file:', err);
+    console.error('Error writing store file to disk:', err);
   }
+}
+
+// Backup & Sync utilities
+export function exportStore(): StoreData {
+  return readStore();
+}
+
+export function importStore(incoming: Partial<StoreData>): boolean {
+  try {
+    const current = readStore();
+    const updated: StoreData = {
+      logs: Array.isArray(incoming.logs) ? incoming.logs : current.logs,
+      tasks: Array.isArray(incoming.tasks) ? incoming.tasks : current.tasks,
+      inquiries: Array.isArray(incoming.inquiries) ? incoming.inquiries : (current.inquiries || []),
+    };
+    writeStore(updated);
+    return true;
+  } catch (err) {
+    console.error('Failed to import store:', err);
+    return false;
+  }
+}
+
+export function resetStore(): StoreData {
+  let defaultData: StoreData = { logs: INITIAL_LOGS, tasks: INITIAL_TASKS, inquiries: INITIAL_INQUIRIES };
+  if (fs.existsSync(SEED_FILE)) {
+    try {
+      const content = fs.readFileSync(SEED_FILE, 'utf-8');
+      defaultData = JSON.parse(content);
+    } catch (err) {
+      console.error('Error reading seed file during reset:', err);
+    }
+  }
+  writeStore(defaultData);
+  return defaultData;
 }
 
 // ======================== LOGS API ========================

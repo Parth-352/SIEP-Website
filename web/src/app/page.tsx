@@ -36,11 +36,11 @@ export default function Home() {
       {/* 3D Engine Toggle for Resource Optimization */}
       <button 
         onClick={() => setIs3DEnabled(!is3DEnabled)}
-        className="fixed bottom-4 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:bottom-6 md:right-6 z-50 safe-area-pad-bottom bg-jet-black text-alice-blue text-[10px] uppercase font-mono tracking-widest px-4 py-3 min-h-[44px] rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-white/10 cursor-pointer whitespace-nowrap"
+        className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-50 bg-jet-black/95 text-alice-blue text-[10px] uppercase font-mono tracking-widest px-3.5 py-2.5 md:px-4 md:py-3 min-h-[40px] rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2.5 border border-white/10 cursor-pointer whitespace-nowrap backdrop-blur-md"
         aria-label="Toggle 3D rendering"
       >
         <div className={`w-2 h-2 rounded-full ${is3DEnabled ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]' : 'bg-red-500 opacity-50'}`}></div>
-        {is3DEnabled ? '3D Render: ON' : '3D Render: OFF'}
+        <span>{is3DEnabled ? '3D: ON' : '3D: OFF'}</span>
       </button>
     </main>
   );

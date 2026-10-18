@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { TEAMS, TEAMS_LIST } from '@/lib/teams';
-import { WorkLog, TeamId } from '@/lib/types';
+import { WorkLog, TeamId, Task, TaskStatus, TaskPriority } from '@/lib/types';
 import { uploadFileToGoogleDrive, getEmbeddableVideoUrl } from '@/lib/driveUpload';
 import MemberSelect from '@/components/MemberSelect';
 
@@ -28,6 +28,10 @@ function LogPageContent() {
   const [loadingLogs, setLoadingLogs] = useState(true);
   const [selectedTeamFilter, setSelectedTeamFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Active tasks for squad context
+  const [teamTasks, setTeamTasks] = useState<Task[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
 
   // Form state (Create)
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -73,11 +77,16 @@ function LogPageContent() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  // Handle URL query parameter for team filter (?team=mechanical or ?teamId=mechanical)
+  // Handle URL query parameter for team filter and task pre-filling
   useEffect(() => {
     const urlTeam = searchParams.get('team') || searchParams.get('teamId');
     if (urlTeam && (urlTeam === 'all' || TEAMS[urlTeam as TeamId])) {
       setSelectedTeamFilter(urlTeam);
+    }
+    const taskParam = searchParams.get('task') || searchParams.get('taskTitle');
+    if (taskParam) {
+      setStepTitle(decodeURIComponent(taskParam));
+      setIsFormOpen(true);
     }
   }, [searchParams]);
 
@@ -120,9 +129,67 @@ function LogPageContent() {
     }
   }, [user, isAdmin, selectedTeamFilter]);
 
+  // Fetch team tasks for pipeline context
+  const loadTeamTasks = useCallback(async () => {
+    if (!user) return;
+    setLoadingTasks(true);
+    const teamQuery = !isAdmin && user ? user.teamId : (selectedTeamFilter !== 'all' ? selectedTeamFilter : '');
+    const url = teamQuery ? `/api/tasks?teamId=${teamQuery}` : '/api/tasks';
+
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.success && Array.isArray(data.tasks)) {
+        setTeamTasks(data.tasks);
+      }
+    } catch (err) {
+      console.warn('Failed to load team tasks on log page:', err);
+    } finally {
+      setLoadingTasks(false);
+    }
+  }, [user, isAdmin, selectedTeamFilter]);
+
   useEffect(() => {
     loadLogs();
-  }, [loadLogs]);
+    loadTeamTasks();
+  }, [loadLogs, loadTeamTasks]);
+
+  // Quick Advance Task from Log Page
+  const handleQuickAdvanceTask = async (task: Task) => {
+    const nextStatusMap: Record<TaskStatus, TaskStatus | null> = {
+      todo: 'in_progress',
+      in_progress: 'review',
+      review: 'done',
+      done: null,
+    };
+    const nextStatus = nextStatusMap[task.status];
+    if (!nextStatus) return;
+
+    setTeamTasks((prev) =>
+      prev.map((t) => (t.id === task.id ? { ...t, status: nextStatus, updatedAt: Date.now() } : t))
+    );
+
+    try {
+      await fetch('/api/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: task.id, status: nextStatus }),
+      });
+    } catch (err) {
+      console.error('Error advancing task status:', err);
+      loadTeamTasks();
+    }
+  };
+
+  // Prefill new step log from task
+  const handleSelectTaskForLog = (task: Task) => {
+    setStepTitle(task.title);
+    if (task.description) {
+      setDescription((prev) => prev ? prev : `Working on deliverable: ${task.description}`);
+    }
+    setIsFormOpen(true);
+    window.scrollTo({ top: 380, behavior: 'smooth' });
+  };
 
   if (!isMounted || authLoading || !user) {
     return <LogLoadingSkeleton />;
@@ -433,16 +500,102 @@ function LogPageContent() {
               )}
             </div>
 
-            {isAdmin && (
-              <Link
-                href="/dashboard"
-                className="text-orange hover:text-jet-black font-bold transition-colors inline-flex items-center gap-1 self-start sm:self-auto"
-              >
-                Open Project Dashboard →
-              </Link>
-            )}
+            <Link
+              href="/dashboard"
+              className="text-orange hover:text-jet-black font-bold transition-colors inline-flex items-center gap-1 self-start sm:self-auto"
+            >
+              Open Project Dashboard →
+            </Link>
           </div>
         </div>
+
+        {/* =========================================================================
+            SQUAD ACTIVE PIPELINE TASKS WIDGET
+            Shows assigned deliverables for the team, allowing 1-click step prefill
+           ========================================================================= */}
+        {teamTasks.filter((t) => t.status !== 'done').length > 0 && (
+          <div className="bg-white border border-jet-black/10 rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-jet-black/10">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-orange animate-pulse"></span>
+                <h3 className="text-xs font-mono uppercase font-black tracking-wider text-jet-black">
+                  Subsystem Active Deliverables ({teamTasks.filter((t) => t.status !== 'done').length})
+                </h3>
+              </div>
+              <Link
+                href="/dashboard"
+                className="text-xs font-mono text-orange hover:text-jet-black font-bold transition-colors inline-flex items-center gap-1"
+              >
+                <span>View Full Kanban Board</span>
+                <span>→</span>
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {teamTasks
+                .filter((t) => t.status !== 'done')
+                .slice(0, 6)
+                .map((task) => {
+                  const taskTeam = TEAMS[task.teamId];
+                  return (
+                    <div
+                      key={task.id}
+                      className="bg-alice-blue/40 border border-jet-black/10 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-orange/60 hover:bg-white transition-all shadow-sm"
+                    >
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
+                            task.status === 'in_progress'
+                              ? 'bg-orange/15 text-orange'
+                              : task.status === 'review'
+                              ? 'bg-purple-100 text-purple-700'
+                              : 'bg-zinc-100 text-zinc-700'
+                          }`}>
+                            {task.status.replace('_', ' ')}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-mono uppercase font-bold ${
+                            task.priority === 'urgent'
+                              ? 'bg-red-500 text-white'
+                              : task.priority === 'high'
+                              ? 'bg-orange text-jet-black'
+                              : 'bg-zinc-100 text-zinc-600'
+                          }`}>
+                            {task.priority}
+                          </span>
+                        </div>
+                        <h4 className="text-xs font-bold text-jet-black line-clamp-2">
+                          {task.title}
+                        </h4>
+                        {task.dueDate && (
+                          <div className="text-[10px] font-mono text-grey">
+                            Due: {task.dueDate}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-2 border-t border-jet-black/5 flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleSelectTaskForLog(task)}
+                          className="px-2.5 py-1 bg-jet-black text-alice-blue hover:bg-orange rounded-lg text-[10px] font-mono font-bold uppercase transition-colors cursor-pointer"
+                        >
+                          Log Work ✎
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickAdvanceTask(task)}
+                          className="px-2.5 py-1 bg-white hover:bg-jet-black/5 border border-jet-black/15 rounded-lg text-[10px] font-mono font-bold text-jet-black transition-colors cursor-pointer"
+                          title="Advance task status"
+                        >
+                          Advance →
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
 
         {/* =========================================================================
             RECORD NEW STEP FORM DRAWER

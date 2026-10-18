@@ -16,12 +16,7 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    let teamId = searchParams.get('teamId') || undefined;
-
-    // Non-admin teams only see tasks for their team
-    if (session.role !== 'admin' && session.teamId !== 'core') {
-      teamId = session.teamId;
-    }
+    const teamId = searchParams.get('teamId') || undefined;
 
     const tasks = getTasks(teamId);
     return NextResponse.json({ success: true, tasks });
@@ -36,10 +31,10 @@ export async function POST(request: NextRequest) {
     const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
     const session = decodeSession(sessionCookie);
 
-    if (!session || (session.role !== 'admin' && session.teamId !== 'core')) {
+    if (!session) {
       return NextResponse.json(
-        { success: false, error: 'Forbidden: Only Core / Admin can assign new project tasks.' },
-        { status: 403 }
+        { success: false, error: 'Unauthorized: Please log in to create tasks.' },
+        { status: 401 }
       );
     }
 
@@ -53,9 +48,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Role guard: Core/Admin can assign to any team; subsystem teams can create tasks for their own squad
+    if (session.role !== 'admin' && session.teamId !== 'core' && teamId !== session.teamId) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden: You can only assign tasks for your own subsystem team.' },
+        { status: 403 }
+      );
+    }
+
     const task = createTask({
-      title,
-      description: description || '',
+      title: title.trim(),
+      description: description?.trim() || '',
       teamId: teamId as TeamId,
       assignedMembers: Array.isArray(assignedMembers) ? assignedMembers : [],
       status: (status as TaskStatus) || 'todo',
@@ -89,11 +92,21 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Task id is required' }, { status: 400 });
     }
 
-    const updated = updateTask(id, updates);
-    if (!updated) {
+    const allTasks = getTasks();
+    const existing = allTasks.find((t) => t.id === id);
+    if (!existing) {
       return NextResponse.json({ success: false, error: 'Task not found' }, { status: 404 });
     }
 
+    // Role guard: Core/Admin can modify any task; subsystem teams can modify their own team's tasks
+    if (session.role !== 'admin' && session.teamId !== 'core' && existing.teamId !== session.teamId) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden: You can only modify tasks belonging to your subsystem team.' },
+        { status: 403 }
+      );
+    }
+
+    const updated = updateTask(id, updates);
     return NextResponse.json({ success: true, task: updated });
   } catch (error) {
     console.error('Error updating task:', error);
@@ -106,10 +119,10 @@ export async function DELETE(request: NextRequest) {
     const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
     const session = decodeSession(sessionCookie);
 
-    if (!session || (session.role !== 'admin' && session.teamId !== 'core')) {
+    if (!session) {
       return NextResponse.json(
-        { success: false, error: 'Forbidden: Only Core / Admin can delete tasks.' },
-        { status: 403 }
+        { success: false, error: 'Unauthorized: Please log in to delete tasks.' },
+        { status: 401 }
       );
     }
 
@@ -118,6 +131,20 @@ export async function DELETE(request: NextRequest) {
 
     if (!id) {
       return NextResponse.json({ success: false, error: 'Task id is required' }, { status: 400 });
+    }
+
+    const allTasks = getTasks();
+    const existing = allTasks.find((t) => t.id === id);
+    if (!existing) {
+      return NextResponse.json({ success: false, error: 'Task not found' }, { status: 404 });
+    }
+
+    // Role guard: Core/Admin can delete any task; subsystem teams can delete their own team's tasks
+    if (session.role !== 'admin' && session.teamId !== 'core' && existing.teamId !== session.teamId) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden: You can only delete tasks belonging to your subsystem team.' },
+        { status: 403 }
+      );
     }
 
     const deleted = deleteTask(id);

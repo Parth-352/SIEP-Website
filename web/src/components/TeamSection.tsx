@@ -575,7 +575,7 @@ export default function TeamSection() {
             Meet The Team<span className="text-orange">.</span>
           </h3>
           <p className="text-lg text-grey font-light max-w-2xl mt-4 leading-relaxed">
-            {uniqueStudentCount} student engineers guided by 1 dedicated faculty mentor across 8 specialized domains designing, simulating, and fabricating SNJB&apos;s Smart Scrambler E-Bike for the SIEP National Championship 2026–27.
+            {uniqueStudentCount} members guided by 1 dedicated faculty mentor across 8 specialized domains designing, simulating, and fabricating SNJB&apos;s Smart Scrambler E-Bike for the SIEP National Championship 2026–27.
           </p>
         </div>
 
@@ -583,7 +583,7 @@ export default function TeamSection() {
         <div className="bg-jet-black text-alice-blue px-4 py-3 sm:px-6 sm:py-4 rounded-xl flex items-center gap-4 sm:gap-6 md:gap-8 shadow-sm shrink-0">
           <div>
             <div className="text-xl sm:text-2xl font-black font-mono text-orange">{uniqueStudentCount}</div>
-            <div className="text-[9px] sm:text-[10px] uppercase font-mono tracking-widest text-grey">Students</div>
+            <div className="text-[9px] sm:text-[10px] uppercase font-mono tracking-widest text-grey">Members</div>
           </div>
           <div className="w-[1px] h-8 bg-white/10"></div>
           <div>
@@ -606,7 +606,7 @@ export default function TeamSection() {
         {DOMAIN_FILTER_TABS.map((tab) => {
           const isActive = activeCategory === tab.id;
           const count = tab.id === 'all' 
-            ? TEAM_MEMBERS_DATA.length 
+            ? uniqueStudentCount 
             : TEAM_MEMBERS_DATA.filter(m => m.domains.includes(tab.id as DomainId)).length;
 
           return (
@@ -658,10 +658,10 @@ export default function TeamSection() {
             Collective Strength
           </span>
           <h4 className="text-2xl md:text-3xl font-black tracking-tight mb-2">
-            {uniqueStudentCount} Student Innovators &amp; 1 Faculty Mentor
+            {uniqueStudentCount} Team Members &amp; 1 Faculty Mentor
           </h4>
           <p className="text-sm text-grey font-light leading-relaxed">
-            A dedicated collective of {uniqueStudentCount} student engineers guided by 1 faculty mentor across Mechanical, EnTC, and Computer disciplines from SNJB&apos;s KBJ College of Engineering, Chandwad.
+            A dedicated collective of {uniqueStudentCount} members guided by 1 faculty mentor across Mechanical, EnTC, and Computer disciplines from SNJB&apos;s KBJ College of Engineering, Chandwad.
           </p>
         </div>
         <Link

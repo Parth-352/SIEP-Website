@@ -9,7 +9,7 @@
 1. [Executive Summary & Project Mission](#1-executive-summary--project-mission)
 2. [The Machine: Engineering & Technical Specifications](#2-the-machine-engineering--technical-specifications)
 3. [SIEP E-Bike Challenge Season 7.0 Proving Ground](#3-siep-e-bike-challenge-season-70-proving-ground)
-4. [Team Structure & Roster (25 Students + 1 Faculty Mentor)](#4-team-structure--roster-25-students--1-faculty-mentor)
+4. [Team Structure & Roster (23 Members + 1 Faculty Mentor)](#4-team-structure--roster-23-members--1-faculty-mentor)
 5. [Web Application Architecture & Tech Stack](#5-web-application-architecture--tech-stack)
 6. [Internal Portal & Team Credentials Directory](#6-internal-portal--team-credentials-directory)
 7. [5 GB Google Drive Resumable Upload Architecture](#7-5-gb-google-drive-resumable-upload-architecture)
@@ -135,7 +135,7 @@ The **SIEP E-Bike Challenge (Student Innovation and Engineering Program)** is In
 
 ---
 
-## 4. TEAM STRUCTURE & ROSTER (25 STUDENTS + 1 FACULTY MENTOR)
+## 4. TEAM STRUCTURE & ROSTER (23 MEMBERS + 1 FACULTY MENTOR)
 
 The Riders Bay team is structured exactly like an agile engineering corporation, divided into 8 technical and operational divisions overseen by Core Leadership.
 
@@ -261,7 +261,7 @@ Defined in `web/src/app/globals.css`:
 ```
 PUBLIC PAGES:
   ├── /             (Cinematic 3D Hero + Scroll-linked Engineering Story + Toggle)
-  ├── /about        (Mission, 4 Pillars, 8-Stage Journey, 25-Member Team Roster)
+  ├── /about        (Mission, 4 Pillars, 8-Stage Journey, 23-Member Team Roster)
   ├── /competition  (SIEP 7.0 Overview, Evaluation Criteria, 6 Dynamic Tests, Sponsors)
   ├── /bike         (Interactive 3D Chassis STL Explorer, Hardware Specs, Phase Status)
   └── /contact      (Partner with Us, Support Areas, Direct Contacts, Web3Forms Form)
@@ -406,7 +406,7 @@ SIEP Website/
         ├── lib/
         │   ├── types.ts           # TypeScript interfaces (Log, Task, Team, User)
         │   ├── teams.ts           # 8 Subsystem division configurations & credentials
-        │   ├── members.ts         # Complete 25-member roster definitions
+        │   ├── members.ts         # Complete 23-member roster definitions
         │   ├── session.ts         # Base64 session cookie encoder/decoder
         │   ├── store.ts           # JSON file storage API (logs & tasks)
         │   ├── driveUpload.ts     # Resumable upload client & URL embedder
@@ -509,11 +509,11 @@ The repository contains a standalone promotional pipeline inside `/promo`:
 
 | Name | Role | Contact Number |
 | :--- | :--- | :--- |
-| **Meet Samdadiya (Meet Jain)** | Team Captain & Mechanical Lead | [+91 7058471449](tel:+917058471449) |
+| **Meet Samdadiya (Meet Jain)** | Domain Lead (Mechanical & Design) | [+91 7058471449](tel:+917058471449) |
 | **Prof. Deore H.S.** | Faculty Mentor & Advisor | Mechanical Engineering Dept. |
-| **Tirthraj Pawale** | Technical Lead & EnTC Lead | [+91 9271647536](tel:+919271647536) |
-| **Pratik Desarda** | Vice Captain & Documentation Lead | [+91 9307740350](tel:+919307740350) |
-| **Parth Kshirsagar** | Software Lead & Telemetry Architect | Computer / Software Engineering Dept. |
+| **Tirthraj Pawale** | Domain Lead (EnTC) | [+91 9271647536](tel:+919271647536) |
+| **Pratik Desarda** | Domain Lead (Documentation) | [+91 9307740350](tel:+919307740350) |
+| **Parth Kshirsagar** | Domain Lead (Software) | Computer Engineering Dept. |
 
 ---
 

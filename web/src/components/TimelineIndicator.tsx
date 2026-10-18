@@ -39,10 +39,10 @@ export default function TimelineIndicator() {
   return (
     <>
       {/* Mobile Horizontal Timeline Indicator */}
-      <div className="fixed bottom-0 left-0 w-full z-40 bg-alice-blue/80 backdrop-blur-lg border-t border-jet-black/10 safe-area-pad-bottom flex flex-col items-center justify-center pt-2 pb-16 md:hidden pointer-events-auto shadow-sm">
+      <div className="fixed bottom-0 left-0 w-full z-40 bg-white/90 backdrop-blur-xl border-t border-jet-black/10 safe-area-pad-bottom flex flex-col items-center justify-center pt-2 pb-2.5 md:hidden pointer-events-auto shadow-md">
         {/* Active Stage Label */}
-        <div className="flex items-center justify-center gap-1.5 mb-0.5">
-          <span className="text-[9px] font-mono tracking-widest uppercase text-grey">
+        <div className="flex items-center justify-center gap-1.5 mb-1">
+          <span className="text-[9px] font-mono tracking-widest uppercase text-grey font-semibold">
             {steps[activeStep - 1]?.id.toString().padStart(2, '0')} /
           </span>
           <span className="text-[10px] font-mono tracking-widest uppercase text-orange font-bold">
@@ -51,7 +51,7 @@ export default function TimelineIndicator() {
         </div>
 
         {/* Horizontal Dots */}
-        <div className="flex items-center justify-center w-full max-w-sm px-2">
+        <div className="flex items-center justify-between w-full max-w-[280px] px-2">
           {steps.map((step) => {
             const isActive = activeStep >= step.id;
             const isCurrent = activeStep === step.id;
@@ -65,7 +65,7 @@ export default function TimelineIndicator() {
                     behavior: 'smooth',
                   })
                 }
-                className="flex-1 max-w-[44px] h-11 min-h-[44px] flex items-center justify-center group cursor-pointer focus:outline-none"
+                className="flex-1 max-w-[34px] h-8 min-h-[32px] flex items-center justify-center group cursor-pointer focus:outline-none"
                 aria-label={`Go to stage ${step.name}`}
               >
                 <div

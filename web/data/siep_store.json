@@ -176,6 +176,73 @@
   ],
   "tasks": [
     {
+      "title": "Playwright Automated E2E Test Deliverable",
+      "description": "Testing end-to-end task creation, persistence, and status movement.",
+      "teamId": "mechanical",
+      "assignedMembers": [],
+      "status": "todo",
+      "priority": "medium",
+      "id": "task-1792360986885",
+      "createdAt": 1792360986885,
+      "updatedAt": 1792360986885
+    },
+    {
+      "title": "Playwright Automated E2E Test Deliverable (Verified)",
+      "description": "Testing end-to-end task creation, persistence, and status movement.",
+      "teamId": "mechanical",
+      "assignedMembers": [],
+      "status": "in_progress",
+      "priority": "medium",
+      "id": "task-1792360966450",
+      "createdAt": 1792360966450,
+      "updatedAt": 1792360985433
+    },
+    {
+      "id": "task-002",
+      "title": "Deploy Cloud Telemetry Stream to Pit Wall Dashboard (Verified)",
+      "description": "Implement live WebSocket feed showing battery thermals, state of charge, and lap telemetry for pit engineers.",
+      "teamId": "software",
+      "assignedMembers": [
+        "Samiksha Patole",
+        "Shravani Gadekar"
+      ],
+      "status": "in_progress",
+      "priority": "medium",
+      "dueDate": "2026-10-28",
+      "createdAt": 1792298400000,
+      "updatedAt": 1792360965008
+    },
+    {
+      "id": "task-016",
+      "title": "Consolidate Bill of Materials (BOM) with Purchase Invoices",
+      "teamId": "documentation",
+      "assignedMembers": [
+        "Snehal Shinde",
+        "Riddhi Munot"
+      ],
+      "description": "Audit component receipts for fasteners, raw steel, electrical harness connectors, and motor controller.",
+      "status": "in_progress",
+      "priority": "medium",
+      "dueDate": "2026-10-29",
+      "createdAt": 1792323600000,
+      "updatedAt": 1792360879515
+    },
+    {
+      "id": "task-015",
+      "title": "SIEP 2026 Structural Equivalency Sheet (SES) Review",
+      "teamId": "documentation",
+      "assignedMembers": [
+        "Pratik Desarda",
+        "Sharvari Bhambar"
+      ],
+      "description": "Cross-check all weld dimensions, tube wall thicknesses, and material mill test reports against rulebook Article 3.",
+      "status": "review",
+      "priority": "urgent",
+      "dueDate": "2026-10-21",
+      "createdAt": 1792323600000,
+      "updatedAt": 1792323600000
+    },
+    {
       "id": "task-001",
       "title": "Calibrate Wheel Speed Hall Effect Sensors on CAN Bus",
       "description": "Wire dual front wheel sensors to ESP32 interrupt lines and map pulses to linear velocity on telemetry dashboard.",
@@ -187,21 +254,6 @@
       "status": "in_progress",
       "priority": "urgent",
       "dueDate": "2026-10-25",
-      "createdAt": 1792298400000,
-      "updatedAt": 1792320000000
-    },
-    {
-      "id": "task-002",
-      "title": "Deploy Cloud Telemetry Stream to Pit Wall Dashboard",
-      "description": "Implement live WebSocket feed showing battery thermals, state of charge, and lap telemetry for pit engineers.",
-      "teamId": "software",
-      "assignedMembers": [
-        "Samiksha Patole",
-        "Shravani Gadekar"
-      ],
-      "status": "todo",
-      "priority": "medium",
-      "dueDate": "2026-10-28",
       "createdAt": 1792298400000,
       "updatedAt": 1792320000000
     },
@@ -384,36 +436,6 @@
       "dueDate": "2026-10-26",
       "createdAt": 1792320000000,
       "updatedAt": 1792320000000
-    },
-    {
-      "id": "task-015",
-      "title": "SIEP 2026 Structural Equivalency Sheet (SES) Review",
-      "teamId": "documentation",
-      "assignedMembers": [
-        "Pratik Desarda",
-        "Sharvari Bhambar"
-      ],
-      "description": "Cross-check all weld dimensions, tube wall thicknesses, and material mill test reports against rulebook Article 3.",
-      "status": "review",
-      "priority": "urgent",
-      "dueDate": "2026-10-21",
-      "createdAt": 1792323600000,
-      "updatedAt": 1792323600000
-    },
-    {
-      "id": "task-016",
-      "title": "Consolidate Bill of Materials (BOM) with Purchase Invoices",
-      "teamId": "documentation",
-      "assignedMembers": [
-        "Snehal Shinde",
-        "Riddhi Munot"
-      ],
-      "description": "Audit component receipts for fasteners, raw steel, electrical harness connectors, and motor controller.",
-      "status": "todo",
-      "priority": "medium",
-      "dueDate": "2026-10-29",
-      "createdAt": 1792323600000,
-      "updatedAt": 1792323600000
     }
   ],
   "inquiries": [

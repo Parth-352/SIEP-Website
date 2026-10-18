@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
@@ -8,12 +8,13 @@ import { TEAMS_LIST, TEAMS } from '@/lib/teams';
 import { Task, WorkLog, TeamId, TaskStatus, TaskPriority } from '@/lib/types';
 import { getEmbeddableVideoUrl } from '@/lib/driveUpload';
 import MemberSelect from '@/components/MemberSelect';
+import TaskDetailModal from '@/components/TaskDetailModal';
 
-const STATUS_COLUMNS: { id: TaskStatus; label: string; color: string; border: string; bg: string }[] = [
-  { id: 'todo', label: 'To Do', color: 'bg-zinc-100 text-zinc-700', border: 'border-zinc-200', bg: 'bg-zinc-50/60' },
-  { id: 'in_progress', label: 'In Progress', color: 'bg-orange/15 text-orange font-bold', border: 'border-orange/30', bg: 'bg-orange/5' },
-  { id: 'review', label: 'Under Review', color: 'bg-purple-100 text-purple-700 font-bold', border: 'border-purple-200', bg: 'bg-purple-50/60' },
-  { id: 'done', label: 'Completed', color: 'bg-emerald-100 text-emerald-800 font-bold', border: 'border-emerald-200', bg: 'bg-emerald-50/60' },
+const STATUS_COLUMNS: { id: TaskStatus; label: string; color: string; dotColor: string }[] = [
+  { id: 'todo', label: 'To Do', color: 'bg-zinc-100 text-zinc-700', dotColor: 'bg-zinc-400' },
+  { id: 'in_progress', label: 'In Progress', color: 'bg-orange/15 text-orange font-bold', dotColor: 'bg-orange' },
+  { id: 'review', label: 'Under Review', color: 'bg-purple-100 text-purple-700 font-bold', dotColor: 'bg-purple-500' },
+  { id: 'done', label: 'Completed', color: 'bg-emerald-100 text-emerald-800 font-bold', dotColor: 'bg-emerald-500' },
 ];
 
 const PRIORITY_BADGES: Record<TaskPriority, { label: string; bg: string }> = {
@@ -23,39 +24,83 @@ const PRIORITY_BADGES: Record<TaskPriority, { label: string; bg: string }> = {
   low: { label: 'Low', bg: 'bg-zinc-100 text-zinc-600' },
 };
 
+const TASKS_STORAGE_KEY = 'siep_tasks_cache_v2';
+
 export default function DashboardPage() {
   const router = useRouter();
   const { user, loading: authLoading, isAdmin } = useAuth();
   const [isMounted, setIsMounted] = useState(false);
 
+  // Active view tab
   const [activeTab, setActiveTab] = useState<'kanban' | 'teams' | 'videos' | 'accounts'>('kanban');
+
+  // Main data state
   const [tasks, setTasks] = useState<Task[]>([]);
   const [logs, setLogs] = useState<WorkLog[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
+  // Kanban filters & search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSubsystemFilter, setSelectedSubsystemFilter] = useState<string>('all');
+  const [selectedPriorityFilter, setSelectedPriorityFilter] = useState<string>('all');
+
+  // Task Detail Modal state
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
   // New task form modal state
-  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDesc, setNewTaskDesc] = useState('');
   const [newTaskTeam, setNewTaskTeam] = useState<TeamId>('mechanical');
   const [newTaskMembers, setNewTaskMembers] = useState<string[]>([]);
   const [newTaskPriority, setNewTaskPriority] = useState<TaskPriority>('medium');
+  const [newTaskStatus, setNewTaskStatus] = useState<TaskStatus>('todo');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
   const [isSubmittingTask, setIsSubmittingTask] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
-  // Role protection guard
+  // Database Backup / Reset Modal state (Admin)
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
+  const [backupStatus, setBackupStatus] = useState<string | null>(null);
+  const [isResetting, setIsResetting] = useState(false);
+
+  // Authentication protection: all logged-in members can view dashboard
   useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        router.push('/login?from=/dashboard');
-      } else if (!isAdmin) {
-        router.push('/log');
-      }
+    if (!authLoading && !user) {
+      router.push('/login?from=/dashboard');
     }
-  }, [user, authLoading, isAdmin, router]);
+  }, [user, authLoading, router]);
 
-  // Load tasks and logs with clean async pattern
-  const loadDashboardData = async () => {
+  useEffect(() => {
+    setIsMounted(true);
+    // Hydrate tasks from local cache if available
+    try {
+      const cached = localStorage.getItem(TASKS_STORAGE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setTasks(parsed);
+        }
+      }
+    } catch (e) {
+      console.warn('Error reading local tasks cache:', e);
+    }
+  }, []);
+
+  // Save tasks to localStorage cache on update
+  const persistTasksLocal = (updatedTasks: Task[]) => {
+    setTasks(updatedTasks);
+    try {
+      localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(updatedTasks));
+    } catch (e) {
+      console.warn('Error saving local tasks cache:', e);
+    }
+  };
+
+  // Load tasks and logs from API
+  const loadDashboardData = useCallback(async () => {
+    if (!user) return;
     try {
       const [tasksRes, logsRes] = await Promise.all([
         fetch('/api/tasks'),
@@ -64,54 +109,79 @@ export default function DashboardPage() {
       const tasksData = await tasksRes.json();
       const logsData = await logsRes.json();
 
-      if (tasksData.success) setTasks(tasksData.tasks);
-      if (logsData.success) setLogs(logsData.logs);
+      if (tasksData.success && Array.isArray(tasksData.tasks)) {
+        persistTasksLocal(tasksData.tasks);
+      }
+      if (logsData.success && Array.isArray(logsData.logs)) {
+        setLogs(logsData.logs);
+      }
     } catch (err) {
       console.error('Failed to reload dashboard data:', err);
+    } finally {
+      setLoadingData(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
-    if (!user || !isAdmin) return;
-    let isCancelled = false;
+    if (user) {
+      loadDashboardData();
+    }
+  }, [user, loadDashboardData]);
 
-    Promise.all([fetch('/api/tasks'), fetch('/api/logs')])
-      .then(async ([tasksRes, logsRes]) => {
-        const tasksData = await tasksRes.json();
-        const logsData = await logsRes.json();
-        if (!isCancelled) {
-          if (tasksData.success) setTasks(tasksData.tasks);
-          if (logsData.success) setLogs(logsData.logs);
-          setLoadingData(false);
+  // Handle default new task team selection based on user
+  useEffect(() => {
+    if (user && user.teamId !== 'core') {
+      setNewTaskTeam(user.teamId);
+    }
+  }, [user]);
+
+  // Filtered Tasks computation (hook called before any early return)
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      // Subsystem filter
+      if (selectedSubsystemFilter !== 'all' && task.teamId !== selectedSubsystemFilter) {
+        return false;
+      }
+      // Priority filter
+      if (selectedPriorityFilter !== 'all' && task.priority !== selectedPriorityFilter) {
+        return false;
+      }
+      // Search query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const titleMatch = task.title.toLowerCase().includes(q);
+        const descMatch = (task.description || '').toLowerCase().includes(q);
+        const memberMatch = (task.assignedMembers || []).some((m) => m.toLowerCase().includes(q));
+        const teamMatch = (TEAMS[task.teamId]?.name || '').toLowerCase().includes(q);
+        if (!titleMatch && !descMatch && !memberMatch && !teamMatch) {
+          return false;
         }
-      })
-      .catch((err) => {
-        console.error('Failed to load dashboard data:', err);
-        if (!isCancelled) setLoadingData(false);
-      });
+      }
+      return true;
+    });
+  }, [tasks, selectedSubsystemFilter, selectedPriorityFilter, searchQuery]);
 
-    return () => {
-      isCancelled = true;
-    };
-  }, [user, isAdmin]);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted || authLoading || !user || !isAdmin) {
+  // Loading skeleton
+  if (!isMounted || authLoading || !user) {
     return (
       <div className="min-h-screen bg-alice-blue flex items-center justify-center font-mono text-sm text-grey">
         <span className="w-5 h-5 border-2 border-orange border-t-transparent rounded-full animate-spin mr-3"></span>
-        Verifying administrative access...
+        Connecting to SIEP Operations Center...
       </div>
     );
   }
 
+  // Permissions
+  const isCoreAdmin = isAdmin || user.teamId === 'core';
+
   // Create Task
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTaskTitle.trim()) return;
+    setCreateError(null);
+    if (!newTaskTitle.trim()) {
+      setCreateError('Task title is required');
+      return;
+    }
 
     setIsSubmittingTask(true);
     try {
@@ -124,50 +194,61 @@ export default function DashboardPage() {
           teamId: newTaskTeam,
           assignedMembers: newTaskMembers,
           priority: newTaskPriority,
-          status: 'todo',
+          status: newTaskStatus,
           dueDate: newTaskDueDate || undefined,
         }),
       });
 
       const data = await res.json();
-      if (data.success) {
+      if (data.success && data.task) {
+        const nextTasks = [data.task, ...tasks];
+        persistTasksLocal(nextTasks);
         setNewTaskTitle('');
         setNewTaskDesc('');
         setNewTaskMembers([]);
         setNewTaskDueDate('');
-        setIsTaskModalOpen(false);
-        loadDashboardData();
+        setNewTaskStatus('todo');
+        setIsCreateModalOpen(false);
+      } else {
+        setCreateError(data.error || 'Failed to create task');
       }
     } catch (err) {
       console.error('Error creating task:', err);
+      setCreateError('Network error while creating task');
     } finally {
       setIsSubmittingTask(false);
     }
   };
 
-  // Move Task Status
-  const handleMoveStatus = async (taskId: string, nextStatus: TaskStatus) => {
-    try {
-      setTasks((prev) =>
-        prev.map((t) => (t.id === taskId ? { ...t, status: nextStatus, updatedAt: Date.now() } : t))
-      );
+  // Move Task Status (Kanban quick advance / rewind)
+  const handleMoveStatus = async (e: React.MouseEvent, taskId: string, nextStatus: TaskStatus) => {
+    e.stopPropagation(); // Don't open detail modal
+    const updatedTasks = tasks.map((t) =>
+      t.id === taskId ? { ...t, status: nextStatus, updatedAt: Date.now() } : t
+    );
+    persistTasksLocal(updatedTasks);
 
+    try {
       await fetch('/api/tasks', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: taskId, status: nextStatus }),
       });
     } catch (err) {
-      console.error('Failed to update task status:', err);
+      console.error('Failed to sync status update:', err);
       loadDashboardData();
     }
   };
 
   // Delete Task
-  const handleDeleteTask = async (taskId: string) => {
+  const handleDeleteTask = async (e: React.MouseEvent, taskId: string) => {
+    e.stopPropagation();
     if (!confirm('Are you sure you want to delete this task?')) return;
+
+    const remainingTasks = tasks.filter((t) => t.id !== taskId);
+    persistTasksLocal(remainingTasks);
+
     try {
-      setTasks((prev) => prev.filter((t) => t.id !== taskId));
       await fetch(`/api/tasks?id=${taskId}`, { method: 'DELETE' });
     } catch (err) {
       console.error('Failed to delete task:', err);
@@ -175,7 +256,82 @@ export default function DashboardPage() {
     }
   };
 
-  // Metrics computation
+  // Modal Callbacks
+  const handleModalTaskUpdated = (updatedTask: Task) => {
+    const updated = tasks.map((t) => (t.id === updatedTask.id ? updatedTask : t));
+    persistTasksLocal(updated);
+    setSelectedTask(updatedTask);
+  };
+
+  const handleModalTaskDeleted = (taskId: string) => {
+    const remaining = tasks.filter((t) => t.id !== taskId);
+    persistTasksLocal(remaining);
+    setIsDetailModalOpen(false);
+    setSelectedTask(null);
+  };
+
+  // Open Task Detail
+  const handleOpenTaskDetail = (task: Task) => {
+    setSelectedTask(task);
+    setIsDetailModalOpen(true);
+  };
+
+  // Backup & Reset Handlers (Admin)
+  const handleExportBackup = async () => {
+    try {
+      const res = await fetch('/api/store/backup');
+      const data = await res.json();
+      if (data.success) {
+        const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `siep_backup_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setBackupStatus('Backup successfully downloaded to your computer!');
+      } else {
+        setBackupStatus(`Export error: ${data.error}`);
+      }
+    } catch (err) {
+      setBackupStatus('Network error while exporting backup.');
+    }
+  };
+
+  const handleResetDatabase = async () => {
+    if (!confirm('CAUTION: This will reset all tasks and logs back to official SIEP default seed data. Proceed?')) return;
+    setIsResetting(true);
+    setBackupStatus(null);
+    try {
+      const res = await fetch('/api/store/backup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reset' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        localStorage.removeItem(TASKS_STORAGE_KEY);
+        setBackupStatus('Database successfully reset to official defaults!');
+        loadDashboardData();
+      } else {
+        setBackupStatus(`Reset error: ${data.error}`);
+      }
+    } catch (err) {
+      setBackupStatus('Network error while resetting database.');
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  // Switch to Kanban with pre-filtered team
+  const handleViewTeamTasksInKanban = (teamId: string) => {
+    setSelectedSubsystemFilter(teamId);
+    setActiveTab('kanban');
+  };
+
+  // Overall Metrics
   const totalHours = logs.reduce((acc, curr) => acc + (curr.hoursSpent || 0), 0);
   const completedTasks = tasks.filter((t) => t.status === 'done').length;
   const inProgressTasks = tasks.filter((t) => t.status === 'in_progress').length;
@@ -200,19 +356,19 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-orange animate-pulse"></span>
                 <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-grey font-bold">
-                  Project Operations Center • Admin Console
+                  {isCoreAdmin ? 'Operations Center • Full Admin Privileges' : `Squad Console • ${TEAMS[user.teamId]?.name || user.teamName}`}
                 </span>
               </div>
               <h1 className="text-3xl sm:text-4xl font-black text-jet-black tracking-tight">
-                Project Management Dashboard<span className="text-orange">.</span>
+                Project Operations Dashboard<span className="text-orange">.</span>
               </h1>
               <p className="text-grey font-light text-sm max-w-2xl leading-relaxed">
-                Track subsystem progress, manage team task assignments, audit Google Drive evidence videos, and monitor overall engineering milestones for SIEP 2026–27.
+                Full-stack engineering pipeline for SIEP 2026–27. Manage subsystem deliverables, review Kanban workflows, audit Google Drive video evidence, and keep all 9 squads aligned.
               </p>
             </div>
 
             {/* Quick Header Actions */}
-            <div className="flex items-center gap-3 shrink-0 self-start lg:self-center">
+            <div className="flex flex-wrap items-center gap-3 shrink-0 self-start lg:self-center">
               <Link
                 href="/log"
                 className="px-4 py-2.5 rounded-xl border border-jet-black/15 bg-white hover:bg-alice-blue text-jet-black hover:border-orange hover:text-orange text-xs font-mono uppercase font-bold transition-all shadow-sm"
@@ -220,9 +376,20 @@ export default function DashboardPage() {
                 Open Build Log →
               </Link>
 
+              {isCoreAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setIsBackupModalOpen(true)}
+                  className="px-3.5 py-2.5 rounded-xl border border-jet-black/15 bg-alice-blue/60 hover:bg-alice-blue text-jet-black text-xs font-mono font-bold uppercase transition-all shadow-sm cursor-pointer flex items-center gap-1.5"
+                  title="Database Backup & Sync"
+                >
+                  <span>💾 Backup / Sync</span>
+                </button>
+              )}
+
               <button
                 type="button"
-                onClick={() => setIsTaskModalOpen(true)}
+                onClick={() => setIsCreateModalOpen(true)}
                 className="px-5 py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer flex items-center gap-2"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -248,20 +415,20 @@ export default function DashboardPage() {
             <div className="flex items-baseline gap-2.5">
               <span className="text-3xl sm:text-4xl font-black font-mono text-jet-black">{TEAMS_LIST.length}</span>
               <span className="text-xs text-emerald-600 font-mono font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                Active
+                Connected
               </span>
             </div>
-            <p className="text-[11px] font-mono text-grey">All engineering squads connected</p>
+            <p className="text-[11px] font-mono text-grey">All 9 engineering squads live</p>
           </div>
 
           <div className="bg-white border border-jet-black/10 rounded-2xl p-6 shadow-sm hover:border-jet-black/20 transition-all space-y-2">
             <span className="text-[11px] font-mono uppercase tracking-widest text-grey block">
-              Tasks In Progress
+              Active Pipeline Tasks
             </span>
             <div className="flex items-baseline gap-2.5">
               <span className="text-3xl sm:text-4xl font-black font-mono text-orange">{inProgressTasks}</span>
               <span className="text-xs text-grey font-mono">
-                of {tasks.length} total
+                in progress ({tasks.length} total)
               </span>
             </div>
             <p className="text-[11px] font-mono text-grey">
@@ -351,161 +518,288 @@ export default function DashboardPage() {
             </span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('accounts')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-              activeTab === 'accounts'
-                ? 'bg-jet-black text-alice-blue font-bold shadow-sm'
-                : 'text-grey hover:text-jet-black hover:bg-alice-blue/60'
-            }`}
-          >
-            <span>Team Credentials</span>
-          </button>
+          {isCoreAdmin && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('accounts')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+                activeTab === 'accounts'
+                  ? 'bg-jet-black text-alice-blue font-bold shadow-sm'
+                  : 'text-grey hover:text-jet-black hover:bg-alice-blue/60'
+              }`}
+            >
+              <span>Team Credentials</span>
+              <span className="text-[10px] text-orange font-bold uppercase font-mono px-1.5 py-0.5 rounded bg-orange/15">
+                Admin
+              </span>
+            </button>
+          )}
         </div>
 
         {/* =========================================================================
             TAB 1: KANBAN TASK BOARD
-            Spacious columns with distinct styling and comfortable card gaps
+            Interactive board with Live Search, Subsystem Pills, and Task Click-to-Edit
            ========================================================================= */}
         {activeTab === 'kanban' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-            {STATUS_COLUMNS.map((col) => {
-              const columnTasks = tasks.filter((t) => t.status === col.id);
+          <div className="space-y-6">
+            
+            {/* Filter & Search Bar */}
+            <div className="bg-white border border-jet-black/10 rounded-2xl p-5 shadow-sm space-y-4">
+              
+              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+                
+                {/* Search Input */}
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search tasks by title, scope, team, or assigned member..."
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
+                  />
+                  <svg className="w-4 h-4 text-grey absolute left-3.5 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3.5 top-2.5 text-grey hover:text-jet-black text-xs font-mono"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
 
-              return (
-                <div
-                  key={col.id}
-                  className="bg-white border border-jet-black/10 rounded-2xl p-5 flex flex-col min-h-[500px] shadow-sm"
+                {/* Priority Selector */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[11px] font-mono text-grey uppercase font-bold">Priority:</span>
+                  <select
+                    value={selectedPriorityFilter}
+                    onChange={(e) => setSelectedPriorityFilter(e.target.value)}
+                    className="px-3 py-2 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none bg-white cursor-pointer"
+                  >
+                    <option value="all">All Priorities</option>
+                    <option value="urgent">🔴 Urgent</option>
+                    <option value="high">🟠 High Priority</option>
+                    <option value="medium">🟡 Medium Priority</option>
+                    <option value="low">⚪ Low Priority</option>
+                  </select>
+                </div>
+
+              </div>
+
+              {/* Subsystem Filter Pills */}
+              <div className="pt-3 border-t border-jet-black/5 flex items-center gap-2 overflow-x-auto hide-scrollbar">
+                <span className="text-[10px] font-mono uppercase text-grey font-bold shrink-0">
+                  Subsystem:
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedSubsystemFilter('all')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
+                    selectedSubsystemFilter === 'all'
+                      ? 'bg-jet-black text-alice-blue font-bold shadow-sm'
+                      : 'bg-alice-blue/60 text-grey hover:text-jet-black hover:bg-alice-blue'
+                  }`}
                 >
-                  {/* Column Header */}
-                  <div className="flex items-center justify-between pb-4 mb-4 border-b border-jet-black/10">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-2.5 h-2.5 rounded-full ${
-                        col.id === 'done' ? 'bg-emerald-500' : col.id === 'in_progress' ? 'bg-orange' : col.id === 'review' ? 'bg-purple-500' : 'bg-zinc-400'
-                      }`}></span>
-                      <h3 className="text-xs font-mono uppercase font-black tracking-wider text-jet-black">
-                        {col.label}
-                      </h3>
-                    </div>
-                    <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-alice-blue text-jet-black font-bold border border-jet-black/10">
-                      {columnTasks.length}
-                    </span>
-                  </div>
+                  All Squads ({tasks.length})
+                </button>
 
-                  {/* Cards List */}
-                  <div className="space-y-4 flex-1 overflow-y-auto pr-1">
-                    {columnTasks.length === 0 ? (
-                      <div className="h-44 border-2 border-dashed border-jet-black/10 rounded-xl flex items-center justify-center text-center p-4">
-                        <span className="text-xs text-grey font-mono">
-                          No tasks in {col.label}
-                        </span>
+                {TEAMS_LIST.map((team) => {
+                  const count = tasks.filter((t) => t.teamId === team.id).length;
+                  const isSelected = selectedSubsystemFilter === team.id;
+                  return (
+                    <button
+                      key={team.id}
+                      type="button"
+                      onClick={() => setSelectedSubsystemFilter(team.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                        isSelected
+                          ? 'bg-jet-black text-alice-blue font-bold shadow-sm'
+                          : 'bg-alice-blue/60 text-grey hover:text-jet-black hover:bg-alice-blue'
+                      }`}
+                    >
+                      <span>[{team.code}]</span>
+                      <span>{team.shortName}</span>
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                        isSelected ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-jet-black'
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+
+                {(selectedSubsystemFilter !== 'all' || selectedPriorityFilter !== 'all' || searchQuery) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedSubsystemFilter('all');
+                      setSelectedPriorityFilter('all');
+                      setSearchQuery('');
+                    }}
+                    className="ml-auto px-2.5 py-1 text-xs font-mono text-orange hover:underline font-bold whitespace-nowrap"
+                  >
+                    Reset Filters
+                  </button>
+                )}
+              </div>
+
+            </div>
+
+            {/* Kanban Columns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+              {STATUS_COLUMNS.map((col) => {
+                const columnTasks = filteredTasks.filter((t) => t.status === col.id);
+
+                return (
+                  <div
+                    key={col.id}
+                    className="bg-white border border-jet-black/10 rounded-2xl p-5 flex flex-col min-h-[500px] shadow-sm"
+                  >
+                    {/* Column Header */}
+                    <div className="flex items-center justify-between pb-4 mb-4 border-b border-jet-black/10">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full ${col.dotColor}`}></span>
+                        <h3 className="text-xs font-mono uppercase font-black tracking-wider text-jet-black">
+                          {col.label}
+                        </h3>
                       </div>
-                    ) : (
-                      columnTasks.map((task) => {
-                        const taskTeam = TEAMS[task.teamId];
-                        const priorityInfo = PRIORITY_BADGES[task.priority];
+                      <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-alice-blue text-jet-black font-bold border border-jet-black/10">
+                        {columnTasks.length}
+                      </span>
+                    </div>
 
-                        return (
-                          <div
-                            key={task.id}
-                            className="bg-alice-blue/40 hover:bg-white border border-jet-black/10 hover:border-orange/60 rounded-xl p-4 shadow-sm hover:shadow transition-all space-y-3"
-                          >
-                            {/* Team & Priority Row */}
-                            <div className="flex items-center justify-between gap-2">
-                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold border ${taskTeam?.badgeBg || 'bg-jet-black/5 text-jet-black'}`}>
-                                [{taskTeam?.code}] {taskTeam?.shortName}
-                              </span>
+                    {/* Cards List */}
+                    <div className="space-y-4 flex-1 overflow-y-auto pr-1">
+                      {columnTasks.length === 0 ? (
+                        <div className="h-44 border-2 border-dashed border-jet-black/10 rounded-xl flex items-center justify-center text-center p-4">
+                          <span className="text-xs text-grey font-mono">
+                            {filteredTasks.length === 0 && (selectedSubsystemFilter !== 'all' || searchQuery)
+                              ? 'No tasks match filter'
+                              : `No tasks in ${col.label}`}
+                          </span>
+                        </div>
+                      ) : (
+                        columnTasks.map((task) => {
+                          const taskTeam = TEAMS[task.teamId];
+                          const priorityInfo = PRIORITY_BADGES[task.priority] || PRIORITY_BADGES.medium;
+                          const canManageThisTask = isCoreAdmin || user.teamId === task.teamId;
 
-                              <span className={`px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider font-bold ${priorityInfo.bg}`}>
-                                {priorityInfo.label}
-                              </span>
-                            </div>
-
-                            {/* Title & Desc */}
-                            <div>
-                              <h4 className="text-sm font-bold text-jet-black leading-snug">
-                                {task.title}
-                              </h4>
-                              {task.description && (
-                                <p className="text-xs text-grey mt-1.5 font-light line-clamp-2 leading-relaxed">
-                                  {task.description}
-                                </p>
-                              )}
-                            </div>
-
-                            {/* Assignees & Due Date */}
-                            <div className="pt-2.5 border-t border-jet-black/5 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-grey">
-                              {task.assignedMembers && task.assignedMembers.length > 0 ? (
-                                <span className="text-jet-black font-semibold truncate max-w-[140px]">
-                                  {task.assignedMembers.join(', ')}
+                          return (
+                            <div
+                              key={task.id}
+                              onClick={() => handleOpenTaskDetail(task)}
+                              className="group bg-alice-blue/40 hover:bg-white border border-jet-black/10 hover:border-orange/60 rounded-xl p-4 shadow-sm hover:shadow-md transition-all space-y-3 cursor-pointer"
+                            >
+                              {/* Team & Priority Row */}
+                              <div className="flex items-center justify-between gap-2">
+                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold border ${taskTeam?.badgeBg || 'bg-jet-black/5 text-jet-black'}`}>
+                                  [{taskTeam?.code}] {taskTeam?.shortName}
                                 </span>
-                              ) : (
-                                <span className="italic text-grey/60">Unassigned</span>
-                              )}
 
-                              {task.dueDate && (
-                                <span className="bg-white px-2 py-0.5 rounded border border-jet-black/10">
-                                  Due: {task.dueDate}
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider font-bold ${priorityInfo.bg}`}>
+                                  {priorityInfo.label}
                                 </span>
-                              )}
-                            </div>
+                              </div>
 
-                            {/* Move Status Controls */}
-                            <div className="pt-2.5 border-t border-jet-black/5 flex items-center justify-between">
-                              <div className="flex items-center gap-1.5">
-                                {col.id !== 'todo' && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const prevIdx = STATUS_COLUMNS.findIndex((c) => c.id === col.id) - 1;
-                                      if (prevIdx >= 0) handleMoveStatus(task.id, STATUS_COLUMNS[prevIdx].id);
-                                    }}
-                                    title="Move back"
-                                    className="px-2.5 py-1 text-[10px] font-mono bg-white hover:bg-jet-black/5 rounded-lg border border-jet-black/15 cursor-pointer font-bold transition-colors"
-                                  >
-                                    ←
-                                  </button>
-                                )}
-                                {col.id !== 'done' && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const nextIdx = STATUS_COLUMNS.findIndex((c) => c.id === col.id) + 1;
-                                      if (nextIdx < STATUS_COLUMNS.length) handleMoveStatus(task.id, STATUS_COLUMNS[nextIdx].id);
-                                    }}
-                                    title="Move forward"
-                                    className="px-3 py-1 text-[10px] font-mono bg-jet-black text-alice-blue hover:bg-orange rounded-lg font-bold transition-colors cursor-pointer"
-                                  >
-                                    Advance →
-                                  </button>
+                              {/* Title & Desc */}
+                              <div>
+                                <h4 className="text-sm font-bold text-jet-black leading-snug group-hover:text-orange transition-colors">
+                                  {task.title}
+                                </h4>
+                                {task.description && (
+                                  <p className="text-xs text-grey mt-1.5 font-light line-clamp-2 leading-relaxed">
+                                    {task.description}
+                                  </p>
                                 )}
                               </div>
 
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteTask(task.id)}
-                                title="Delete task"
-                                className="text-xs text-grey hover:text-red-500 font-mono p-1 cursor-pointer transition-colors"
-                              >
-                                ✕
-                              </button>
-                            </div>
+                              {/* Assignees & Due Date */}
+                              <div className="pt-2.5 border-t border-jet-black/5 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-grey">
+                                {task.assignedMembers && task.assignedMembers.length > 0 ? (
+                                  <span className="text-jet-black font-semibold truncate max-w-[140px]">
+                                    👤 {task.assignedMembers.join(', ')}
+                                  </span>
+                                ) : (
+                                  <span className="italic text-grey/60">Unassigned</span>
+                                )}
 
-                          </div>
-                        );
-                      })
-                    )}
+                                {task.dueDate && (
+                                  <span className="bg-white px-2 py-0.5 rounded border border-jet-black/10">
+                                    Due: {task.dueDate}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Quick Move Status Controls & Open Details */}
+                              <div className="pt-2.5 border-t border-jet-black/5 flex items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                  {col.id !== 'todo' && (
+                                    <button
+                                      type="button"
+                                      disabled={!canManageThisTask}
+                                      onClick={(e) => {
+                                        const prevIdx = STATUS_COLUMNS.findIndex((c) => c.id === col.id) - 1;
+                                        if (prevIdx >= 0) handleMoveStatus(e, task.id, STATUS_COLUMNS[prevIdx].id);
+                                      }}
+                                      title="Move back"
+                                      className="px-2.5 py-1 text-[10px] font-mono bg-white hover:bg-jet-black/5 rounded-lg border border-jet-black/15 cursor-pointer font-bold transition-colors disabled:opacity-40"
+                                    >
+                                      ←
+                                    </button>
+                                  )}
+                                  {col.id !== 'done' && (
+                                    <button
+                                      type="button"
+                                      disabled={!canManageThisTask}
+                                      onClick={(e) => {
+                                        const nextIdx = STATUS_COLUMNS.findIndex((c) => c.id === col.id) + 1;
+                                        if (nextIdx < STATUS_COLUMNS.length) handleMoveStatus(e, task.id, STATUS_COLUMNS[nextIdx].id);
+                                      }}
+                                      title="Move forward"
+                                      className="px-3 py-1 text-[10px] font-mono bg-jet-black text-alice-blue hover:bg-orange rounded-lg font-bold transition-colors cursor-pointer disabled:opacity-40"
+                                    >
+                                      Advance →
+                                    </button>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-mono text-grey group-hover:text-orange font-bold transition-colors">
+                                    Details ↗
+                                  </span>
+                                  {canManageThisTask && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => handleDeleteTask(e, task.id)}
+                                      title="Delete task"
+                                      className="text-xs text-grey hover:text-red-500 font-mono p-1 cursor-pointer transition-colors"
+                                    >
+                                      ✕
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+
           </div>
         )}
 
         {/* =========================================================================
-            TAB 2: 8-TEAM SUBSYSTEM OVERVIEW
-            Spacious cards with clean metrics bar and latest move preview
+            TAB 2: 9-TEAM SUBSYSTEM OVERVIEW
+            Interactive subsystem cards with live task breakdown & jump-to-Kanban
            ========================================================================= */}
         {activeTab === 'teams' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -513,8 +807,10 @@ export default function DashboardPage() {
               const teamTasks = tasks.filter((t) => t.teamId === team.id);
               const teamLogs = logs.filter((l) => l.teamId === team.id);
               const completedCount = teamTasks.filter((t) => t.status === 'done').length;
+              const inProgressCount = teamTasks.filter((t) => t.status === 'in_progress').length;
               const hours = teamLogs.reduce((acc, l) => acc + (l.hoursSpent || 0), 0);
               const latestLog = teamLogs[0];
+              const progressPct = teamTasks.length > 0 ? Math.round((completedCount / teamTasks.length) * 100) : 0;
 
               return (
                 <div
@@ -549,25 +845,67 @@ export default function DashboardPage() {
                       {team.description}
                     </p>
 
-                    {/* Stats bar */}
-                    <div className="grid grid-cols-3 gap-3 p-3.5 bg-alice-blue/60 rounded-xl text-center font-mono text-xs border border-jet-black/5">
-                      <div>
-                        <div className="font-black text-jet-black text-sm">{teamTasks.length}</div>
-                        <div className="text-[10px] text-grey uppercase tracking-wider">Tasks</div>
+                    {/* Progress Bar */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] font-mono">
+                        <span className="text-grey">Deliverables Progress</span>
+                        <span className="font-bold text-jet-black">{progressPct}%</span>
                       </div>
-                      <div>
-                        <div className="font-black text-emerald-600 text-sm">{completedCount}</div>
-                        <div className="text-[10px] text-grey uppercase tracking-wider">Done</div>
-                      </div>
-                      <div>
-                        <div className="font-black text-orange text-sm">{hours.toFixed(1)}h</div>
-                        <div className="text-[10px] text-grey uppercase tracking-wider">Hours</div>
+                      <div className="w-full h-2 bg-alice-blue rounded-full overflow-hidden border border-jet-black/5">
+                        <div
+                          className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                          style={{ width: `${progressPct}%` }}
+                        ></div>
                       </div>
                     </div>
 
+                    {/* Stats bar */}
+                    <div className="grid grid-cols-4 gap-2 p-3 bg-alice-blue/60 rounded-xl text-center font-mono text-xs border border-jet-black/5">
+                      <div>
+                        <div className="font-black text-jet-black text-sm">{teamTasks.length}</div>
+                        <div className="text-[9px] text-grey uppercase tracking-wider">Total</div>
+                      </div>
+                      <div>
+                        <div className="font-black text-orange text-sm">{inProgressCount}</div>
+                        <div className="text-[9px] text-grey uppercase tracking-wider">Active</div>
+                      </div>
+                      <div>
+                        <div className="font-black text-emerald-600 text-sm">{completedCount}</div>
+                        <div className="text-[9px] text-grey uppercase tracking-wider">Done</div>
+                      </div>
+                      <div>
+                        <div className="font-black text-jet-black text-sm">{hours.toFixed(0)}h</div>
+                        <div className="text-[9px] text-grey uppercase tracking-wider">Hours</div>
+                      </div>
+                    </div>
+
+                    {/* Recent task preview */}
+                    {teamTasks.length > 0 && (
+                      <div className="space-y-1.5 pt-1">
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-grey block">
+                          Assigned Deliverables:
+                        </span>
+                        <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
+                          {teamTasks.slice(0, 2).map((t) => (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => handleOpenTaskDetail(t)}
+                              className="w-full text-left p-2 rounded-lg bg-alice-blue/30 hover:bg-alice-blue border border-jet-black/5 text-xs font-mono text-jet-black truncate flex items-center justify-between cursor-pointer"
+                            >
+                              <span className="truncate">{t.title}</span>
+                              <span className="text-[9px] uppercase px-1.5 py-0.5 rounded font-bold ml-1 bg-white border border-jet-black/10">
+                                {t.status}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Latest Move Card */}
                     {latestLog ? (
-                      <div className="p-3.5 bg-alice-blue/30 rounded-xl border border-jet-black/5 text-xs space-y-1">
+                      <div className="p-3 bg-alice-blue/30 rounded-xl border border-jet-black/5 text-xs space-y-1">
                         <span className="text-[10px] font-mono uppercase tracking-widest text-grey block">
                           Latest Move ({latestLog.date}):
                         </span>
@@ -576,19 +914,28 @@ export default function DashboardPage() {
                         </span>
                       </div>
                     ) : (
-                      <div className="text-xs text-grey/60 italic font-mono p-3 bg-alice-blue/20 rounded-xl border border-dashed border-jet-black/10 text-center">
-                        No moves recorded yet
+                      <div className="text-xs text-grey/60 italic font-mono p-2.5 bg-alice-blue/20 rounded-xl border border-dashed border-jet-black/10 text-center">
+                        No log entries recorded yet
                       </div>
                     )}
                   </div>
 
                   <div className="pt-4 border-t border-jet-black/5 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => handleViewTeamTasksInKanban(team.id)}
+                      className="text-xs font-mono text-jet-black hover:text-orange font-bold transition-colors inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Filter Kanban Tasks</span>
+                      <span>→</span>
+                    </button>
+
                     <Link
                       href={`/log?team=${team.id}`}
                       className="text-xs font-mono text-orange hover:text-jet-black font-bold transition-colors inline-flex items-center gap-1"
                     >
-                      <span>View Team Logs</span>
-                      <span>→</span>
+                      <span>Build Log</span>
+                      <span>↗</span>
                     </Link>
                   </div>
                 </div>
@@ -599,10 +946,11 @@ export default function DashboardPage() {
 
         {/* =========================================================================
             TAB 3: MASTER VIDEO GALLERY
-            Spacious media cards with inline players
+            Spacious media cards with inline players and filtering
            ========================================================================= */}
         {activeTab === 'videos' && (
-          <div>
+          <div className="space-y-6">
+            
             {videoLogsCount === 0 ? (
               <div className="bg-white border border-jet-black/10 rounded-2xl p-16 text-center text-grey shadow-sm space-y-3">
                 <div className="w-12 h-12 rounded-full bg-alice-blue flex items-center justify-center mx-auto text-grey">
@@ -690,10 +1038,10 @@ export default function DashboardPage() {
         )}
 
         {/* =========================================================================
-            TAB 4: TEAM CREDENTIALS TABLE
+            TAB 4: TEAM CREDENTIALS TABLE (Core/Admin Only)
             Spacious, readable authentication table
            ========================================================================= */}
-        {activeTab === 'accounts' && (
+        {activeTab === 'accounts' && isCoreAdmin && (
           <div className="bg-white border border-jet-black/10 rounded-2xl overflow-hidden shadow-sm">
             <div className="p-6 sm:p-8 border-b border-jet-black/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -701,7 +1049,7 @@ export default function DashboardPage() {
                   Configured Subsystem Accounts
                 </h3>
                 <p className="text-xs text-grey mt-0.5">
-                  Pre-configured login emails and passwords for the 8 official engineering teams
+                  Pre-configured login emails and passwords for the 9 official engineering squads
                 </p>
               </div>
               <span className="text-xs font-mono px-3.5 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full font-bold self-start sm:self-auto">
@@ -752,17 +1100,35 @@ export default function DashboardPage() {
       </div>
 
       {/* =========================================================================
-          CREATE TASK MODAL
-          Spacious dialog with generous padding and clean member checkbox dropdown
+          TASK DETAIL MODAL
+          View deliverables, change status, edit details, or log work
          ========================================================================= */}
-      {isTaskModalOpen && (
+      <TaskDetailModal
+        task={selectedTask}
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setSelectedTask(null);
+        }}
+        onTaskUpdated={handleModalTaskUpdated}
+        onTaskDeleted={handleModalTaskDeleted}
+        canEdit={isCoreAdmin || (selectedTask ? user.teamId === selectedTask.teamId : false)}
+        canDelete={isCoreAdmin || (selectedTask ? user.teamId === selectedTask.teamId : false)}
+        isAdmin={isCoreAdmin}
+      />
+
+      {/* =========================================================================
+          CREATE TASK MODAL
+          Clean modal with validation, member checkbox list, and due date
+         ========================================================================= */}
+      {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 bg-jet-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border-2 border-orange/40 rounded-2xl w-full max-w-lg p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-white border-2 border-orange/40 rounded-2xl w-full max-w-lg p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 duration-200 space-y-5">
             
-            <div className="flex items-center justify-between pb-4 mb-6 border-b border-jet-black/10">
+            <div className="flex items-center justify-between pb-4 border-b border-jet-black/10">
               <div>
                 <span className="text-[10px] font-mono uppercase tracking-widest text-orange font-bold block">
-                  Project Task
+                  Project Deliverable
                 </span>
                 <h3 className="text-lg font-bold text-jet-black">
                   Assign New Subsystem Task
@@ -770,14 +1136,20 @@ export default function DashboardPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setIsTaskModalOpen(false)}
+                onClick={() => setIsCreateModalOpen(false)}
                 className="text-grey hover:text-jet-black text-sm p-1.5 cursor-pointer rounded-lg hover:bg-alice-blue"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleCreateTask} className="space-y-5">
+            {createError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 font-mono">
+                ⚠️ {createError}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateTask} className="space-y-4">
               
               <div>
                 <label className="block text-xs font-mono uppercase text-grey mb-1.5 font-medium">
@@ -812,12 +1184,13 @@ export default function DashboardPage() {
                     Assign Subsystem Team
                   </label>
                   <select
+                    disabled={!isCoreAdmin}
                     value={newTaskTeam}
                     onChange={(e) => {
                       setNewTaskTeam(e.target.value as TeamId);
                       setNewTaskMembers([]);
                     }}
-                    className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
+                    className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none disabled:bg-zinc-100"
                   >
                     {TEAMS_LIST.map((t) => (
                       <option key={t.id} value={t.id}>
@@ -856,22 +1229,40 @@ export default function DashboardPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-mono uppercase text-grey mb-1.5 font-medium">
-                  Target Completion Date
-                </label>
-                <input
-                  type="date"
-                  value={newTaskDueDate}
-                  onChange={(e) => setNewTaskDueDate(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-mono uppercase text-grey mb-1.5 font-medium">
+                    Initial Status
+                  </label>
+                  <select
+                    value={newTaskStatus}
+                    onChange={(e) => setNewTaskStatus(e.target.value as TaskStatus)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
+                  >
+                    <option value="todo">To Do</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="review">Under Review</option>
+                    <option value="done">Completed</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono uppercase text-grey mb-1.5 font-medium">
+                    Target Due Date
+                  </label>
+                  <input
+                    type="date"
+                    value={newTaskDueDate}
+                    onChange={(e) => setNewTaskDueDate(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
+                  />
+                </div>
               </div>
 
               <div className="pt-4 border-t border-jet-black/10 flex items-center justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => setIsTaskModalOpen(false)}
+                  onClick={() => setIsCreateModalOpen(false)}
                   className="px-5 py-2.5 rounded-xl border border-jet-black/20 text-xs font-mono uppercase cursor-pointer hover:bg-alice-blue transition-colors font-medium"
                 >
                   Cancel
@@ -886,6 +1277,86 @@ export default function DashboardPage() {
               </div>
 
             </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          DATABASE BACKUP / RESTORE MODAL (Core/Admin Only)
+         ========================================================================= */}
+      {isBackupModalOpen && isCoreAdmin && (
+        <div className="fixed inset-0 z-50 bg-jet-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border-2 border-jet-black/20 rounded-2xl w-full max-w-md p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 duration-200 space-y-5">
+            
+            <div className="flex items-center justify-between pb-4 border-b border-jet-black/10">
+              <div>
+                <span className="text-[10px] font-mono uppercase tracking-widest text-orange font-bold block">
+                  Admin Utilities
+                </span>
+                <h3 className="text-lg font-bold text-jet-black">
+                  Database Backup &amp; Sync
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsBackupModalOpen(false)}
+                className="text-grey hover:text-jet-black text-sm p-1.5 cursor-pointer rounded-lg hover:bg-alice-blue"
+              >
+                ✕
+              </button>
+            </div>
+
+            {backupStatus && (
+              <div className="p-3 bg-alice-blue border border-jet-black/10 rounded-xl text-xs font-mono text-jet-black">
+                {backupStatus}
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <div className="p-4 bg-alice-blue/50 rounded-xl border border-jet-black/5 space-y-2">
+                <h4 className="text-xs font-mono font-bold uppercase text-jet-black">
+                  1. Download Database Backup
+                </h4>
+                <p className="text-xs text-grey leading-relaxed">
+                  Export all current tasks, work logs, and team inquiries into a JSON backup file for safe keeping.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleExportBackup}
+                  className="w-full py-2.5 px-4 bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase font-mono rounded-xl shadow-sm cursor-pointer"
+                >
+                  Download .JSON Backup ⤓
+                </button>
+              </div>
+
+              <div className="p-4 bg-red-50/50 rounded-xl border border-red-200/60 space-y-2">
+                <h4 className="text-xs font-mono font-bold uppercase text-red-600">
+                  2. Reset to Official Seed Defaults
+                </h4>
+                <p className="text-xs text-grey leading-relaxed">
+                  Reset the entire database back to the 16 official tasks and 8 verified logbook entries.
+                </p>
+                <button
+                  type="button"
+                  disabled={isResetting}
+                  onClick={handleResetDatabase}
+                  className="w-full py-2.5 px-4 bg-white text-red-600 border border-red-300 hover:bg-red-600 hover:text-white transition-all font-bold text-xs uppercase font-mono rounded-xl cursor-pointer disabled:opacity-50"
+                >
+                  {isResetting ? 'Resetting...' : 'Reset Database to Seed ↺'}
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsBackupModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-mono uppercase text-grey hover:text-jet-black cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
 
           </div>
         </div>
