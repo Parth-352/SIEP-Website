@@ -1,0 +1,430 @@
+{
+  "logs": [
+    {
+      "id": "log-008",
+      "stepNumber": 8,
+      "stepTitle": "Technical Design Report (TDR) Section 3 Compilation & Rulebook Audit",
+      "teamId": "documentation",
+      "teamName": "Documentation & Compliance",
+      "authorName": "Pratik Desarda",
+      "date": "2026-10-18",
+      "workTime": "14:00 - 18:30",
+      "membersPresent": [
+        "Pratik Desarda",
+        "Sharvari Bhambar",
+        "Riddhi Munot",
+        "Snehal Shinde"
+      ],
+      "hoursSpent": 4.5,
+      "description": "Reviewed SIEP 2026 technical regulations covering high-voltage battery enclosures, mechanical crush zones, and roll hoop bracing dimensions. Formatted preliminary draft for Structural Equivalency Sheet (SES).",
+      "achievements": "Compiled 28 pages of technical documentation with verified CAD cross-sections and BOM cost calculations.",
+      "blockers": "Pending final TIG weld sample test certificates for Appendix D.",
+      "createdAt": 1792323600000
+    },
+    {
+      "id": "log-007",
+      "stepNumber": 7,
+      "stepTitle": "Fabrication Progress Reel & Digital Identity Campaign Launch",
+      "teamId": "socialmedia",
+      "teamName": "Social Media & Media",
+      "authorName": "Nishant Shinde",
+      "date": "2026-10-17",
+      "workTime": "16:00 - 19:30",
+      "membersPresent": [
+        "Nishant Shinde",
+        "Nikhil Patil",
+        "Ajay Kate"
+      ],
+      "hoursSpent": 3.5,
+      "description": "Filmed 4K macro footage of TIG welding on the AISC 4130 chassis node points, battery module casing assembly, and telemetry lab bench test.",
+      "achievements": "Published Instagram reel reaching 3.4k targeted collegiate engineering accounts; completed intro sequence for Episode 1 vlog.",
+      "blockers": "",
+      "createdAt": 1792320000000
+    },
+    {
+      "id": "log-006",
+      "stepNumber": 6,
+      "stepTitle": "Corporate Sponsorship Pitch Decks & Industrial Partner Outreach",
+      "teamId": "sponsorship",
+      "teamName": "Sponsorship & Outreach",
+      "authorName": "Shravani Gadekar",
+      "date": "2026-10-17",
+      "workTime": "11:00 - 15:00",
+      "membersPresent": [
+        "Shravani Gadekar",
+        "Pratik Desarda",
+        "Snehal Shinde",
+        "Parth Kshirsagar"
+      ],
+      "hoursSpent": 4,
+      "description": "Presented technical sponsorship proposals to industrial manufacturing and battery distribution partners. Prepared deliverables tier matrix covering logo placement, recruitment access, and testing day invites.",
+      "achievements": "Secured preliminary interest from two local precision CNC fabrication shops for upright machining support.",
+      "blockers": "Awaiting approved official endorsement letters from college administration.",
+      "createdAt": 1792316400000
+    },
+    {
+      "id": "log-005",
+      "stepNumber": 5,
+      "stepTitle": "FEA Torsional Rigidity Analysis & Aerodynamic Drag Polar CFD",
+      "teamId": "research",
+      "teamName": "Research & Simulation",
+      "authorName": "Aditya Fuldeore",
+      "date": "2026-10-16",
+      "workTime": "13:30 - 17:30",
+      "membersPresent": [
+        "Aditya Fuldeore",
+        "Omshri Ahire",
+        "Ankita Bachhav"
+      ],
+      "hoursSpent": 4,
+      "description": "Conducted ANSYS static structural simulation on roll hoop under 20g frontal and 15g lateral impact vectors. Meshed front fairing in OpenFOAM to analyze vortex shedding and cooling airflow.",
+      "achievements": "Chassis verified at 1,420 Nm/deg torsional stiffness with safety factor > 2.3 throughout critical nodes.",
+      "blockers": "",
+      "createdAt": 1792312800000
+    },
+    {
+      "id": "log-004",
+      "stepNumber": 4,
+      "stepTitle": "CAD Surface Modeling for Aerodynamic Fairing & Driver Ergonomics",
+      "teamId": "design",
+      "teamName": "Design & Ergonomics",
+      "authorName": "Meet Samdadiya",
+      "date": "2026-10-16",
+      "workTime": "15:00 - 19:00",
+      "membersPresent": [
+        "Meet Samdadiya",
+        "Aditya Fuldeore",
+        "Prem Chaudhari",
+        "Siddhesh Raskar"
+      ],
+      "hoursSpent": 4,
+      "description": "Generated 95th percentile male driver packaging clearances in SolidWorks 2026. Modeled steering column angle at 18 degrees and validated cockpit ingress/egress 5-second exit requirement.",
+      "achievements": "Full 3D aerodynamic cowling envelope completed with clearance for 10-inch front wheels and steering lock.",
+      "blockers": "",
+      "createdAt": 1792309200000
+    },
+    {
+      "id": "log-003",
+      "stepNumber": 3,
+      "stepTitle": "AISI 4130 Chromoly Spaceframe Jig Setup & TIG Root Pass Welding",
+      "teamId": "mechanical",
+      "teamName": "Mechanical & Chassis",
+      "authorName": "Meet Samdadiya",
+      "date": "2026-10-15",
+      "workTime": "10:00 - 16:30",
+      "membersPresent": [
+        "Meet Samdadiya",
+        "Ganesh Sonawane",
+        "Mohit Pagar",
+        "Prathamesh Tidake",
+        "Siddhesh Raskar"
+      ],
+      "hoursSpent": 6.5,
+      "description": "Notched 25.4mm x 2.0mm wall thickness chromoly tubes on mill. Mounted tubes into calibrated floor chassis jig. Executed argon-purged TIG root passes across front bulkhead and main hoop triangulations.",
+      "achievements": "Completed bottom frame triangulations within 0.8mm diagonal tolerance across all alignment check pins.",
+      "blockers": "Need fresh batch of ER70S-2 filler rods for front control arm brackets.",
+      "videoUrl": "https://drive.google.com/file/d/13gIJLfk8B8EKj0tOETEVqPfRcVFfbcTd/preview",
+      "driveFileId": "13gIJLfk8B8EKj0tOETEVqPfRcVFfbcTd",
+      "videoSource": "drive",
+      "createdAt": 1792305600000
+    },
+    {
+      "id": "log-002",
+      "stepNumber": 2,
+      "stepTitle": "72V 40Ah Battery Pack Architecture & Smart BMS Configuration",
+      "teamId": "entc",
+      "teamName": "Electronics & Telecommunication",
+      "authorName": "Tirthraj Pawale",
+      "date": "2026-10-15",
+      "workTime": "14:00 - 18:00",
+      "membersPresent": [
+        "Tirthraj Pawale",
+        "Ankita Bachhav",
+        "Prem Chaudhari",
+        "Snehal Shinde"
+      ],
+      "hoursSpent": 4,
+      "description": "Assembled 20S battery cell modules with pure nickel strips. Wired cell voltage sense lines to Daly Smart BMS with RS485/UART interface. Bench tested active balancing at 3.35V nominal cell voltage.",
+      "achievements": "Verified pack isolation resistance > 500 Megaohms and safety disconnect contactor trigger under 12ms.",
+      "blockers": "",
+      "createdAt": 1792302000000
+    },
+    {
+      "id": "log-001",
+      "stepNumber": 1,
+      "stepTitle": "CAN 2.0B Telemetry Bus Architecture & Digital Dashboard Loop",
+      "teamId": "software",
+      "teamName": "Software & Telemetry",
+      "authorName": "Parth Kshirsagar",
+      "date": "2026-10-14",
+      "workTime": "16:00 - 20:30",
+      "membersPresent": [
+        "Parth Kshirsagar",
+        "Samiksha Patole",
+        "Nishant Shinde",
+        "Riddhi Munot"
+      ],
+      "hoursSpent": 4.5,
+      "description": "Developed firmware for ESP32 CAN transceiver to decode BMS cell voltages, motor RPM, inverter temperature, and throttle position at 50Hz. Configured WebSockets bridge for live pit wall dashboard telemetry.",
+      "achievements": "Established stable 500kbps CAN bus communication with zero packet loss over 3-hour continuous stress test.",
+      "blockers": "",
+      "videoUrl": "https://drive.google.com/file/d/1-VzAFyKxIEEK_L3VG50T6bi62bZ-mcZV/preview",
+      "driveFileId": "1-VzAFyKxIEEK_L3VG50T6bi62bZ-mcZV",
+      "videoSource": "drive",
+      "createdAt": 1792298400000
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-001",
+      "title": "Calibrate Wheel Speed Hall Effect Sensors on CAN Bus",
+      "description": "Wire dual front wheel sensors to ESP32 interrupt lines and map pulses to linear velocity on telemetry dashboard.",
+      "teamId": "software",
+      "assignedMembers": [
+        "Parth Kshirsagar",
+        "Nishant Shinde"
+      ],
+      "status": "in_progress",
+      "priority": "urgent",
+      "dueDate": "2026-10-25",
+      "createdAt": 1792298400000,
+      "updatedAt": 1792320000000
+    },
+    {
+      "id": "task-002",
+      "title": "Deploy Cloud Telemetry Stream to Pit Wall Dashboard",
+      "description": "Implement live WebSocket feed showing battery thermals, state of charge, and lap telemetry for pit engineers.",
+      "teamId": "software",
+      "assignedMembers": [
+        "Samiksha Patole",
+        "Shravani Gadekar"
+      ],
+      "status": "todo",
+      "priority": "medium",
+      "dueDate": "2026-10-28",
+      "createdAt": 1792298400000,
+      "updatedAt": 1792320000000
+    },
+    {
+      "id": "task-003",
+      "title": "Fabricate Master Disconnect Switch & HV Interlock Loop",
+      "description": "Wire emergency shutoff button on both sides of vehicle and test 100ms power cut actuation to main contactors.",
+      "teamId": "entc",
+      "assignedMembers": [
+        "Tirthraj Pawale",
+        "Prem Chaudhari"
+      ],
+      "status": "in_progress",
+      "priority": "urgent",
+      "dueDate": "2026-10-24",
+      "createdAt": 1792302000000,
+      "updatedAt": 1792320000000
+    },
+    {
+      "id": "task-004",
+      "title": "Verify Cell Voltage Balance on Smart BMS",
+      "description": "Perform full charge-discharge cycle test and log individual cell delta across all 20 battery series blocks.",
+      "teamId": "entc",
+      "assignedMembers": [
+        "Ankita Bachhav",
+        "Nayan Jain"
+      ],
+      "status": "done",
+      "priority": "high",
+      "dueDate": "2026-10-18",
+      "createdAt": 1792302000000,
+      "updatedAt": 1792320000000
+    },
+    {
+      "id": "task-005",
+      "title": "TIG Weld Rear Swingarm Pivot Bracket",
+      "teamId": "mechanical",
+      "assignedMembers": [
+        "Meet Samdadiya",
+        "Mohit Pagar"
+      ],
+      "description": "Finalize fishmouth cuts and tack weld pivot brackets with zero warpage along the lateral chassis axis.",
+      "status": "in_progress",
+      "priority": "high",
+      "dueDate": "2026-10-23",
+      "createdAt": 1792305600000,
+      "updatedAt": 1792320000000
+    },
+    {
+      "id": "task-006",
+      "title": "Machine Front Uprights on 4-Axis CNC",
+      "teamId": "mechanical",
+      "assignedMembers": [
+        "Ganesh Sonawane",
+        "Ajay Kate"
+      ],
+      "description": "Send 6061-T6 aluminum billet CAM files to CNC machine shop for front wheel hub and brake caliper mounting tabs.",
+      "status": "todo",
+      "priority": "high",
+      "dueDate": "2026-10-27",
+      "createdAt": 1792305600000,
+      "updatedAt": 1792320000000
+    },
+    {
+      "id": "task-007",
+      "title": "Finalize CAD Assembly for Steering Rack Mounts",
+      "teamId": "design",
+      "assignedMembers": [
+        "Aditya Fuldeore",
+        "Siddhesh Raskar"
+      ],
+      "description": "Check clearance between tie rods, lower A-arms, and main roll hoop structure throughout 100% steering lock travel.",
+      "status": "review",
+      "priority": "medium",
+      "dueDate": "2026-10-22",
+      "createdAt": 1792309200000,
+      "updatedAt": 1792320000000
+    },
+    {
+      "id": "task-008",
+      "title": "Render 3D Fairing Livery for Sponsor Presentation",
+      "teamId": "design",
+      "assignedMembers": [
+        "Meet Samdadiya",
+        "Prem Chaudhari"
+      ],
+      "description": "Create high-resolution KeyShot renders with Riders Bay team colors and sponsor decal zones on nose cone.",
+      "status": "done",
+      "priority": "medium",
+      "dueDate": "2026-10-17",
+      "createdAt": 1792309200000,
+      "updatedAt": 1792320000000
+    },
+    {
+      "id": "task-009",
+      "title": "Torsional Rigidity FEA on Main Roll Hoop",
+      "teamId": "research",
+      "assignedMembers": [
+        "Omshri Ahire",
+        "Aditya Fuldeore"
+      ],
+      "description": "Apply 70 kN downward and 40 kN lateral loads per SIEP 2026 rules; extract von Mises stress contours.",
+      "status": "review",
+      "priority": "high",
+      "dueDate": "2026-10-21",
+      "createdAt": 1792312800000,
+      "updatedAt": 1792320000000
+    },
+    {
+      "id": "task-010",
+      "title": "Thermal Dissipation CFD on Motor Inverter Casing",
+      "teamId": "research",
+      "assignedMembers": [
+        "Aditya Fuldeore",
+        "Ankita Bachhav"
+      ],
+      "description": "Simulate convective cooling airflow through underbody ducts under 35 degree Celsius ambient racetrack temperature.",
+      "status": "in_progress",
+      "priority": "medium",
+      "dueDate": "2026-10-26",
+      "createdAt": 1792312800000,
+      "updatedAt": 1792320000000
+    },
+    {
+      "id": "task-011",
+      "title": "Submit Technical Partnership Deck to EV Suppliers",
+      "teamId": "sponsorship",
+      "assignedMembers": [
+        "Shravani Gadekar",
+        "Snehal Shinde"
+      ],
+      "description": "Target battery cell and CNC fabrication sponsors with customized branding decks and team metrics.",
+      "status": "in_progress",
+      "priority": "urgent",
+      "dueDate": "2026-10-22",
+      "createdAt": 1792316400000,
+      "updatedAt": 1792320000000
+    },
+    {
+      "id": "task-012",
+      "title": "Draft Sponsorship Deliverables Matrix for Gold Partners",
+      "teamId": "sponsorship",
+      "assignedMembers": [
+        "Pratik Desarda",
+        "Riddhi Munot"
+      ],
+      "description": "Define specific obligations including team jersey logo size, pit display placement, and social media mentions.",
+      "status": "done",
+      "priority": "medium",
+      "dueDate": "2026-10-16",
+      "createdAt": 1792316400000,
+      "updatedAt": 1792320000000
+    },
+    {
+      "id": "task-013",
+      "title": "Release Episode 1: Spaceframe Build Vlog",
+      "teamId": "socialmedia",
+      "assignedMembers": [
+        "Nishant Shinde",
+        "Nikhil Patil"
+      ],
+      "description": "Edit and color grade 3-minute technical fabrication video showcasing tube notching and TIG welding.",
+      "status": "done",
+      "priority": "high",
+      "dueDate": "2026-10-18",
+      "createdAt": 1792320000000,
+      "updatedAt": 1792320000000
+    },
+    {
+      "id": "task-014",
+      "title": "Produce Short Form Teaser for EnTC Battery Assembly",
+      "teamId": "socialmedia",
+      "assignedMembers": [
+        "Nikhil Patil",
+        "Ajay Kate"
+      ],
+      "description": "Capture macro footage of spot welding battery busbars with electrical safety PPE for Instagram reels.",
+      "status": "todo",
+      "priority": "low",
+      "dueDate": "2026-10-26",
+      "createdAt": 1792320000000,
+      "updatedAt": 1792320000000
+    },
+    {
+      "id": "task-015",
+      "title": "SIEP 2026 Structural Equivalency Sheet (SES) Review",
+      "teamId": "documentation",
+      "assignedMembers": [
+        "Pratik Desarda",
+        "Sharvari Bhambar"
+      ],
+      "description": "Cross-check all weld dimensions, tube wall thicknesses, and material mill test reports against rulebook Article 3.",
+      "status": "review",
+      "priority": "urgent",
+      "dueDate": "2026-10-21",
+      "createdAt": 1792323600000,
+      "updatedAt": 1792323600000
+    },
+    {
+      "id": "task-016",
+      "title": "Consolidate Bill of Materials (BOM) with Purchase Invoices",
+      "teamId": "documentation",
+      "assignedMembers": [
+        "Snehal Shinde",
+        "Riddhi Munot"
+      ],
+      "description": "Audit component receipts for fasteners, raw steel, electrical harness connectors, and motor controller.",
+      "status": "todo",
+      "priority": "medium",
+      "dueDate": "2026-10-29",
+      "createdAt": 1792323600000,
+      "updatedAt": 1792323600000
+    }
+  ],
+  "inquiries": [
+    {
+      "name": "Test Sponsor",
+      "organization": "Green Energy Corp",
+      "email": "test@example.com",
+      "phone": "+91 9999999999",
+      "message": "Testing sponsorship inquiry flow",
+      "id": "inq-1792358590749-ajqn",
+      "createdAt": 1792358590749
+    }
+  ]
+}

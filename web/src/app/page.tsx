@@ -1,10 +1,15 @@
 "use client";
 
-import { Canvas } from '@react-three/fiber';
-import { Suspense, useState } from 'react';
-import Experience from '@/components/Experience';
+import dynamic from 'next/dynamic';
+import { useState } from 'react';
 import ScrollOverlay from '@/components/ScrollOverlay';
 import TimelineIndicator from '@/components/TimelineIndicator';
+import ErrorBoundary from '@/components/ErrorBoundary';
+
+const Canvas3D = dynamic(() => import('@/components/Canvas3D'), {
+  ssr: false,
+  loading: () => null,
+});
 
 export default function Home() {
   const [is3DEnabled, setIs3DEnabled] = useState(true);
@@ -14,14 +19,12 @@ export default function Home() {
       {/* Persistent Timeline */}
       <TimelineIndicator />
 
-      {/* 3D Canvas (Fixed in background) */}
+      {/* 3D Canvas (Fixed in background) with ErrorBoundary protection */}
       {is3DEnabled && (
         <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-0">
-          <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
-            <Suspense fallback={null}>
-              <Experience />
-            </Suspense>
-          </Canvas>
+          <ErrorBoundary fallback={null}>
+            <Canvas3D />
+          </ErrorBoundary>
         </div>
       )}
 
@@ -33,7 +36,8 @@ export default function Home() {
       {/* 3D Engine Toggle for Resource Optimization */}
       <button 
         onClick={() => setIs3DEnabled(!is3DEnabled)}
-        className="fixed bottom-6 right-6 z-50 bg-jet-black text-alice-blue text-[10px] uppercase font-mono tracking-widest px-4 py-3 rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-white/10"
+        className="fixed bottom-4 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:bottom-6 md:right-6 z-50 safe-area-pad-bottom bg-jet-black text-alice-blue text-[10px] uppercase font-mono tracking-widest px-4 py-3 min-h-[44px] rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-white/10 cursor-pointer whitespace-nowrap"
+        aria-label="Toggle 3D rendering"
       >
         <div className={`w-2 h-2 rounded-full ${is3DEnabled ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]' : 'bg-red-500 opacity-50'}`}></div>
         {is3DEnabled ? '3D Render: ON' : '3D Render: OFF'}

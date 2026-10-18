@@ -1,0 +1,19 @@
+{
+  "name": "siep-scrambler",
+  "mood": "Alice blue technical blueprint, jet black structural ink, high-voltage scrambler orange",
+  "color": {
+    "ground": "#f8f9fa",
+    "deep": "#e9ecef",
+    "card": "#ffffff",
+    "line": "#dee2e6",
+    "mute": "#6c757d",
+    "ink": "#2b303a",
+    "accent": "#d97706",
+    "accent2": "#0284c7"
+  },
+  "type": {
+    "display": { "face": "Geist", "weight": 700, "tracking": -0.03 },
+    "text": { "face": "Inter", "weight": 500, "tracking": -0.01 },
+    "mono": { "face": "Geist Mono", "weight": 400, "tracking": 0 }
+  }
+}

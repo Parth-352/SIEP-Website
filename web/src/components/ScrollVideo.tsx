@@ -6,14 +6,24 @@ export default function ScrollVideo() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [hasVideo, setHasVideo] = useState(true); // Assuming video exists initially, fallback to false if error
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Viewport detection for video source switching (only checked once on mount)
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+  }, []);
 
   useEffect(() => {
     let animationFrameId: number;
-    const video = videoRef.current;
-    const container = containerRef.current;
 
     const updateVideoProgress = () => {
-      if (!video || !container) return;
+      const video = videoRef.current;
+      const container = containerRef.current;
+
+      if (!video || !container) {
+        animationFrameId = requestAnimationFrame(updateVideoProgress);
+        return;
+      }
 
       const scrollTop = window.scrollY;
       const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
@@ -21,8 +31,13 @@ export default function ScrollVideo() {
       let progress = scrollHeight > 0 ? scrollTop / scrollHeight : 0;
       progress = Math.max(0, Math.min(1, progress)); // Clamp between 0 and 1
 
-      if (video.duration && !isNaN(video.duration)) {
-        video.currentTime = progress * video.duration;
+      // Ensure video has loaded metadata before setting currentTime
+      if (video.readyState >= 1 && video.duration && !isNaN(video.duration)) {
+        const targetTime = progress * video.duration;
+        // iOS Safari scroll-sync fix: throttle updates if difference > 0.05s to avoid excessive seeks
+        if (Math.abs(video.currentTime - targetTime) > 0.05) {
+          video.currentTime = targetTime;
+        }
       }
 
       animationFrameId = requestAnimationFrame(updateVideoProgress);
@@ -41,6 +56,7 @@ export default function ScrollVideo() {
     <div ref={containerRef} className="fixed inset-0 w-full h-[100dvh] bg-alice-blue flex justify-center items-center overflow-hidden z-0 pointer-events-none">
       {hasVideo ? (
         <video
+          key={isMobile ? 'mobile' : 'desktop'}
           ref={videoRef}
           className="w-full h-full object-cover"
           playsInline
@@ -49,8 +65,17 @@ export default function ScrollVideo() {
           poster="/images/ebike-poster.webp"
           onError={handleError}
         >
-          <source src="/video/ebike-story.webm" type="video/webm" />
-          <source src="/video/ebike-story.mp4" type="video/mp4" />
+          {isMobile ? (
+            <>
+              <source src="/video/ebike-story-mobile.webm" type="video/webm" />
+              <source src="/video/ebike-story-mobile.mp4" type="video/mp4" onError={handleError} />
+            </>
+          ) : (
+            <>
+              <source src="/video/ebike-story.webm" type="video/webm" />
+              <source src="/video/ebike-story.mp4" type="video/mp4" onError={handleError} />
+            </>
+          )}
         </video>
       ) : (
         <div className="w-full h-full flex flex-col items-center justify-center bg-white text-jet-black border border-jet-black/10">

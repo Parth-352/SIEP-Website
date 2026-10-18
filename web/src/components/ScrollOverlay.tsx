@@ -92,12 +92,16 @@ export default function ScrollOverlay() {
     <div id="timeline-container" className="relative z-10 w-full font-sans pointer-events-none">
       
       {/* 1. Hero Section */}
-      <section className="relative h-[100dvh] flex flex-col justify-center items-start p-6 pt-32 md:p-24 w-full md:w-1/2">
-        <div className="bg-alice-blue/80 md:bg-transparent backdrop-blur-md md:backdrop-blur-none p-6 md:p-0 rounded-xl pointer-events-auto w-full">
-          <h1 className="text-5xl md:text-8xl font-black text-jet-black tracking-tighter leading-none mb-4 md:mb-6">
-            ENGINEERING THE <br/> <span className="text-orange">NEXT RIDE.</span>
+      <section className="relative h-[100dvh] flex flex-col justify-center items-start pt-32 w-full max-w-7xl mx-auto px-6 sm:px-8 md:px-12 lg:px-16 pointer-events-none">
+        <div className="bg-alice-blue/85 md:bg-transparent backdrop-blur-md md:backdrop-blur-none p-6 md:p-0 rounded-xl border border-jet-black/5 md:border-none shadow-sm md:shadow-none pointer-events-auto w-full md:w-3/5 lg:w-1/2">
+          <span className="text-xs font-mono uppercase tracking-[0.25em] text-orange font-bold mb-4 block">
+            SNJB&apos;s KBJ College of Engineering
+          </span>
+          <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-jet-black tracking-tighter leading-[0.9] mb-6 uppercase">
+            Engineering<br />
+            <span className="text-orange">The Next Ride.</span>
           </h1>
-          <p className="text-lg md:text-2xl text-grey font-light">
+          <p className="text-lg md:text-xl text-grey font-light leading-relaxed max-w-xl">
             Smart Scrambler E-Bike by SNJB&apos;s KBJ College of Engineering.
           </p>
         </div>
@@ -106,7 +110,7 @@ export default function ScrollOverlay() {
       {/* Scroll Indicator */}
       <div 
         id="scroll-indicator" 
-        className={`absolute top-[85vh] left-1/2 -translate-x-1/2 animate-bounce flex flex-col items-center z-50 pointer-events-none transition-opacity duration-700 ${isScrolled ? 'opacity-0' : 'opacity-100'}`}
+        className={`absolute top-[85dvh] left-1/2 -translate-x-1/2 animate-bounce flex flex-col items-center z-30 pointer-events-none transition-opacity duration-700 ${isScrolled ? 'opacity-0' : 'opacity-100'}`}
       >
         <div className="bg-jet-black px-4 py-2 rounded-full shadow-lg">
           <span className="text-[10px] tracking-[0.2em] uppercase text-alice-blue font-bold font-mono whitespace-nowrap">Scroll to Explore</span>

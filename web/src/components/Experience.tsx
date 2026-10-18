@@ -12,6 +12,19 @@ import { Environment, ContactShadows, Float } from '@react-three/drei';
 
 export default function Experience() {
   const groupRef = useRef<THREE.Group>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const isMobileRef = useRef(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      isMobileRef.current = mobile;
+      setIsMobile(mobile);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   // Use React state to hold the loaded OBJ
   const [obj, setObj] = useState<THREE.Group | null>(null);
@@ -87,38 +100,65 @@ export default function Experience() {
       },
     });
 
-    // Initial positioning (Hero) - Cinematic 3/4 beauty shot, positioned to the right to avoid overlapping text
-    gsap.set(groupRef.current.position, { x: 2.2, y: -1.2, z: 0 });
-    gsap.set(groupRef.current.rotation, { x: 0.1, y: -Math.PI / 5, z: 0 });
+    if (isMobile) {
+      // Mobile positioning - centered to avoid cutoff and text overlap
+      // Initial positioning (Hero) - centered, not pushed right
+      gsap.set(groupRef.current.position, { x: 0, y: -0.5, z: 0 });
+      gsap.set(groupRef.current.rotation, { x: 0.1, y: -Math.PI / 5, z: 0 });
 
-    // 0. Fade out the "Scroll to Explore" indicator immediately upon scrolling
-    tl.to('#scroll-indicator', { opacity: 0, duration: 0.2, ease: 'power1.out' }, 0);
+      // 0. Fade out the "Scroll to Explore" indicator immediately upon scrolling
+      tl.to('#scroll-indicator', { opacity: 0, duration: 0.2, ease: 'power1.out' }, 0);
 
-    // 1. Hero -> Chassis (Text left) - Dramatic low angle, looking up at the chassis
-    tl.to(groupRef.current.position, { x: 1.5, y: 1.2, z: 2, duration: 1, ease: 'power2.inOut' }, 0);
-    tl.to(groupRef.current.rotation, { x: -0.3, y: -Math.PI / 8, z: 0.1, duration: 1, ease: 'power2.inOut' }, 0); // Slight Dutch angle
+      // 1. Hero -> Chassis — centered, slightly above
+      tl.to(groupRef.current.position, { x: 0, y: 0.8, z: 1.5, duration: 1, ease: 'power2.inOut' }, 0);
+      tl.to(groupRef.current.rotation, { x: -0.3, y: -Math.PI / 8, z: 0.1, duration: 1, ease: 'power2.inOut' }, 0);
 
-    // 2. Chassis -> Powertrain & Battery (Text right) - Top-down swoop, looking at the core
-    tl.to(groupRef.current.position, { x: -1.5, y: -1.5, z: 1.5, duration: 1, ease: 'power2.inOut' }, 1);
-    tl.to(groupRef.current.rotation, { x: 0.6, y: Math.PI / 6, z: -0.1, duration: 1, ease: 'power2.inOut' }, 1);
+      // 2. Chassis -> Powertrain — centered
+      tl.to(groupRef.current.position, { x: 0, y: -1, z: 1, duration: 1, ease: 'power2.inOut' }, 1);
+      tl.to(groupRef.current.rotation, { x: 0.6, y: Math.PI / 6, z: -0.1, duration: 1, ease: 'power2.inOut' }, 1);
 
-    // 3. Powertrain -> Systems Integration (Text left) - Extreme macro zoom on front forks/wheel
-    tl.to(groupRef.current.position, { x: 2.5, y: -2, z: 3.5, duration: 1, ease: 'power2.inOut' }, 2);
-    tl.to(groupRef.current.rotation, { x: 0, y: -Math.PI / 2.5, z: 0.15, duration: 1, ease: 'power2.inOut' }, 2);
+      // 3. Powertrain -> Motion — centered
+      tl.to(groupRef.current.position, { x: 0, y: -1.5, z: 2.5, duration: 1, ease: 'power2.inOut' }, 2);
+      tl.to(groupRef.current.rotation, { x: 0, y: -Math.PI / 2.5, z: 0.15, duration: 1, ease: 'power2.inOut' }, 2);
 
-    // 4. Systems Integration -> Final Reveal (Center) - Dramatic pull-back into a heroic left profile
-    tl.to(groupRef.current.position, { x: 0, y: -0.5, z: -1, duration: 1, ease: 'power2.inOut' }, 3);
-    tl.to(groupRef.current.rotation, { x: 0, y: Math.PI * 1.5, z: 0, duration: 1, ease: 'power2.inOut' }, 3);
+      // 4. Motion -> Final Reveal — centered
+      tl.to(groupRef.current.position, { x: 0, y: -0.3, z: -0.5, duration: 1, ease: 'power2.inOut' }, 3);
+      tl.to(groupRef.current.rotation, { x: 0, y: Math.PI * 1.5, z: 0, duration: 1, ease: 'power2.inOut' }, 3);
+    } else {
+      // Desktop positioning
+      // Initial positioning (Hero) - Cinematic 3/4 beauty shot, positioned to the right to avoid overlapping text
+      gsap.set(groupRef.current.position, { x: 2.2, y: -1.2, z: 0 });
+      gsap.set(groupRef.current.rotation, { x: 0.1, y: -Math.PI / 5, z: 0 });
+
+      // 0. Fade out the "Scroll to Explore" indicator immediately upon scrolling
+      tl.to('#scroll-indicator', { opacity: 0, duration: 0.2, ease: 'power1.out' }, 0);
+
+      // 1. Hero -> Chassis (Text left) - Dramatic low angle, looking up at the chassis
+      tl.to(groupRef.current.position, { x: 1.5, y: 1.2, z: 2, duration: 1, ease: 'power2.inOut' }, 0);
+      tl.to(groupRef.current.rotation, { x: -0.3, y: -Math.PI / 8, z: 0.1, duration: 1, ease: 'power2.inOut' }, 0); // Slight Dutch angle
+
+      // 2. Chassis -> Powertrain & Battery (Text right) - Top-down swoop, looking at the core
+      tl.to(groupRef.current.position, { x: -1.5, y: -1.5, z: 1.5, duration: 1, ease: 'power2.inOut' }, 1);
+      tl.to(groupRef.current.rotation, { x: 0.6, y: Math.PI / 6, z: -0.1, duration: 1, ease: 'power2.inOut' }, 1);
+
+      // 3. Powertrain -> Systems Integration (Text left) - Extreme macro zoom on front forks/wheel
+      tl.to(groupRef.current.position, { x: 2.5, y: -2, z: 3.5, duration: 1, ease: 'power2.inOut' }, 2);
+      tl.to(groupRef.current.rotation, { x: 0, y: -Math.PI / 2.5, z: 0.15, duration: 1, ease: 'power2.inOut' }, 2);
+
+      // 4. Systems Integration -> Final Reveal (Center) - Dramatic pull-back into a heroic left profile
+      tl.to(groupRef.current.position, { x: 0, y: -0.5, z: -1, duration: 1, ease: 'power2.inOut' }, 3);
+      tl.to(groupRef.current.rotation, { x: 0, y: Math.PI * 1.5, z: 0, duration: 1, ease: 'power2.inOut' }, 3);
+    }
     
     return () => {
       tl.kill();
     };
-  }, [obj]);
+  }, [obj, isMobile]);
 
   if (!obj) return null;
 
   return (
-    <group ref={groupRef} scale={1.1}>
+    <group ref={groupRef} scale={isMobile ? 0.8 : 1.1}>
       
       {/* Photorealistic Environment Reflections */}
       <Environment preset="city" />

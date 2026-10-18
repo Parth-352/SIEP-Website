@@ -1,158 +1,381 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 const SUPPORT_AREAS = [
-  { label: "Financial Aid", desc: "Direct funding for components, testing, and competition fees" },
-  { label: "Components & Manufacturing", desc: "Raw materials, CNC machining, 3D printing, welding support" },
-  { label: "Technical Mentorship", desc: "Industry guidance on EV design, battery systems, and dynamics" },
-  { label: "Software & Sensor Support", desc: "Simulation licenses, IoT sensors, telemetry hardware" },
-  { label: "Testing Access", desc: "Dynamometer, track access, environmental testing chambers" },
-  { label: "Logistics & Travel", desc: "Transport for the vehicle and team to the national competition" },
+  { label: "Financial Aid", desc: "Direct funding for raw materials, competition registration, and high-voltage components." },
+  { label: "Components & Manufacturing", desc: "Raw AISI 4130 steel, 4-axis CNC machining, composite fairings, and precision welding." },
+  { label: "Technical Mentorship", desc: "Engineering consultation on powertrain dynamics, BMS cell balancing, and telemetry." },
+  { label: "Software & Sensor Hardware", desc: "Simulation software licenses (FEA/CFD), CAN bus transceivers, and IoT telemetry sensors." },
+  { label: "Testing Track & Dyno Access", desc: "Dynamometer chassis dyno runs, closed-track endurance trials, and thermal stress testing." },
+  { label: "Logistics & Competition Transit", desc: "Safe transport and pit infrastructure for the electric scrambler to national competition." },
+];
+
+interface ContactPerson {
+  name: string;
+  role: string;
+  phone?: string | null;
+}
+
+const TEAM_CONTACTS: ContactPerson[] = [
+  { name: "Prof. Deore H.S.", role: "Faculty Mentor & Advisor", phone: null },
+  { name: "Meet Samdadiya", role: "Team Captain", phone: "+91 7058471449" },
+  { name: "Tirthraj Pawale", role: "Vice Captain", phone: "+91 9271647536" },
+  { name: "Pratik Desarda", role: "Core member", phone: "+91 9307740350" },
 ];
 
 export default function ContactPage() {
   const [formState, setFormState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFormState('submitting');
+    setErrorMessage(null);
 
     const form = e.currentTarget;
     const formData = new FormData(form);
 
-    try {
-      formData.append("access_key", "1cfe077b-7899-43da-9049-69680003cb32");
-      formData.append("subject", "New Inquiry — Riders Bay SIEP Website");
-      formData.append("from_name", "SIEP Website Contact Form");
+    const payload = {
+      name: formData.get("name"),
+      organization: formData.get("organization"),
+      email: formData.get("email"),
+      phone: formData.get("phone"),
+      message: formData.get("message"),
+    };
 
-      const res = await fetch("https://api.web3forms.com/submit", {
+    try {
+      // 1. Submit to internal Next.js API route (saves to store and forwards to ebikeclubcoe@snjb.org)
+      const res = await fetch("/api/contact", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
-      if (res.ok) {
+      const data = await res.json();
+
+      if (res.ok && data.success) {
         setFormState('success');
         form.reset();
       } else {
+        // Fallback: Attempt direct Web3Forms submission if server route had an issue
+        try {
+          formData.append("access_key", "1cfe077b-7899-43da-9049-69680003cb32");
+          formData.append("subject", "New Partner Inquiry — Riders Bay");
+          formData.append("from_name", "Riders Bay Contact Form");
+
+          const fallbackRes = await fetch("https://api.web3forms.com/submit", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (fallbackRes.ok) {
+            setFormState('success');
+            form.reset();
+            return;
+          }
+        } catch {
+          // Fallback also failed
+        }
+
+        setErrorMessage(data.error || "Failed to submit. Please try again or email ebikeclubcoe@snjb.org.");
         setFormState('error');
       }
     } catch {
+      setErrorMessage("Network error. Please verify your connection or email ebikeclubcoe@snjb.org directly.");
       setFormState('error');
     }
   };
 
   return (
-    <main className="min-h-screen bg-alice-blue pt-28 pb-24 px-6 md:px-12 lg:px-24 font-sans text-jet-black">
-      <div className="max-w-7xl mx-auto">
+    <main className="min-h-screen bg-alice-blue pt-32 pb-24 font-sans text-jet-black">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 md:px-12 lg:px-16">
 
         {/* Hero Header */}
-        <div className="mb-20 md:mb-28">
-          <h2 className="text-[10px] tracking-[0.3em] uppercase text-grey font-mono mb-4 block">Get Involved</h2>
-          <h1 className="text-5xl md:text-8xl font-black tracking-tighter leading-[0.9] mb-8">
-            PARTNER WITH<br/><span className="text-orange">RIDERS BAY.</span>
+        <div className="mb-16 md:mb-20">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="w-2 h-2 rounded-full bg-orange animate-pulse"></span>
+            <span className="text-xs font-mono uppercase tracking-[0.25em] text-grey font-bold">
+              05 / Collaboration &amp; Outreach
+            </span>
+          </div>
+
+          <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-jet-black tracking-tighter leading-[0.9] mb-6 uppercase">
+            Partner With<br /><span className="text-orange">Riders Bay.</span>
           </h1>
+
           <p className="text-lg md:text-xl text-grey font-light leading-relaxed max-w-2xl">
-            Whether you&apos;re looking to sponsor the project, request official documentation, or discuss technical collaboration — drop us a message and we&apos;ll get back to you.
+            Whether you&apos;re looking to sponsor the electric scrambler project, provide testing and fabrication support, or discuss institutional partnership — drop us a message and our team will get back to you.
           </p>
         </div>
 
-        {/* Two Column: Support Areas + Contact Info */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-16 mb-24">
+        {/* Top Grid: Support Areas & Direct Contacts */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 mb-16 md:mb-24">
           
-          {/* Areas of Support - Takes 3 cols */}
-          <div className="lg:col-span-3">
-            <h2 className="text-[10px] tracking-[0.3em] uppercase text-grey font-mono mb-10 block border-b border-jet-black/10 pb-3">How You Can Support</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {SUPPORT_AREAS.map((area, idx) => (
-                <div key={idx} className="group p-6 bg-white border border-jet-black/5 rounded-xl hover:border-orange/30 hover:shadow-md transition-all duration-300">
-                  <div className="flex items-start gap-4">
-                    <div className="w-8 h-8 bg-orange/10 rounded-lg flex items-center justify-center shrink-0 group-hover:bg-orange/20 transition-colors">
-                      <span className="text-orange font-mono font-bold text-xs">0{idx + 1}</span>
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-base mb-1">{area.label}</h3>
-                      <p className="text-sm text-grey font-light leading-relaxed">{area.desc}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Contact Info - Takes 2 cols */}
-          <div className="lg:col-span-2 space-y-10">
+          {/* Areas of Support - 7 Cols */}
+          <div className="lg:col-span-7 flex flex-col justify-between">
             <div>
-              <h2 className="text-[10px] tracking-[0.3em] uppercase text-grey font-mono mb-6 block border-b border-jet-black/10 pb-3">Direct Contact</h2>
-              <a href="mailto:ebikeclubcoe@snjb.org" className="inline-block px-6 py-3 bg-jet-black text-alice-blue font-semibold hover:bg-orange transition-colors uppercase tracking-widest text-sm rounded-sm mb-8">
-                ebikeclubcoe@snjb.org
-              </a>
-            </div>
+              <div className="flex items-center justify-between pb-3 mb-6 border-b border-jet-black/10">
+                <h2 className="text-[11px] tracking-[0.3em] uppercase text-grey font-mono font-bold">
+                  How You Can Support
+                </h2>
+                <span className="text-[11px] font-mono text-orange font-bold">6 Focus Areas</span>
+              </div>
 
-            <div>
-              <h2 className="text-[10px] tracking-[0.3em] uppercase text-grey font-mono mb-6 block border-b border-jet-black/10 pb-3">Team Contacts</h2>
-              <div className="space-y-5">
-                {[
-                  { name: "Meet Jain", role: "Team Captain", phone: "+91 7058471449" },
-                  { name: "Prof. Deore H.S.", role: "Mentor", phone: null },
-                  { name: "Tirthraj Pawale", role: null, phone: "+91 9271647536" },
-                  { name: "Pratik Desarda", role: null, phone: "+91 9307740350" },
-                ].map((person, idx) => (
-                  <div key={idx} className="flex items-center gap-4 group">
-                    <div className="w-10 h-10 bg-jet-black/5 rounded-full flex items-center justify-center shrink-0 group-hover:bg-orange/10 transition-colors">
-                      <span className="text-sm font-bold text-jet-black/40">{person.name.charAt(0)}</span>
-                    </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {SUPPORT_AREAS.map((area, idx) => (
+                  <div 
+                    key={idx} 
+                    className="p-5 bg-white border border-jet-black/10 rounded-2xl hover:border-orange/50 hover:shadow-md transition-all duration-300 flex flex-col justify-between"
+                  >
                     <div>
-                      <h3 className="font-bold text-sm">{person.name}</h3>
-                      {person.role && <p className="text-[10px] text-orange font-mono uppercase tracking-widest">{person.role}</p>}
-                      {person.phone && <p className="text-xs text-grey font-light">{person.phone}</p>}
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-jet-black/5 text-jet-black">
+                          [ 0{idx + 1} ]
+                        </span>
+                        <span className="text-xs text-orange font-mono">→</span>
+                      </div>
+                      <h3 className="font-bold text-sm sm:text-base text-jet-black mb-1.5">{area.label}</h3>
+                      <p className="text-xs text-grey font-light leading-relaxed">{area.desc}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
+
+            {/* Quick Email Banner */}
+            <div className="mt-6 p-5 rounded-2xl bg-jet-black text-alice-blue flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-white/10 shadow-sm">
+              <div>
+                <span className="text-[10px] font-mono uppercase tracking-widest text-orange font-bold block mb-1">
+                  Official Communication Channel
+                </span>
+                <span className="font-mono text-sm sm:text-base font-bold text-white">
+                  ebikeclubcoe@snjb.org
+                </span>
+              </div>
+              <a
+                href="mailto:ebikeclubcoe@snjb.org"
+                className="inline-flex items-center justify-center min-h-[44px] px-5 py-2.5 bg-orange text-jet-black font-bold uppercase tracking-wider text-xs rounded-xl hover:bg-white transition-colors text-center shrink-0"
+              >
+                Direct Email ↗
+              </a>
+            </div>
           </div>
+
+          {/* Team Contacts - 5 Cols */}
+          <div className="lg:col-span-5 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between pb-3 mb-6 border-b border-jet-black/10">
+                <h2 className="text-[11px] tracking-[0.3em] uppercase text-grey font-mono font-bold">
+                  Key Contacts
+                </h2>
+                <span className="text-[11px] font-mono text-grey font-bold">SNJB COE</span>
+              </div>
+
+              <div className="space-y-3.5">
+                {TEAM_CONTACTS.map((person, idx) => {
+                  const initials = person.name
+                    .split(' ')
+                    .filter(n => !n.startsWith('Prof.'))
+                    .map(n => n[0])
+                    .join('')
+                    .slice(0, 2)
+                    .toUpperCase();
+
+                  return (
+                    <div 
+                      key={idx} 
+                      className="p-4 bg-white border border-jet-black/10 rounded-2xl flex items-center justify-between gap-4 hover:border-jet-black/30 transition-all shadow-sm"
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className="w-11 h-11 rounded-xl bg-jet-black text-alice-blue flex items-center justify-center font-mono font-bold text-xs shrink-0 shadow-sm">
+                          {initials || "RB"}
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-bold text-sm text-jet-black truncate">{person.name}</h3>
+                          <p className="text-[11px] text-orange font-mono uppercase tracking-wider font-semibold mt-0.5 truncate">
+                            {person.role}
+                          </p>
+                        </div>
+                      </div>
+
+                      {person.phone ? (
+                        <a 
+                          href={`tel:${person.phone.replace(/\s+/g, '')}`} 
+                          className="px-3 py-1.5 rounded-lg bg-alice-blue border border-jet-black/10 text-xs font-mono text-jet-black font-bold hover:bg-orange hover:border-orange hover:text-jet-black transition-all shrink-0 min-h-[36px] flex items-center"
+                          title={`Call ${person.name}`}
+                        >
+                          {person.phone}
+                        </a>
+                      ) : (
+                        <span className="text-[10px] font-mono text-grey px-2.5 py-1 rounded bg-jet-black/5 shrink-0">
+                          Advisory
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Institutional Backing note */}
+            <div className="mt-6 p-4 rounded-xl border border-jet-black/10 bg-white/60 text-xs font-mono text-grey leading-relaxed">
+              <span className="font-bold text-jet-black block mb-0.5">Campus Location:</span>
+              SNJB&apos;s  Late Sau. Kantabai Bhavarlalji Jain College of Engineering, Neminagar, Chandwad, Nashik - 423101.
+            </div>
+
+          </div>
+
         </div>
 
-        {/* Form Section */}
-        <section className="max-w-2xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-black tracking-tight text-jet-black mb-2">Send a Message</h2>
-          <div className="w-12 h-1 bg-orange rounded-full mb-8"></div>
-
-          {formState === 'success' ? (
-            <div className="text-center py-16">
-              <div className="w-14 h-14 bg-orange/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-7 h-7 text-orange" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-              </div>
-              <h3 className="font-bold text-2xl mb-2 text-jet-black">Message Sent!</h3>
-              <p className="text-grey font-light text-sm">We&apos;ll get back to you shortly.</p>
+        {/* Send a Message Form Section */}
+        <section className="border-t border-jet-black/10 pt-16">
+          <div className="max-w-3xl mx-auto bg-white border border-jet-black/10 rounded-2xl p-6 sm:p-10 md:p-12 shadow-sm">
+            
+            <div className="mb-8">
+              <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-orange font-bold block mb-1">
+                Direct Submission
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-black text-jet-black tracking-tight">
+                Send an Inquiry<span className="text-orange">.</span>
+              </h2>
+              <p className="text-sm text-grey font-light mt-1">
+                Your message is routed directly to <span className="font-mono text-jet-black font-semibold">ebikeclubcoe@snjb.org</span>.
+              </p>
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-5 pt-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input name="name" type="text" required className="w-full p-3 bg-white border border-jet-black/10 focus:border-orange focus:outline-none transition-colors rounded-lg text-jet-black placeholder-grey/40 text-sm" placeholder="Full Name *" />
-                <input name="organization" type="text" className="w-full p-3 bg-white border border-jet-black/10 focus:border-orange focus:outline-none transition-colors rounded-lg text-jet-black placeholder-grey/40 text-sm" placeholder="Organization / Role" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input name="email" type="email" required className="w-full p-3 bg-white border border-jet-black/10 focus:border-orange focus:outline-none transition-colors rounded-lg text-jet-black placeholder-grey/40 text-sm" placeholder="Email *" />
-                <input name="phone" type="tel" className="w-full p-3 bg-white border border-jet-black/10 focus:border-orange focus:outline-none transition-colors rounded-lg text-jet-black placeholder-grey/40 text-sm" placeholder="WhatsApp / Phone" />
-              </div>
-              <textarea name="message" rows={4} required className="w-full p-3 bg-white border border-jet-black/10 focus:border-orange focus:outline-none transition-colors rounded-lg text-jet-black placeholder-grey/40 text-sm resize-none" placeholder="Your message..."></textarea>
 
-              {formState === 'error' && (
-                <p className="text-red-500 text-sm">Something went wrong. Please try again or email us directly.</p>
-              )}
+            {formState === 'success' ? (
+              <div className="text-center py-12 px-4 space-y-4">
+                <div className="w-16 h-16 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="font-bold text-2xl text-jet-black">Inquiry Transmitted!</h3>
+                <p className="text-grey font-light text-sm max-w-md mx-auto leading-relaxed">
+                  Thank you for reaching out. Your message has been dispatched to the team leadership at <strong className="text-jet-black">ebikeclubcoe@snjb.org</strong>. We will review and reply shortly.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setFormState('idle')}
+                  className="mt-4 px-6 py-2.5 rounded-xl bg-jet-black text-alice-blue text-xs font-mono font-bold uppercase tracking-wider hover:bg-orange hover:text-jet-black transition-colors cursor-pointer"
+                >
+                  Send Another Inquiry
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-mono uppercase tracking-wider text-grey font-bold mb-1.5">
+                      Full Name <span className="text-orange">*</span>
+                    </label>
+                    <input 
+                      name="name" 
+                      type="text" 
+                      required 
+                      autoComplete="name"
+                      className="w-full px-4 py-3 bg-alice-blue/40 border border-jet-black/15 focus:border-orange focus:ring-2 focus:ring-orange/20 focus:outline-none transition-all rounded-xl text-jet-black placeholder-grey/40 text-sm font-sans" 
+                      placeholder="e.g. Anand Mahindra" 
+                    />
+                  </div>
 
-              <button 
-                type="submit" 
-                disabled={formState === 'submitting'}
-                className="w-full py-3 bg-jet-black text-alice-blue font-bold uppercase tracking-widest text-xs hover:bg-orange transition-colors disabled:opacity-50 rounded-lg"
-              >
-                {formState === 'submitting' ? 'Sending...' : 'Send Message'}
-              </button>
-            </form>
-          )}
+                  <div>
+                    <label className="block text-[11px] font-mono uppercase tracking-wider text-grey font-bold mb-1.5">
+                      Organization / Company
+                    </label>
+                    <input 
+                      name="organization" 
+                      type="text" 
+                      autoComplete="organization"
+                      className="w-full px-4 py-3 bg-alice-blue/40 border border-jet-black/15 focus:border-orange focus:ring-2 focus:ring-orange/20 focus:outline-none transition-all rounded-xl text-jet-black placeholder-grey/40 text-sm font-sans" 
+                      placeholder="e.g. Tech Sponsor / EV Components" 
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-mono uppercase tracking-wider text-grey font-bold mb-1.5">
+                      Email Address <span className="text-orange">*</span>
+                    </label>
+                    <input 
+                      name="email" 
+                      type="email" 
+                      required 
+                      autoComplete="email"
+                      inputMode="email"
+                      className="w-full px-4 py-3 bg-alice-blue/40 border border-jet-black/15 focus:border-orange focus:ring-2 focus:ring-orange/20 focus:outline-none transition-all rounded-xl text-jet-black placeholder-grey/40 text-sm font-sans font-mono" 
+                      placeholder="name@company.com" 
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-mono uppercase tracking-wider text-grey font-bold mb-1.5">
+                      Phone / WhatsApp
+                    </label>
+                    <input 
+                      name="phone" 
+                      type="tel" 
+                      autoComplete="tel"
+                      inputMode="tel"
+                      className="w-full px-4 py-3 bg-alice-blue/40 border border-jet-black/15 focus:border-orange focus:ring-2 focus:ring-orange/20 focus:outline-none transition-all rounded-xl text-jet-black placeholder-grey/40 text-sm font-sans font-mono" 
+                      placeholder="+91 98765 43210" 
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-grey font-bold mb-1.5">
+                    Message / Collaboration Inquiry <span className="text-orange">*</span>
+                  </label>
+                  <textarea 
+                    name="message" 
+                    rows={5} 
+                    required 
+                    className="w-full p-4 bg-alice-blue/40 border border-jet-black/15 focus:border-orange focus:ring-2 focus:ring-orange/20 focus:outline-none transition-all rounded-xl text-jet-black placeholder-grey/40 text-sm font-sans resize-none leading-relaxed" 
+                    placeholder="Describe how you would like to support or collaborate with the Riders Bay engineering collective..."
+                  ></textarea>
+                </div>
+
+                {formState === 'error' && (
+                  <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs font-mono">
+                    {errorMessage || "Submission failed. Please try again or write directly to ebikeclubcoe@snjb.org."}
+                  </div>
+                )}
+
+                <div className="pt-2">
+                  <button 
+                    type="submit" 
+                    disabled={formState === 'submitting'}
+                    className="w-full min-h-[50px] py-3.5 bg-jet-black text-alice-blue font-bold uppercase tracking-widest text-xs rounded-xl hover:bg-orange hover:text-jet-black transition-all disabled:opacity-50 flex items-center justify-center cursor-pointer shadow-sm gap-2"
+                  >
+                    {formState === 'submitting' ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white/80 border-t-transparent rounded-full animate-spin"></span>
+                        <span>Transmitting Inquiry...</span>
+                      </>
+                    ) : (
+                      <span>Send Inquiry to Team →</span>
+                    )}
+                  </button>
+                  <p className="text-[11px] text-grey/60 font-mono text-center mt-2.5">
+                    Direct notification dispatched to ebikeclubcoe@snjb.org with reply-to configuration
+                  </p>
+                </div>
+              </form>
+            )}
+
+          </div>
         </section>
+
+        {/* Footer Navigation Back Link */}
+        <div className="text-center mt-16 pt-8 border-t border-jet-black/10">
+          <Link href="/" className="text-xs text-grey hover:text-orange font-mono transition-colors">
+            ← Return to Riders Bay Home
+          </Link>
+        </div>
 
       </div>
     </main>

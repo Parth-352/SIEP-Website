@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<!-- onetake · Riders Bay — The Smart Scrambler · SIEP E-Bike Challenge 2026–27 -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Riders Bay · The Smart Scrambler · SIEP 2026-27</title>
+<style>
+:root {
+  --ground: #f8f9fa;
+  --deep: #e9ecef;
+  --card: #ffffff;
+  --line: #dee2e6;
+  --mute: #6c757d;
+  --ink: #2b303a;
+  --accent: #d97706;
+  --accent2: #0284c7;
+}
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+#stage {
+  position: absolute;
+  inset: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: var(--ground);
+}
+canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  display: block;
+}
+#hud {
+  position: absolute;
+  right: 18px;
+  bottom: 14px;
+  font: 13px 'Geist Mono', ui-monospace, Menlo, monospace;
+  color: var(--mute);
+  background: rgba(255, 255, 255, 0.85);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  display: none;
+  z-index: 99;
+}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" width="1920" height="1080"></canvas>
+  <div id="hud"></div>
+</div>
+
+<script src="look.js"></script>
+<script src="motion.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+// onetake composition · Riders Bay — The Smart Scrambler (SIEP E-Bike Challenge 2026-27)
+// Everything is a pure deterministic function of time t in seconds.
+// Contract: window.__seek(t), window.__track(t), window.__motion(t0, t1), window.__ready, window.__meta
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const W = 1920, H = 1080;
+const { clamp, lerp, sstep, ssstep, spring: spr, swiftSpring, wordRise, letterDrop, popIn, impactSplit, camera, view, lattice, shake } = OM;
+
+const DUR = 15.0, FPS = 30;
+// Staccato burst cuts
+const BURST_CUTS = [9.15, 9.45, 9.75, 10.05, 10.35, 10.65];
+window.__meta = {
+  dur: DUR,
+  fps: FPS,
+  w: W,
+  h: H,
+  cuts: BURST_CUTS,
+  inFrame: {
+    spark: [0.0, 15.0],
+    machine: [1.2, 15.0]
+  }
+};
+
+// Color tokens
+const COL = {
+  ground: '#f8f9fa',
+  deep: '#e9ecef',
+  card: '#ffffff',
+  line: '#dee2e6',
+  grid: 'rgba(43, 48, 58, 0.07)',
+  gridStrong: 'rgba(43, 48, 58, 0.16)',
+  mute: '#6c757d',
+  ink: '#2b303a',
+  accent: '#d97706',      // High-voltage Scrambler orange
+  accentGlow: 'rgba(217, 119, 6, 0.28)',
+  accentLight: '#fbbf24',
+  accent2: '#0284c7',     // Telemetry cyan
+  accent2Light: '#38bdf8'
+};
+
+// ────────────────────────────────────────── GEOMETRY DATA ──────────────────────────────────────────
+// Scrambler motorcycle mechanical coordinate layout (Origin at 960, 560)
+const OX = 960, OY = 560;
+const PTS = {
+  rearAxle:    { x: OX - 310, y: OY + 100 },  // 650, 660
+  frontAxle:   { x: OX + 310, y: OY + 100 },  // 1270, 660
+  headstock:   { x: OX + 185, y: OY - 140 },  // 1145, 420
+  bars:        { x: OX + 160, y: OY - 215 },  // 1120, 345
+  hud:         { x: OX + 175, y: OY - 185 },  // 1135, 375
+  seatFront:   { x: OX - 30,  y: OY - 125 },  // 930, 435
+  seatRear:    { x: OX - 210, y: OY - 120 },  // 750, 440
+  tankFront:   { x: OX + 155, y: OY - 145 },  // 1115, 415
+  swingPivot:  { x: OX - 130, y: OY + 45  },  // 830, 605
+  shockTop:    { x: OX - 110, y: OY - 80  },  // 850, 480
+  shockBottom: { x: OX - 195, y: OY + 65  },  // 765, 625
+  cradleFront: { x: OX + 40,  y: OY + 30  },  // 1000, 590
+  cradleBottom:{ x: OX - 45,  y: OY + 125 },  // 915, 685
+  motorCenter: { x: OX - 80,  y: OY + 70  },  // 880, 630
+  batteryTL:   { x: OX - 90,  y: OY - 70  },  // 870, 490
+  batteryBR:   { x: OX + 40,  y: OY + 50  },  // 1000, 610
+  headlight:   { x: OX + 240, y: OY - 140 },  // 1200, 420
+  tailTidy:    { x: OX - 235, y: OY - 110 }   // 725, 450
+};
+
+// Continuous Spark Spline path (The Carrier of every transition)
+function getSparkPos(t) {
+  if (t < 1.05) {
+    // 0.00-1.05: Datum target
+    return { x: OX, y: OY - 20, tag: 'ORIGIN [0,0,0]' };
+  } else if (t < 2.40) {
+    // 1.05-2.40: Draws chassis nodes
+    const p = (t - 1.05) / (2.40 - 1.05);
+    const k = Math.min(Math.floor(p * 4), 3);
+    const sub = (p * 4) - k;
+    const waypoints = [PTS.headstock, PTS.seatFront, PTS.seatRear, PTS.swingPivot];
+    const p0 = waypoints[k], p1 = waypoints[Math.min(k + 1, 3)];
+    const easeSub = OM.ease.expoOut(sub);
+    return {
+      x: lerp(p0.x, p1.x, easeSub),
+      y: lerp(p0.y, p1.y, easeSub),
+      tag: 'STAGE 01: CHASSIS TRELLIS'
+    };
+  } else if (t < 4.20) {
+    // 2.40-4.20: Docks motor and battery
+    const p = (t - 2.40) / (4.20 - 2.40);
+    const ang = p * Math.PI * 4;
+    const r = lerp(60, 20, p);
+    return {
+      x: PTS.motorCenter.x + Math.cos(ang) * r,
+      y: PTS.motorCenter.y + Math.sin(ang) * r,
+      tag: 'STAGE 02/03: POWERTRAIN & BATTERY'
+    };
+  } else if (t < 6.60) {
+    // 4.20-6.60: Travels along suspension swingarm to front forks
+    const p = (t - 4.20) / (6.60 - 4.20);
+    if (p < 0.5) {
+      const q = p * 2;
+      return {
+        x: lerp(PTS.swingPivot.x, PTS.rearAxle.x, q),
+        y: lerp(PTS.swingPivot.y, PTS.rearAxle.y, q),
+        tag: 'STAGE 04: MONOSHOCK DYNAMICS'
+      };
+    } else {
+      const q = (p - 0.5) * 2;
+      return {
+        x: lerp(PTS.frontAxle.x, PTS.headstock.x, q),
+        y: lerp(PTS.frontAxle.y, PTS.headstock.y, q),
+        tag: 'STAGE 04: USD FORKS'
+      };
+    }
+  } else if (t < 9.15) {
+    // 6.60-9.15: Docks at handlebar HUD display
+    const p = clamp((t - 6.60) / 0.5, 0, 1);
+    const wobble = Math.sin((t - 6.60) * 8) * 3;
+    return {
+      x: lerp(PTS.headstock.x, PTS.hud.x, p) + wobble,
+      y: lerp(PTS.headstock.y, PTS.hud.y, p),
+      tag: 'STAGE 06: SMART TELEMETRY'
+    };
+  } else if (t < 11.20) {
+    // 9.15-11.20: Staccato bursts: pulses at vehicle center of gravity
+    const pulse = Math.sin((t - 9.15) * 20) * 8;
+    return {
+      x: OX + pulse,
+      y: OY + 20,
+      tag: 'TECHNICAL VERIFICATION'
+    };
+  } else {
+    // 11.20-15.00: Headlight projector beam flare
+    const p = clamp((t - 11.20) / 0.8, 0, 1);
+    return {
+      x: lerp(OX, PTS.headlight.x + 80, p),
+      y: lerp(OY, PTS.headlight.y, p),
+      tag: 'STAGE 07: READY TO RIDE'
+    };
+  }
+}
+
+// ────────────────────────────────────────── CAMERA & TRACKING ──────────────────────────────────────────
+function getCameraKeys() {
+  return [
+    { t: 0.0,  x: OX,        y: OY,        z: 1.00 },
+    { t: 1.05, x: OX,        y: OY,        z: 1.00 },
+    { t: 2.40, x: OX - 40,   y: OY + 20,   z: 1.05 },
+    { t: 4.20, x: OX,        y: OY + 40,   z: 1.08 },
+    { t: 6.60, x: PTS.hud.x, y: PTS.hud.y, z: 2.30 }, // Cockpit zoom
+    { t: 8.80, x: PTS.hud.x, y: PTS.hud.y, z: 2.30 }, // HUD hold
+    { t: 9.15, x: OX,        y: OY,        z: 1.00 }, // Staccato whip back
+    { t: 11.2, x: OX,        y: OY,        z: 0.96 }, // Hero lockup
+    { t: 15.0, x: OX,        y: OY,        z: 0.96 }
+  ];
+}
+
+const CAM_KEYS = getCameraKeys();
+
+// Pure Camera evaluator
+function evalCamera(t) {
+  // Keyed camera with operator feel (sineInOut lead + settle)
+  let k0 = CAM_KEYS[0], k1 = CAM_KEYS[CAM_KEYS.length - 1];
+  for (let i = 0; i < CAM_KEYS.length - 1; i++) {
+    if (t >= CAM_KEYS[i].t && t <= CAM_KEYS[i + 1].t) {
+      k0 = CAM_KEYS[i];
+      k1 = CAM_KEYS[i + 1];
+      break;
+    }
+  }
+  const dt = k1.t - k0.t;
+  const u = dt > 0 ? clamp((t - k0.t) / dt, 0, 1) : 1;
+  const easeU = OM.ease.sineInOut(u);
+  
+  // Subtle operator hand float (zero in holds)
+  const isHold = (t < 1.0) || (t >= 7.8 && t < 8.8) || (t >= 13.8);
+  const handFloat = isHold ? 0 : Math.sin(t * 1.8) * 4;
+  
+  // Landing shock during dockings and hits
+  let shock = 0;
+  if (t >= 2.40 && t < 2.70) shock = Math.sin((t - 2.40) * 40) * 5 * (1 - (t - 2.40) / 0.3);
+  if (t >= 4.20 && t < 4.50) shock = Math.sin((t - 4.20) * 35) * 4 * (1 - (t - 4.20) / 0.3);
+  BURST_CUTS.forEach(bc => {
+    if (t >= bc && t < bc + 0.15) shock += Math.sin((t - bc) * 50) * 6 * (1 - (t - bc) / 0.15);
+  });
+
+  return {
+    x: lerp(k0.x, k1.x, easeU),
+    y: lerp(k0.y, k1.y, easeU) + handFloat + shock,
+    z: lerp(k0.z, k1.z, easeU)
+  };
+}
+
+// Track object for probe.py and continuity verification
+window.__track = function(t) {
+  const sp = getSparkPos(t);
+  const cam = evalCamera(t);
+  // Project to screen space
+  const sx = (sp.x - cam.x) * cam.z + W / 2;
+  const sy = (sp.y - cam.y) * cam.z + H / 2;
+  const mx = (OX - cam.x) * cam.z + W / 2;
+  const my = (OY - cam.y) * cam.z + H / 2;
+  
+  return {
+    spark: { x: sx, y: sy, w: 28 * cam.z, h: 28 * cam.z, op: 1.0 },
+    machine: { x: mx, y: my, w: 720 * cam.z, h: 420 * cam.z, op: t >= 1.0 ? 1.0 : 0.2 }
+  };
+};
+
+window.__motion = function(t0, t1) {
+  const c0 = evalCamera(t0), c1 = evalCamera(t1);
+  const s0 = getSparkPos(t0), s1 = getSparkPos(t1);
+  const camDist = Math.hypot((c1.x - c0.x) * c0.z, (c1.y - c0.y) * c0.z);
+  const sparkDist = Math.hypot((s1.x - s0.x) * c0.z, (s1.y - s0.y) * c0.z);
+  return Math.max(camDist, sparkDist, 1.0);
+};
+
+// ────────────────────────────────────────── DRAWING SUB-ROUTINES ──────────────────────────────────────────
+
+// 1. Technical Drawing Frame & Grid
+function drawGrid(t, cam) {
+  ctx.save();
+  // Fixed screen border frame
+  ctx.strokeStyle = COL.gridStrong;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(36, 36, W - 72, H - 72);
+  
+  // Outer corner marks
+  const m = 36, cl = 18;
+  [[m, m], [W - m, m], [m, H - m], [W - m, H - m]].forEach(([cx, cy]) => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+    ctx.fillStyle = COL.ink;
+    ctx.fill();
+  });
+
+  // Top header text
+  ctx.font = '11px "Geist Mono", monospace';
+  ctx.fillStyle = COL.mute;
+  ctx.textAlign = 'left';
+  ctx.fillText('SNJB’S KBJ COE // RIDERS BAY ENGINEERING COLLECTIVE', 48, 24);
+  ctx.textAlign = 'right';
+  ctx.fillText('SIEP E-BIKE CHALLENGE 2026–27 · SPEC: SMART SCRAMBLER V3', W - 48, 24);
+  
+  // Bottom footer text
+  ctx.textAlign = 'left';
+  ctx.fillText('CAD PROJECTION: 3RD ANGLE · SCALE 1:1 · STRUCTURAL FEA VERIFIED', 48, H - 18);
+  ctx.textAlign = 'right';
+  const secStr = t.toFixed(2).padStart(5, '0');
+  ctx.fillText(`T+${secStr}s // 240Hz PRECISION // CLK: SYNC`, W - 48, H - 18);
+  ctx.restore();
+
+  // Transformed World Grid
+  ctx.save();
+  ctx.translate(W / 2, H / 2);
+  ctx.scale(cam.z, cam.z);
+  ctx.translate(-cam.x, -cam.y);
+
+  ctx.strokeStyle = COL.grid;
+  ctx.lineWidth = 1 / cam.z;
+  const step = 60;
+  const left = cam.x - (W / 2) / cam.z - step;
+  const right = cam.x + (W / 2) / cam.z + step;
+  const top = cam.y - (H / 2) / cam.z - step;
+  const bottom = cam.y + (H / 2) / cam.z + step;
+
+  const startX = Math.floor(left / step) * step;
+  const startY = Math.floor(top / step) * step;
+
+  ctx.beginPath();
+  for (let gx = startX; gx <= right; gx += step) {
+    ctx.moveTo(gx, top);
+    ctx.lineTo(gx, bottom);
+  }
+  for (let gy = startY; gy <= bottom; gy += step) {
+    ctx.moveTo(left, gy);
+    ctx.lineTo(right, gy);
+  }
+  ctx.stroke();
+
+  // Primary datum crosshair at world origin (OX, OY)
+  ctx.strokeStyle = COL.gridStrong;
+  ctx.lineWidth = 1.5 / cam.z;
+  ctx.beginPath();
+  ctx.moveTo(OX - 40, OY); ctx.lineTo(OX + 40, OY);
+  ctx.moveTo(OX, OY - 40); ctx.lineTo(OX, OY + 40);
+  ctx.stroke();
+
+  ctx.font = `${10 / cam.z}px "Geist Mono", monospace`;
+  ctx.fillStyle = COL.mute;
+  ctx.textAlign = 'left';
+  ctx.fillText('DATUM ORIGIN [0, 0, 0]', OX + 10, OY - 10);
+
+  ctx.restore();
+}
+
+// 2. Trellis Chassis Spaceframe
+function drawChassis(t, pChassis) {
+  if (pChassis <= 0) return;
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  const tubes = [
+    [PTS.headstock, PTS.seatFront],
+    [PTS.seatFront, PTS.seatRear],
+    [PTS.headstock, PTS.cradleFront],
+    [PTS.cradleFront, PTS.cradleBottom],
+    [PTS.cradleBottom, PTS.swingPivot],
+    [PTS.swingPivot, PTS.seatFront],
+    [PTS.cradleFront, PTS.seatFront],
+    [PTS.cradleBottom, PTS.seatFront],
+    [PTS.swingPivot, PTS.shockTop],
+    [PTS.shockTop, PTS.seatRear],
+    [PTS.seatRear, PTS.tailTidy]
+  ];
+
+  // Draw tubular members with spring growth
+  tubes.forEach(([p1, p2], idx) => {
+    const tubeProgress = clamp((pChassis * tubes.length) - idx, 0, 1);
+    if (tubeProgress <= 0) return;
+    const curX = lerp(p1.x, p2.x, tubeProgress);
+    const curY = lerp(p1.y, p2.y, tubeProgress);
+
+    // Outer tube wall
+    ctx.strokeStyle = COL.ink;
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(curX, curY);
+    ctx.stroke();
+
+    // Inner tube core highlight
+    ctx.strokeStyle = COL.deep;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(curX, curY);
+    ctx.stroke();
+
+    // Joint welds / nodes
+    [p1, { x: curX, y: curY }].forEach(pt => {
+      ctx.fillStyle = COL.ink;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = COL.card;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  });
+
+  // Dimension Callout (Only visible during Stage 01)
+  if (pChassis > 0.6 && t < 2.50) {
+    const dimAlpha = clamp((pChassis - 0.6) / 0.4, 0, 1) * clamp((2.50 - t) / 0.3, 0, 1);
+    ctx.globalAlpha = dimAlpha;
+    ctx.strokeStyle = COL.accent;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    // Ground clearance measurement
+    const groundY = PTS.rearAxle.y + 140;
+    ctx.beginPath();
+    ctx.moveTo(PTS.cradleBottom.x, PTS.cradleBottom.y + 10);
+    ctx.lineTo(PTS.cradleBottom.x, groundY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.font = '12px "Geist Mono", monospace';
+    ctx.fillStyle = COL.accent;
+    ctx.textAlign = 'left';
+    ctx.fillText('↕ 300 mm CLEARANCE', PTS.cradleBottom.x + 8, (PTS.cradleBottom.y + groundY) / 2);
+    ctx.fillText('STAGE 01 · 4130 CHROMOLY TRELLIS', PTS.seatRear.x - 40, PTS.seatRear.y - 30);
+  }
+
+  ctx.restore();
+}
+
+// 3. Powertrain (Mid-drive Motor) & Battery Module
+function drawPowertrainBattery(t, pMotor, pBattery) {
+  if (pMotor <= 0 && pBattery <= 0) return;
+  ctx.save();
+
+  // 3a. Battery Enclosure (Slides down and docks with clamp shock)
+  if (pBattery > 0) {
+    const dropY = (1 - pBattery) * -160;
+    const bW = 140, bH = 120;
+    const bx = PTS.batteryTL.x, by = PTS.batteryTL.y + dropY;
+
+    // Battery Pack Housing
+    ctx.fillStyle = COL.card;
+    ctx.strokeStyle = COL.ink;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.roundRect(bx, by, bW, bH, 10);
+    ctx.fill();
+    ctx.stroke();
+
+    // High-density 21700 cell matrix
+    const cols = 5, rows = 4;
+    const cellR = 8;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const cx = bx + 20 + c * 24;
+        const cy = by + 22 + r * 24;
+        ctx.fillStyle = (t >= 3.0) ? COL.accent : COL.deep;
+        ctx.beginPath();
+        ctx.arc(cx, cy, cellR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = COL.ink;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+
+    // Cooling fin ribs
+    ctx.strokeStyle = COL.line;
+    ctx.lineWidth = 1.5;
+    for (let fy = by + 10; fy < by + bH - 10; fy += 12) {
+      ctx.beginPath();
+      ctx.moveTo(bx + bW - 12, fy);
+      ctx.lineTo(bx + bW, fy);
+      ctx.stroke();
+    }
+
+    // High Voltage Label (Only visible during Stage 02/03)
+    if (pBattery > 0.8 && t < 4.30) {
+      const batAlpha = clamp((4.30 - t) / 0.3, 0, 1);
+      ctx.globalAlpha = batAlpha;
+      ctx.font = '10px "Geist Mono", monospace';
+      ctx.fillStyle = COL.ink;
+      ctx.textAlign = 'left';
+      ctx.fillText('72V 45Ah LI-ION PACK', bx, by - 8);
+    }
+  }
+
+  // 3b. Mid-Drive Axial Flux Motor
+  if (pMotor > 0) {
+    const mx = PTS.motorCenter.x, my = PTS.motorCenter.y;
+    const mr = 50 * pMotor;
+
+    // Motor Stator Can
+    ctx.fillStyle = COL.ink;
+    ctx.beginPath();
+    ctx.arc(mx, my, mr, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Internal magnetic stator coils
+    const coils = 8;
+    const spinAng = t * 6;
+    for (let i = 0; i < coils; i++) {
+      const a = spinAng + (i / coils) * Math.PI * 2;
+      const rx = mx + Math.cos(a) * (mr * 0.65);
+      const ry = my + Math.sin(a) * (mr * 0.65);
+      ctx.fillStyle = (i % 2 === 0) ? COL.accent : COL.deep;
+      ctx.beginPath();
+      ctx.arc(rx, ry, 7 * pMotor, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Center output shaft & drive sprocket
+    ctx.fillStyle = COL.card;
+    ctx.beginPath();
+    ctx.arc(mx, my, 16 * pMotor, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = COL.ink;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Primary chain drive to rear axle
+    if (t >= 3.6) {
+      ctx.strokeStyle = COL.mute;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(mx, my - 12);
+      ctx.lineTo(PTS.rearAxle.x, PTS.rearAxle.y - 28);
+      ctx.moveTo(mx, my + 12);
+      ctx.lineTo(PTS.rearAxle.x, PTS.rearAxle.y + 28);
+      ctx.stroke();
+    }
+
+    if (pMotor > 0.8 && t < 4.30) {
+      const motAlpha = clamp((4.30 - t) / 0.3, 0, 1);
+      ctx.globalAlpha = motAlpha;
+      ctx.font = '10px "Geist Mono", monospace';
+      ctx.fillStyle = COL.accent;
+      ctx.textAlign = 'right';
+      ctx.fillText('12kW AXIAL FLUX', mx - 60, my + 4);
+    }
+  }
+
+  ctx.restore();
+}
+
+// 4. Motion: Suspension & Spoked Wheels
+function drawMotion(t, pMotion) {
+  if (pMotion <= 0) return;
+  ctx.save();
+
+  // Suspension rebound wobble
+  const suspBounce = (t >= 4.2 && t < 5.8) ? Math.sin((t - 4.2) * 16) * Math.exp(-(t - 4.2) * 2.5) * 8 : 0;
+  const curRearAxle = { x: PTS.rearAxle.x, y: PTS.rearAxle.y + suspBounce };
+  const curFrontAxle = { x: PTS.frontAxle.x, y: PTS.frontAxle.y + suspBounce };
+  const groundY = PTS.rearAxle.y + 140;
+
+  // Ground contact shadows beneath wheels
+  ctx.fillStyle = 'rgba(43, 48, 58, 0.12)';
+  ctx.beginPath();
+  ctx.ellipse(curRearAxle.x, groundY, 75, 8, 0, 0, Math.PI * 2);
+  ctx.ellipse(curFrontAxle.x, groundY, 75, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // 4a. Rear Swingarm & Monoshock
+  ctx.strokeStyle = COL.ink;
+  ctx.lineWidth = 8;
+  ctx.beginPath();
+  ctx.moveTo(PTS.swingPivot.x, PTS.swingPivot.y);
+  ctx.lineTo(curRearAxle.x, curRearAxle.y);
+  ctx.stroke();
+
+  // Monoshock spring coil
+  const shockProgress = clamp(pMotion * 1.5, 0, 1);
+  ctx.strokeStyle = COL.accent;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  const nCoils = 7;
+  const pShockStart = PTS.shockTop;
+  const pShockEnd = { x: PTS.shockBottom.x, y: PTS.shockBottom.y + suspBounce };
+  for (let i = 0; i <= nCoils; i++) {
+    const f = i / nCoils;
+    const cx = lerp(pShockStart.x, pShockEnd.x, f);
+    const cy = lerp(pShockStart.y, pShockEnd.y, f);
+    const perp = (i % 2 === 0 ? 9 : -9);
+    if (i === 0) ctx.moveTo(cx, cy);
+    else ctx.lineTo(cx + perp, cy);
+  }
+  ctx.stroke();
+
+  // 4b. Front Inverted Telescopic Forks (USD)
+  const forkProgress = clamp(pMotion * 1.2, 0, 1);
+  
+  // Upper stanchions (gold / orange)
+  ctx.strokeStyle = COL.accent;
+  ctx.lineWidth = 10;
+  ctx.beginPath();
+  ctx.moveTo(PTS.headstock.x, PTS.headstock.y);
+  ctx.lineTo(lerp(PTS.headstock.x, curFrontAxle.x, 0.55), lerp(PTS.headstock.y, curFrontAxle.y, 0.55));
+  ctx.stroke();
+
+  // Lower chrome sliders
+  ctx.strokeStyle = COL.ink;
+  ctx.lineWidth = 7;
+  ctx.beginPath();
+  ctx.moveTo(lerp(PTS.headstock.x, curFrontAxle.x, 0.50), lerp(PTS.headstock.y, curFrontAxle.y, 0.50));
+  ctx.lineTo(curFrontAxle.x, curFrontAxle.y);
+  ctx.stroke();
+
+  // Handlebars & Triple Trees
+  ctx.strokeStyle = COL.ink;
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(PTS.headstock.x - 15, PTS.headstock.y);
+  ctx.lineTo(PTS.bars.x, PTS.bars.y);
+  ctx.lineTo(PTS.bars.x - 30, PTS.bars.y + 10);
+  ctx.stroke();
+
+  // 4c. Dual-Sport Knobby Wheels (Front & Rear)
+  const drawWheel = (center, rot) => {
+    const R = 140;
+    // Outer tire rubber (Scrambler knobby tread blocks)
+    ctx.strokeStyle = COL.ink;
+    ctx.lineWidth = 26;
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, R - 13, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Knobby tread notches
+    const nKnobs = 24;
+    for (let k = 0; k < nKnobs; k++) {
+      const ka = rot + (k / nKnobs) * Math.PI * 2;
+      const kx1 = center.x + Math.cos(ka) * (R - 26);
+      const ky1 = center.y + Math.sin(ka) * (R - 26);
+      const kx2 = center.x + Math.cos(ka) * R;
+      const ky2 = center.y + Math.sin(ka) * R;
+      ctx.strokeStyle = COL.card;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(kx1, ky1);
+      ctx.lineTo(kx2, ky2);
+      ctx.stroke();
+    }
+
+    // Aluminum Rim
+    ctx.strokeStyle = COL.deep;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, R - 30, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 36 Radial Spokes
+    const nSpokes = 36;
+    ctx.strokeStyle = 'rgba(43, 48, 58, 0.4)';
+    ctx.lineWidth = 1.2;
+    for (let s = 0; s < nSpokes; s++) {
+      const sa = rot + (s / nSpokes) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(center.x, center.y);
+      ctx.lineTo(center.x + Math.cos(sa) * (R - 30), center.y + Math.sin(sa) * (R - 30));
+      ctx.stroke();
+    }
+
+    // Hub & Brake Disc
+    ctx.fillStyle = COL.card;
+    ctx.strokeStyle = COL.ink;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, 45, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = COL.ink;
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, 14, 0, Math.PI * 2);
+    ctx.fill();
+  };
+
+  const wheelSpin = t * 8;
+  drawWheel(curRearAxle, wheelSpin);
+  drawWheel(curFrontAxle, wheelSpin);
+
+  ctx.restore();
+}
+
+// 5. Bodywork: Fuel Tank, Saddle & Headlight
+function drawBodywork(t, pBody) {
+  if (pBody <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = pBody;
+
+  // 5a. Scrambler Fuel/Energy Tank (Sculpted Orange `#D97706`)
+  ctx.fillStyle = COL.accent;
+  ctx.strokeStyle = COL.ink;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(PTS.tankFront.x, PTS.tankFront.y);
+  ctx.bezierCurveTo(PTS.tankFront.x - 40, PTS.tankFront.y - 45, PTS.seatFront.x + 60, PTS.seatFront.y - 45, PTS.seatFront.x, PTS.seatFront.y);
+  ctx.lineTo(PTS.seatFront.x + 20, PTS.seatFront.y + 35);
+  ctx.lineTo(PTS.tankFront.x - 30, PTS.tankFront.y + 25);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Tank knee recess badge
+  ctx.fillStyle = COL.ink;
+  ctx.font = 'bold 12px "Geist Mono", monospace';
+  ctx.fillText('RIDERS BAY', PTS.seatFront.x + 50, PTS.seatFront.y - 8);
+
+  // 5b. Ribbed Scrambler Tuck-and-Roll Saddle
+  ctx.fillStyle = COL.ink;
+  ctx.beginPath();
+  ctx.moveTo(PTS.seatFront.x, PTS.seatFront.y);
+  ctx.lineTo(PTS.seatRear.x, PTS.seatRear.y);
+  ctx.lineTo(PTS.tailTidy.x, PTS.tailTidy.y);
+  ctx.lineTo(PTS.tailTidy.x + 10, PTS.tailTidy.y + 20);
+  ctx.lineTo(PTS.seatFront.x + 10, PTS.seatFront.y + 20);
+  ctx.closePath();
+  ctx.fill();
+
+  // Saddle ribs
+  ctx.strokeStyle = COL.deep;
+  ctx.lineWidth = 1.5;
+  for (let rx = PTS.seatRear.x + 15; rx < PTS.seatFront.x; rx += 18) {
+    ctx.beginPath();
+    ctx.moveTo(rx, PTS.seatRear.y - 2);
+    ctx.lineTo(rx + 4, PTS.seatRear.y + 16);
+    ctx.stroke();
+  }
+
+  // 5c. LED Projector Headlight
+  const hx = PTS.headlight.x, hy = PTS.headlight.y;
+  ctx.fillStyle = COL.card;
+  ctx.strokeStyle = COL.ink;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(hx, hy, 28, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Headlight illumination beam flare at ignition (t >= 11.20)
+  if (t >= 11.20) {
+    const flareProgress = clamp((t - 11.20) / 0.5, 0, 1);
+    ctx.save();
+    // Halo ring
+    ctx.strokeStyle = COL.accentLight;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(hx, hy, 24, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Forward beam volumetric fan
+    const beamGrad = ctx.createLinearGradient(hx, hy, hx + 550, hy);
+    beamGrad.addColorStop(0, 'rgba(251, 191, 36, 0.45)');
+    beamGrad.addColorStop(1, 'rgba(251, 191, 36, 0.0)');
+    ctx.fillStyle = beamGrad;
+    ctx.beginPath();
+    ctx.moveTo(hx + 24, hy - 14);
+    ctx.lineTo(hx + 550, hy - 90);
+    ctx.lineTo(hx + 550, hy + 90);
+    ctx.lineTo(hx + 24, hy + 14);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+// 6. Cockpit Smart Telemetry HUD (Active during Zoom: t = 6.60 - 9.15)
+function drawCockpitHUD(t, cam) {
+  if (t < 6.4 || t > 9.3) return;
+  const alpha = (t < 6.7) ? (t - 6.4) / 0.3 : (t > 9.0) ? (9.3 - t) / 0.3 : 1.0;
+  
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  const hx = PTS.hud.x, hy = PTS.hud.y;
+
+  // OLED Screen Card
+  const w = 180, h = 110;
+  ctx.fillStyle = COL.ink;
+  ctx.beginPath();
+  ctx.roundRect(hx - w / 2, hy - h / 2, w, h, 10);
+  ctx.fill();
+  ctx.strokeStyle = COL.line;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Top Telemetry Header
+  ctx.font = '7px "Geist Mono", monospace';
+  ctx.fillStyle = COL.accent2Light;
+  ctx.textAlign = 'left';
+  ctx.fillText('SIEP PROTOCOL: ARMED', hx - w / 2 + 10, hy - h / 2 + 14);
+  ctx.textAlign = 'right';
+  ctx.fillText('98% [72.4V]', hx + w / 2 - 10, hy - h / 2 + 14);
+
+  // Speedometer Digits (Smooth ramp 0 -> 108 km/h)
+  const speedProgress = clamp((t - 6.7) / 1.8, 0, 1);
+  const speedVal = Math.round(OM.ease.quartOut(speedProgress) * 108);
+  ctx.font = 'bold 36px "Geist Mono", monospace';
+  ctx.fillStyle = COL.card;
+  ctx.textAlign = 'center';
+  ctx.fillText(`${speedVal}`, hx - 12, hy + 18);
+
+  ctx.font = '8px "Geist Mono", monospace';
+  ctx.fillStyle = COL.mute;
+  ctx.fillText('KM/H', hx + 36, hy + 18);
+
+  // Radial Power / Torque Bar
+  ctx.strokeStyle = COL.deep;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(hx, hy + 38, 28, Math.PI * 0.8, Math.PI * 2.2);
+  ctx.stroke();
+
+  ctx.strokeStyle = COL.accent;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(hx, hy + 38, 28, Math.PI * 0.8, Math.PI * (0.8 + 1.4 * speedProgress));
+  ctx.stroke();
+
+  // Status footer
+  ctx.font = '7px "Geist Mono", monospace';
+  ctx.fillStyle = COL.accentLight;
+  ctx.textAlign = 'center';
+  ctx.fillText('STAGE 06 · BMS & TELEMETRY LIVE', hx, hy + h / 2 - 8);
+
+  ctx.restore();
+}
+
+// 7. Staccato Technical Verification Burst (t = 9.15 - 10.95)
+function drawStaccatoBurst(t) {
+  if (t < 9.10 || t > 11.10) return;
+  const cards = [
+    { t: 9.15, num: '01', title: 'CHASSIS', spec: 'FEA RIGIDITY: 14.8 kN·m/deg · 4130 ALLOY' },
+    { t: 9.45, num: '02', title: 'POWERTRAIN', spec: 'AXIAL FLUX: 12 kW PEAK · 110 Nm TORQUE' },
+    { t: 9.75, num: '03', title: 'BATTERY', spec: 'DENSITY: 72V 45Ah · THERMAL DYNAMICS OPTIMAL' },
+    { t: 10.05,num: '04', title: 'MOTION', spec: 'SUSPENSION TRAVEL: 180mm USD · MONOSHOCK' },
+    { t: 10.35,num: '06', title: 'SMART SYSTEM', spec: 'TELEMETRY: CAN-BUS ACTIVE · ADAPTIVE BMS' },
+    { t: 10.65,num: '07', title: 'READY TO RIDE', spec: 'VERIFICATION: PASS · SIEP 2026-27 APPROVED' }
+  ];
+
+  let activeCard = null;
+  for (let i = cards.length - 1; i >= 0; i--) {
+    if (t >= cards[i].t) {
+      activeCard = cards[i];
+      break;
+    }
+  }
+  if (!activeCard) return;
+
+  const dt = t - activeCard.t;
+  const pop = OM.ease.expoOut(clamp(dt / 0.12, 0, 1));
+  const flash = dt < 0.08 ? 1.0 : 0.0;
+
+  ctx.save();
+  // Centered verification stamp overlay at top area (above motorcycle)
+  const sw = 640, sh = 90;
+  const sx = (W - sw) / 2, sy = 140;
+
+  ctx.translate(W / 2, sy + sh / 2);
+  ctx.scale(pop, pop);
+  ctx.translate(-W / 2, -(sy + sh / 2));
+
+  // Stamp Box
+  ctx.fillStyle = flash ? COL.accent : COL.card;
+  ctx.shadowColor = 'rgba(20, 20, 20, 0.18)';
+  ctx.shadowBlur = 32;
+  ctx.shadowOffsetY = 12;
+  ctx.beginPath();
+  ctx.roundRect(sx, sy, sw, sh, 12);
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+
+  ctx.strokeStyle = activeCard.num === '07' ? COL.accent : COL.ink;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // Stamp typography
+  ctx.fillStyle = flash ? COL.card : COL.accent;
+  ctx.font = 'bold 14px "Geist Mono", monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText(`STAGE ${activeCard.num} VERIFIED`, sx + 28, sy + 38);
+
+  ctx.fillStyle = flash ? COL.card : COL.ink;
+  ctx.font = 'bold 24px "Inter", sans-serif';
+  ctx.fillText(activeCard.title, sx + 28, sy + 70);
+
+  ctx.fillStyle = flash ? COL.card : COL.mute;
+  ctx.font = '12px "Geist Mono", monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText(activeCard.spec, sx + sw - 28, sy + 56);
+
+  ctx.restore();
+}
+
+// 8. Hero Headline Lockup & Final Seal (t = 11.20 - 15.00)
+function drawHeroLockup(t) {
+  if (t < 11.15) return;
+  ctx.save();
+
+  // 8a. Headline: "RIDERS BAY" letters drop with landing squash
+  const headline = 'RIDERS BAY';
+  const startT = 11.25;
+  const totalW = 620;
+  const startX = (W - totalW) / 2;
+  const baseHeadY = 160;
+
+  ctx.font = 'bold 84px "Inter", system-ui, sans-serif';
+  ctx.textAlign = 'center';
+
+  [...headline].forEach((char, i) => {
+    const charDrop = letterDrop(t, startT, i, { zeta: 0.62, omega: 24, dist: 120 });
+    const cx = startX + i * 64;
+    const cy = baseHeadY + charDrop.y;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(1 + charDrop.sq * 0.4, 1 - charDrop.sq);
+    ctx.fillStyle = COL.ink;
+    ctx.globalAlpha = charDrop.op;
+    ctx.fillText(char, 0, 0);
+    ctx.restore();
+  });
+
+  // 8b. Tagline: "THE SMART SCRAMBLER"
+  if (t >= 11.8) {
+    const tagRise = wordRise(t, 11.8, { zeta: 0.6, omega: 20, dist: 24 });
+    ctx.save();
+    ctx.font = 'bold 24px "Geist Mono", monospace';
+    ctx.fillStyle = COL.accent;
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = tagRise.op;
+    ctx.fillText('THE SMART SCRAMBLER · ELECTRIC PROTOTYPE', W / 2, baseHeadY + 54 + tagRise.y);
+    ctx.restore();
+  }
+
+  // 8c. Subtitle & Inspection Seal: "SIEP E-BIKE CHALLENGE 2026–27"
+  if (t >= 12.5) {
+    const sealRise = wordRise(t, 12.5, { zeta: 0.7, omega: 22, dist: 18 });
+    ctx.save();
+    ctx.globalAlpha = sealRise.op;
+    ctx.font = '14px "Geist Mono", monospace';
+    ctx.fillStyle = COL.mute;
+    ctx.textAlign = 'center';
+    ctx.fillText('SNJB’S KBJ COLLEGE OF ENGINEERING, CHANDWAD // SIEP E-BIKE CHALLENGE 2026–27', W / 2, baseHeadY + 88 + sealRise.y);
+
+    // Official approval seal pill
+    const pw = 340, ph = 32;
+    const px = (W - pw) / 2, py = H - 120;
+    ctx.fillStyle = COL.card;
+    ctx.strokeStyle = COL.line;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(px, py, pw, ph, 16);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = COL.ink;
+    ctx.font = 'bold 11px "Geist Mono", monospace';
+    ctx.fillText('✓ CERTIFIED: READY TO COMPETE', W / 2, py + 20);
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+// 9. The Carrier Spark Point
+function drawSpark(t, sp, cam) {
+  ctx.save();
+  // Project spark point to screen space
+  const sx = (sp.x - cam.x) * cam.z + W / 2;
+  const sy = (sp.y - cam.y) * cam.z + H / 2;
+
+  // Pulsing halo ring
+  const haloR = 14 + Math.sin(t * 18) * 4;
+  ctx.fillStyle = COL.accentGlow;
+  ctx.beginPath();
+  ctx.arc(sx, sy, haloR, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Intense orange core
+  ctx.fillStyle = COL.accent;
+  ctx.beginPath();
+  ctx.arc(sx, sy, 6, 0, Math.PI * 2);
+  ctx.fill();
+
+  // White pinpoint center
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(sx, sy, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Crosshair reticle
+  ctx.strokeStyle = COL.accent;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(sx - 12, sy); ctx.lineTo(sx + 12, sy);
+  ctx.moveTo(sx, sy - 12); ctx.lineTo(sx, sy + 12);
+  ctx.stroke();
+
+  // Floating Micro-label
+  if (t >= 0.5 && t < 11.2) {
+    ctx.font = '9px "Geist Mono", monospace';
+    ctx.fillStyle = COL.accent;
+    ctx.textAlign = 'left';
+    ctx.fillText(sp.tag, sx + 14, sy - 8);
+  }
+
+  ctx.restore();
+}
+
+// ────────────────────────────────────────── MAIN SEEK(t) ──────────────────────────────────────────
+async function seek(t) {
+  t = clamp(t, 0, DUR);
+  const cam = evalCamera(t);
+  const sp = getSparkPos(t);
+
+  // Clear ground
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = COL.ground;
+  ctx.fillRect(0, 0, W, H);
+
+  // 1. Blueprint Grid & Screen Frame
+  drawGrid(t, cam);
+
+  // 2. Transformed World Elements
+  ctx.save();
+  ctx.translate(W / 2, H / 2);
+  ctx.scale(cam.z, cam.z);
+  ctx.translate(-cam.x, -cam.y);
+
+  // Animation Stage Progress Factors
+  const pChassis = clamp((t - 1.05) / 1.35, 0, 1);
+  const pMotor = clamp((t - 2.40) / 1.10, 0, 1);
+  const pBattery = clamp((t - 2.60) / 1.10, 0, 1);
+  const pMotion = clamp((t - 4.20) / 1.40, 0, 1);
+  const pBody = clamp((t - 5.80) / 1.20, 0, 1);
+
+  // Draw mechanical subsystems
+  drawChassis(t, pChassis);
+  drawPowertrainBattery(t, pMotor, pBattery);
+  drawMotion(t, pMotion);
+  drawBodywork(t, pBody);
+  drawCockpitHUD(t, cam);
+
+  ctx.restore();
+
+  // 3. Screen-Space Overlays
+  drawStaccatoBurst(t);
+  drawHeroLockup(t);
+  drawSpark(t, sp, cam);
+
+  // Update HUD if visible
+  const hud = document.getElementById('hud');
+  if (hud && hud.style.display !== 'none') {
+    hud.textContent = `t=${t.toFixed(2)}s | cam:[${cam.x.toFixed(0)},${cam.y.toFixed(0)},${cam.z.toFixed(2)}x] | spark:[${sp.x.toFixed(0)},${sp.y.toFixed(0)}]`;
+  }
+
+  return true;
+}
+
+window.__seek = seek;
+
+// Handle query flags: ?play or ?t=...&hud
+const q = new URLSearchParams(window.location.search);
+if (q.has('hud')) {
+  document.getElementById('hud').style.display = 'block';
+}
+
+window.__ready = Promise.resolve().then(async () => {
+  if (window.LOOK && window.LOOK.ready) {
+    await window.LOOK.ready;
+  }
+  await seek(0);
+  if (q.has('t')) {
+    await seek(parseFloat(q.get('t')));
+  } else if (q.has('play')) {
+    let start = null;
+    function loop(ts) {
+      if (!start) start = ts;
+      const t = ((ts - start) / 1000) % DUR;
+      seek(t);
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  }
+  return true;
+});
+</script>
+</body>
+</html>

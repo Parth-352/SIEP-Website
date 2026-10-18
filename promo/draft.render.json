@@ -1,0 +1,24 @@
+{
+ "comp": "/Users/parth/Desktop/SIEP Website/promo/comp.html",
+ "fps": 30,
+ "scale": 1,
+ "size": [
+  1920,
+  1080
+ ],
+ "shutter": 180.0,
+ "samples": "adaptive",
+ "gap_px": 24.0,
+ "samples_per_moving_frame": {
+  "4": 448,
+  "5": 1,
+  "12": 1
+ },
+ "workers": 8,
+ "frames": 450,
+ "still_frames": 0,
+ "cut_frames": 18,
+ "captures": 1809,
+ "seconds": 34.0,
+ "final": false
+}
