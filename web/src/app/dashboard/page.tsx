@@ -382,7 +382,7 @@ export default function DashboardPage() {
                 Project Operations Dashboard<span className="text-orange">.</span>
               </h1>
               <p className="text-grey font-light text-sm max-w-2xl leading-relaxed">
-                Full-stack engineering pipeline for SIEP 2026–27. Manage subsystem deliverables, review Kanban workflows, audit Google Drive video evidence, and keep all 9 squads aligned.
+                Full-stack engineering pipeline for SIEP 2026–27. Manage subsystem deliverables, review task workflows, audit Google Drive video evidence, and keep all 9 squads aligned.
               </p>
             </div>
 
@@ -495,7 +495,7 @@ export default function DashboardPage() {
                 : 'text-grey hover:text-jet-black hover:bg-alice-blue/60'
             }`}
           >
-            <span>Task Board (Kanban)</span>
+            <span>Task Board</span>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
               activeTab === 'kanban' ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-jet-black'
             }`}>
@@ -818,7 +818,7 @@ export default function DashboardPage() {
 
         {/* =========================================================================
             TAB 2: 9-TEAM SUBSYSTEM OVERVIEW
-            Interactive subsystem cards with live task breakdown & jump-to-Kanban
+            Interactive subsystem cards with live task breakdown & jump to tasks
            ========================================================================= */}
         {activeTab === 'teams' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -859,10 +859,6 @@ export default function DashboardPage() {
                         {team.role}
                       </span>
                     </div>
-
-                    <p className="text-xs text-grey font-light line-clamp-2 leading-relaxed">
-                      {team.description}
-                    </p>
 
                     {/* Progress Bar */}
                     <div className="space-y-1.5">
@@ -945,7 +941,7 @@ export default function DashboardPage() {
                       onClick={() => handleViewTeamTasksInKanban(team.id)}
                       className="text-xs font-mono text-jet-black hover:text-orange font-bold transition-colors inline-flex items-center gap-1 cursor-pointer"
                     >
-                      <span>Filter Kanban Tasks</span>
+                      <span>View Team Tasks</span>
                       <span>→</span>
                     </button>
 

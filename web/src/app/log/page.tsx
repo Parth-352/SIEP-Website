@@ -537,7 +537,7 @@ function LogPageContent() {
                 href="/dashboard"
                 className="text-xs font-mono text-orange hover:text-jet-black font-bold transition-colors inline-flex items-center gap-1"
               >
-                <span>View Full Kanban Board</span>
+                <span>View Full Task Board</span>
                 <span>→</span>
               </Link>
             </div>
