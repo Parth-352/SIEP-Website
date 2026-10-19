@@ -628,20 +628,15 @@ function LogPageContent() {
           <div className="bg-white border-2 border-orange/40 rounded-2xl p-6 sm:p-10 shadow-lg animate-in fade-in duration-200">
             
             {/* Form Top Title */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-6 border-b border-jet-black/10">
-              <div>
-                <span className="text-[11px] font-mono uppercase tracking-widest text-orange font-bold block mb-1">
-                  Step Entry #{logs.length + 1}
-                </span>
-                <h3 className="text-xl sm:text-2xl font-black text-jet-black tracking-tight">
-                  Log Engineering Move / Fabrication Step
-                </h3>
-              </div>
+            <div className="pb-4 border-b border-jet-black/10">
+              <h3 className="text-lg font-bold text-jet-black tracking-tight">
+                Record New Step
+              </h3>
             </div>
 
             {/* Error Banner */}
             {formError && (
-              <div className="mt-6 p-4 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start gap-3">
+              <div className="mt-4 p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start gap-3">
                 <span className="font-bold text-xs uppercase tracking-wider shrink-0 bg-red-200 px-1.5 py-0.5 rounded">Error</span>
                 <p className="leading-relaxed flex-1">{formError}</p>
                 <button
@@ -654,305 +649,233 @@ function LogPageContent() {
               </div>
             )}
 
-            <form onSubmit={handleLogSubmit} className="mt-8 space-y-8">
+            <form onSubmit={handleLogSubmit} className="mt-6 space-y-6">
               
-              {/* ZONE 1: Move Identification */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 pb-1 border-b border-jet-black/5">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-grey font-bold">
-                    01 • Move Identification
-                  </span>
+              {/* Step Title */}
+              <div>
+                <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-1.5 font-medium">
+                  Step Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={stepTitle}
+                  onChange={(e) => setStepTitle(e.target.value)}
+                  placeholder="e.g. Swingarm welding & alignment"
+                  className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-white text-jet-black text-sm font-medium focus:ring-2 focus:ring-orange focus:outline-none transition-all"
+                />
+              </div>
+
+              {/* Subsystem, Date, Time & Hours */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                
+                {/* Team Scope */}
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-1.5 font-medium">
+                    Subsystem Team
+                  </label>
+                  {isAdmin ? (
+                    <select
+                      value={targetTeamId}
+                      onChange={(e) => {
+                        setTargetTeamId(e.target.value as TeamId);
+                        setSelectedMembers([]);
+                      }}
+                      className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-white text-jet-black text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none transition-all"
+                    >
+                      {TEAMS_LIST.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          [{t.code}] {t.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="w-full px-3 py-2 rounded-xl border border-jet-black/10 bg-jet-black/5 text-jet-black text-xs font-mono font-bold flex items-center justify-between">
+                      <span>[{currentTeam?.code}] {currentTeam?.name}</span>
+                      <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-jet-black/10 text-grey">Locked</span>
+                    </div>
+                  )}
                 </div>
 
+                {/* Work Date */}
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-2 font-medium">
-                    Step / Move Title *
+                  <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-1.5 font-medium">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-white text-jet-black text-xs focus:ring-2 focus:ring-orange focus:outline-none font-mono transition-all"
+                  />
+                </div>
+
+                {/* Time */}
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-1.5 font-medium">
+                    Time
                   </label>
                   <input
                     type="text"
-                    required
-                    value={stepTitle}
-                    onChange={(e) => setStepTitle(e.target.value)}
-                    placeholder="e.g. Swingarm TIG Root Pass & Dropout Alignment Measurement"
-                    className="w-full px-4 py-3 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-jet-black text-sm font-medium focus:ring-2 focus:ring-orange focus:outline-none transition-all"
+                    value={workTime}
+                    onChange={(e) => setWorkTime(e.target.value)}
+                    placeholder="e.g. 14:30"
+                    className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-white text-jet-black text-xs focus:ring-2 focus:ring-orange focus:outline-none font-mono transition-all"
+                  />
+                </div>
+
+                {/* Hours */}
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-1.5 font-medium">
+                    Hours
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0.5"
+                    max="24"
+                    value={hoursSpent}
+                    onChange={(e) => setHoursSpent(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-white text-jet-black text-xs focus:ring-2 focus:ring-orange focus:outline-none font-mono transition-all"
+                  />
+                </div>
+
+              </div>
+
+              {/* Members */}
+              <div>
+                <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-1.5 font-medium">
+                  Assigned Members
+                </label>
+                <MemberSelect
+                  teamId={isAdmin ? targetTeamId : user.teamId}
+                  selectedMembers={selectedMembers}
+                  onChange={setSelectedMembers}
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-1.5 font-medium">
+                  Description *
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe the work completed..."
+                  className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-white text-jet-black text-xs focus:ring-2 focus:ring-orange focus:outline-none leading-relaxed transition-all"
+                />
+              </div>
+
+              {/* Achievements & Blockers */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-1.5 font-medium">
+                    Key Achievements (Optional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={achievements}
+                    onChange={(e) => setAchievements(e.target.value)}
+                    placeholder="Results or milestones achieved..."
+                    className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-white text-jet-black text-xs focus:ring-2 focus:ring-orange focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-1.5 font-medium">
+                    Blockers / Issues (Optional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={blockers}
+                    onChange={(e) => setBlockers(e.target.value)}
+                    placeholder="Any challenges or pending parts..."
+                    className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-white text-jet-black text-xs focus:ring-2 focus:ring-orange focus:outline-none"
                   />
                 </div>
               </div>
 
-              {/* ZONE 2: Team, Timing & Effort */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 pb-1 border-b border-jet-black/5">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-grey font-bold">
-                    02 • Subsystem &amp; Time
-                  </span>
-                </div>
+              {/* Video Attachment */}
+              <div className="space-y-3 pt-2 border-t border-jet-black/10">
+                <label className="block text-xs font-mono uppercase text-grey font-medium">
+                  Video (Upload File or Paste Link)
+                </label>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
-                  
-                  {/* Team Scope */}
-                  <div>
-                    <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-2 font-medium">
-                      Subsystem Team
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Option A: File Upload */}
+                  <div className="p-4 bg-alice-blue/40 border border-jet-black/10 rounded-xl space-y-2">
+                    <label className="block text-xs font-mono uppercase text-jet-black font-semibold">
+                      Upload Video File
                     </label>
-                    {isAdmin ? (
-                      <select
-                        value={targetTeamId}
-                        onChange={(e) => {
-                          setTargetTeamId(e.target.value as TeamId);
-                          setSelectedMembers([]); // Reset selected members cleanly when subsystem team changes
-                        }}
-                        className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-jet-black text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none transition-all"
-                      >
-                        {TEAMS_LIST.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            [{t.code}] {t.name}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <div className="w-full px-4 py-2.5 rounded-xl border border-jet-black/10 bg-jet-black/5 text-jet-black text-xs font-mono font-bold flex items-center justify-between">
-                        <span>[{currentTeam?.code}] {currentTeam?.name}</span>
-                        <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-jet-black/10 text-grey">Locked</span>
+                    <input
+                      type="file"
+                      accept="video/*"
+                      onChange={handleFileSelect}
+                      className="w-full text-xs font-mono file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-mono file:font-bold file:bg-jet-black file:text-alice-blue hover:file:bg-orange file:cursor-pointer cursor-pointer border border-jet-black/15 bg-white p-2 rounded-xl"
+                    />
+
+                    {videoFile && (
+                      <div className="mt-2 flex items-center justify-between bg-white p-2.5 rounded-xl border border-emerald-200 shadow-2xs">
+                        <span className="text-xs font-mono text-emerald-700 font-bold truncate max-w-[200px]">
+                          {videoFile.name} ({(videoFile.size / (1024 * 1024)).toFixed(1)} MB)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setVideoFile(null);
+                            setLargeFileNotice(null);
+                          }}
+                          className="text-xs font-mono text-red-500 hover:underline cursor-pointer shrink-0 ml-2"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+
+                    {largeFileNotice && (
+                      <div className="mt-2 p-2.5 bg-amber-50 border border-amber-300 rounded-lg text-xs text-amber-900">
+                        {largeFileNotice}
                       </div>
                     )}
                   </div>
 
-                  {/* Work Date */}
-                  <div>
-                    <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-2 font-medium">
-                      Work Date
+                  {/* Option B: Direct Link */}
+                  <div className="p-4 bg-alice-blue/40 border border-jet-black/10 rounded-xl space-y-2">
+                    <label className="block text-xs font-mono uppercase text-jet-black font-semibold">
+                      Or Paste Video Link
                     </label>
                     <input
-                      type="date"
-                      required
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-jet-black text-xs focus:ring-2 focus:ring-orange focus:outline-none font-mono transition-all"
+                      type="url"
+                      value={videoUrlInput}
+                      onChange={(e) => setVideoUrlInput(e.target.value)}
+                      placeholder="https://drive.google.com/... or YouTube link"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-jet-black/15 bg-white text-jet-black text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
                     />
-                  </div>
 
-                  {/* Custom Time */}
-                  <div>
-                    <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-2 font-medium">
-                      Custom Time / Window
-                    </label>
-                    <input
-                      type="text"
-                      value={workTime}
-                      onChange={(e) => setWorkTime(e.target.value)}
-                      placeholder="e.g. 14:30 or 2:00 PM - 5:30 PM"
-                      className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-jet-black text-xs focus:ring-2 focus:ring-orange focus:outline-none font-mono transition-all"
-                    />
-                  </div>
-
-                  {/* Hours */}
-                  <div>
-                    <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-2 font-medium">
-                      Hours Invested
-                    </label>
-                    <input
-                      type="number"
-                      step="0.5"
-                      min="0.5"
-                      max="24"
-                      value={hoursSpent}
-                      onChange={(e) => setHoursSpent(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-jet-black text-xs focus:ring-2 focus:ring-orange focus:outline-none font-mono transition-all"
-                    />
-                  </div>
-
-                </div>
-              </div>
-
-              {/* ZONE 3: Team Personnel & Detailed Work */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 pb-1 border-b border-jet-black/5">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-grey font-bold">
-                    03 • Contributors &amp; Operations
-                  </span>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-2 font-medium">
-                    Members Working on This Move (Tick from Checkbox List)
-                  </label>
-                  <MemberSelect
-                    teamId={isAdmin ? targetTeamId : user.teamId}
-                    selectedMembers={selectedMembers}
-                    onChange={setSelectedMembers}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-2 font-medium">
-                    Technical Actions &amp; Operations Performed *
-                  </label>
-                  <textarea
-                    required
-                    rows={4}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe specific engineering operations, equipment used, torque specs, components assembled, firmware flashed, or telemetry readings measured..."
-                    className="w-full px-4 py-3 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-jet-black text-sm focus:ring-2 focus:ring-orange focus:outline-none leading-relaxed transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* ZONE 4: Achievements & Blockers */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 pb-1 border-b border-jet-black/5">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-grey font-bold">
-                    04 • Outcomes &amp; Blockers
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/20 space-y-2">
-                    <label className="block text-xs font-mono uppercase tracking-wider text-emerald-700 font-bold">
-                      Key Achievement / Result Metric
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={achievements}
-                      onChange={(e) => setAchievements(e.target.value)}
-                      placeholder="e.g. Dropout parallel measured within 0.08mm; CAN packet rate 100Hz confirmed..."
-                      className="w-full px-3 py-2 rounded-lg border border-emerald-200 bg-white text-jet-black text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/20 space-y-2">
-                    <label className="block text-xs font-mono uppercase tracking-wider text-amber-700 font-bold">
-                      Blocker / Challenge (if any)
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={blockers}
-                      onChange={(e) => setBlockers(e.target.value)}
-                      placeholder="e.g. Awaiting supplier shipment of 200A fuse; need argon gas cylinder refill..."
-                      className="w-full px-3 py-2 rounded-lg border border-amber-200 bg-white text-jet-black text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* ZONE 5: Video Proof & Evidence (5 GB Resumable Upload) */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between pb-1 border-b border-jet-black/5">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-grey font-bold">
-                    05 • Video Evidence &amp; Proof (Up to 5 GB)
-                  </span>
-                  <span className="text-[10px] font-mono text-emerald-600 font-bold bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200">
-                    High-Speed Resumable Stream
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  
-                  {/* Option A: Direct File Upload */}
-                  <div className="p-5 bg-alice-blue/40 border border-jet-black/10 rounded-2xl flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="block text-xs font-mono uppercase text-jet-black font-bold">
-                          Option A: Direct Video Upload
-                        </label>
-                        <span className="text-[10px] font-mono text-grey">Max 5 GB</span>
+                    {videoUrlInput && (
+                      <div className="text-xs font-mono">
+                        {getEmbeddableVideoUrl(videoUrlInput) ? (
+                          <span className="text-emerald-600 font-medium">✓ Valid video link</span>
+                        ) : (
+                          <span className="text-amber-600">Please enter a valid Google Drive or YouTube link</span>
+                        )}
                       </div>
-                      <p className="text-xs text-grey mb-3 font-light leading-relaxed">
-                        Streams raw video directly into your Google Drive team folder via resumable chunks.
-                      </p>
-                      
-                      <input
-                        type="file"
-                        accept="video/*"
-                        onChange={handleFileSelect}
-                        className="w-full text-xs font-mono file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-jet-black file:text-alice-blue hover:file:bg-orange file:cursor-pointer transition-all"
-                      />
-
-                      {videoFile && (
-                        <div className="mt-3 flex items-center justify-between bg-white p-3 rounded-xl border border-emerald-200 shadow-sm">
-                          <div className="truncate mr-2">
-                            <span className="text-xs font-mono text-emerald-700 font-bold block truncate">
-                              {videoFile.name}
-                            </span>
-                            <span className="text-[10px] font-mono text-grey">
-                              {(videoFile.size / (1024 * 1024)).toFixed(1)} MB • Ready to stream
-                            </span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setVideoFile(null);
-                              setLargeFileNotice(null);
-                            }}
-                            className="text-xs font-mono text-red-500 hover:underline cursor-pointer shrink-0"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      )}
-
-                      {largeFileNotice && (
-                        <div className="mt-3 p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-900 space-y-1">
-                          <p className="font-bold text-[11px]">Notice: Large Video File</p>
-                          <p className="text-[11px] leading-snug">{largeFileNotice}</p>
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
-
-                  {/* Option B: Paste Drive Link */}
-                  <div className="p-5 bg-alice-blue/40 border border-jet-black/10 rounded-2xl flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="block text-xs font-mono uppercase text-jet-black font-bold">
-                          Option B: Paste Drive / YouTube Link
-                        </label>
-                        <span className="text-[10px] font-mono text-grey">Instant 0s Embed</span>
-                      </div>
-                      <p className="text-xs text-grey mb-3 font-light leading-relaxed">
-                        Already in Google Drive or YouTube? Paste any share link to play video inline with zero upload wait time.
-                      </p>
-                      
-                      <input
-                        type="url"
-                        value={videoUrlInput}
-                        onChange={(e) => setVideoUrlInput(e.target.value)}
-                        placeholder="https://drive.google.com/file/d/... or YouTube"
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-jet-black/15 bg-white text-jet-black text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none shadow-sm"
-                      />
-
-                      {videoUrlInput && (
-                        <div className="mt-2.5 text-[11px] font-mono">
-                          {getEmbeddableVideoUrl(videoUrlInput) ? (
-                            <span className="text-emerald-600 flex items-center gap-1.5 font-bold">
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                              </svg>
-                              Valid Video Link — Ready to Stream Inline
-                            </span>
-                          ) : (
-                            <span className="text-amber-600 flex items-center gap-1.5 font-medium">
-                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                              </svg>
-                              Enter a valid Google Drive file, YouTube, or direct video URL (.mp4/.webm)
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
                 </div>
 
                 {/* Progress Bar */}
                 {isUploading && (
-                  <div className="mt-4 p-4 bg-alice-blue/60 border border-orange/20 rounded-xl space-y-2">
+                  <div className="mt-3 p-3 bg-alice-blue/60 border border-orange/20 rounded-xl space-y-1.5">
                     <div className="flex items-center justify-between text-xs font-mono text-jet-black">
                       <span className="font-medium">{uploadStatus}</span>
                       <span className="font-bold text-orange">{uploadProgress}%</span>
                     </div>
-                    <div className="w-full h-2.5 bg-jet-black/10 rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-jet-black/10 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-orange transition-all duration-300 rounded-full"
                         style={{ width: `${uploadProgress}%` }}
@@ -963,26 +886,26 @@ function LogPageContent() {
               </div>
 
               {/* Form Action Buttons */}
-              <div className="pt-6 border-t border-jet-black/10 flex items-center justify-end gap-3">
+              <div className="pt-4 border-t border-jet-black/10 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsFormOpen(false)}
-                  className="px-6 py-3 rounded-xl border border-jet-black/20 text-jet-black text-xs font-mono uppercase font-semibold hover:bg-jet-black/5 cursor-pointer transition-colors"
+                  className="px-5 py-2.5 rounded-xl border border-jet-black/20 text-jet-black text-xs font-mono uppercase font-semibold hover:bg-jet-black/5 cursor-pointer transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-8 py-3 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase tracking-wider shadow-md cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                  className="px-6 py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-2"
                 >
                   {isSubmitting ? (
                     <>
                       <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                      <span>Publishing Step...</span>
+                      <span>Saving...</span>
                     </>
                   ) : (
-                    <span>Publish Step Record →</span>
+                    <span>Save Step →</span>
                   )}
                 </button>
               </div>
@@ -1001,11 +924,8 @@ function LogPageContent() {
               
               <div className="flex items-center justify-between pb-4 border-b border-jet-black/10">
                 <div>
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-orange font-bold block mb-1">
+                  <h3 className="text-lg font-bold text-jet-black tracking-tight">
                     Edit Step #{editingLog.stepNumber}
-                  </span>
-                  <h3 className="text-xl font-black text-jet-black tracking-tight">
-                    Modify Engineering Step Record
                   </h3>
                 </div>
                 <button

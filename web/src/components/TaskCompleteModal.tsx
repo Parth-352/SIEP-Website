@@ -230,21 +230,9 @@ export default function TaskCompleteModal({
         {/* Modal Header */}
         <div className="flex items-start justify-between gap-4 pb-4 border-b border-jet-black/10">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                Deliverable Complete • Record Log Evidence
-              </span>
-              <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${currentTeam?.badgeBg || 'bg-jet-black/5 text-jet-black'}`}>
-                [{currentTeam?.code}] {currentTeam?.shortName}
-              </span>
-            </div>
-            <h3 className="text-xl sm:text-2xl font-black text-jet-black tracking-tight">
-              Mark as Done &amp; Attach Video Evidence<span className="text-emerald-500">.</span>
+            <h3 className="text-lg font-bold text-jet-black tracking-tight">
+              Complete Task &amp; Attach Video
             </h3>
-            <p className="text-xs text-grey">
-              The task details have been carried forward below. Attach your fabrication or testing video to stream directly into the Master Gallery!
-            </p>
           </div>
 
           <button
@@ -263,25 +251,17 @@ export default function TaskCompleteModal({
           </div>
         )}
 
-        {/* Video Upload Banner (Primary Feature) */}
-        <div className="bg-gradient-to-br from-emerald-50/60 to-alice-blue p-5 rounded-2xl border border-emerald-200/80 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-base">📹</span>
-              <h4 className="text-xs font-mono uppercase font-black tracking-wider text-jet-black">
-                Video Evidence Attachment (Personal Google Drive)
-              </h4>
-            </div>
-            <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-jet-black/10 text-grey font-bold">
-              Up to 5 GB Resumable
-            </span>
-          </div>
+        {/* Video Upload Section */}
+        <div className="p-4 bg-alice-blue/40 rounded-xl border border-jet-black/10 space-y-3">
+          <label className="block text-xs font-mono uppercase text-jet-black font-semibold">
+            Video Attachment (Optional)
+          </label>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Option A: Direct File Upload */}
             <div className="space-y-1.5">
-              <label className="block text-[11px] font-mono uppercase text-grey font-bold">
-                A) Upload Video File (.mp4, .webm, .mov)
+              <label className="block text-xs font-mono uppercase text-grey font-medium">
+                Upload Video File
               </label>
               <input
                 type="file"
@@ -300,19 +280,19 @@ export default function TaskCompleteModal({
 
             {/* Option B: Direct Link */}
             <div className="space-y-1.5">
-              <label className="block text-[11px] font-mono uppercase text-grey font-bold">
-                B) Or Paste Drive / YouTube Link
+              <label className="block text-xs font-mono uppercase text-grey font-medium">
+                Or Paste Video Link
               </label>
               <input
                 type="url"
                 value={videoUrlInput}
                 onChange={(e) => setVideoUrlInput(e.target.value)}
-                placeholder="https://drive.google.com/file/d/..."
+                placeholder="https://drive.google.com/... or YouTube"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white"
               />
               {videoUrlInput && getEmbeddableVideoUrl(videoUrlInput) && (
                 <div className="text-[10px] font-mono text-emerald-700 font-bold">
-                  ✓ Valid stream embed link detected!
+                  ✓ Link detected
                 </div>
               )}
             </div>
@@ -335,12 +315,12 @@ export default function TaskCompleteModal({
           )}
         </div>
 
-        {/* Form of Carried-Forward Data */}
+        {/* Form Fields */}
         <form onSubmit={handleSubmitWithVideo} className="space-y-4">
           
           <div>
             <label className="block text-xs font-mono uppercase text-grey mb-1.5 font-medium">
-              Log Step Title (Carried Forward) *
+              Step Title *
             </label>
             <input
               type="text"
@@ -353,7 +333,7 @@ export default function TaskCompleteModal({
 
           <div>
             <label className="block text-xs font-mono uppercase text-grey mb-1.5 font-medium">
-              Deliverables &amp; Work Completed (Carried Forward) *
+              Description *
             </label>
             <textarea
               rows={3}
@@ -366,13 +346,13 @@ export default function TaskCompleteModal({
 
           <div>
             <label className="block text-xs font-mono uppercase text-grey mb-1.5 font-medium">
-              Key Achievements / Verification Notes
+              Key Achievements (Optional)
             </label>
             <input
               type="text"
               value={achievements}
               onChange={(e) => setAchievements(e.target.value)}
-              placeholder="e.g. Verified structural rigidity, zero warpage, tolerance within 0.8mm"
+              placeholder="e.g. Tested and verified successfully"
               className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-xs focus:ring-2 focus:ring-orange focus:outline-none"
             />
           </div>

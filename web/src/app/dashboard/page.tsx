@@ -1175,11 +1175,8 @@ export default function DashboardPage() {
             
             <div className="flex items-center justify-between pb-4 border-b border-jet-black/10">
               <div>
-                <span className="text-[10px] font-mono uppercase tracking-widest text-orange font-bold block">
-                  Project Deliverable
-                </span>
                 <h3 className="text-lg font-bold text-jet-black">
-                  Assign New Subsystem Task
+                  Create New Task
                 </h3>
               </div>
               <button
