@@ -637,9 +637,6 @@ function LogPageContent() {
                   Log Engineering Move / Fabrication Step
                 </h3>
               </div>
-              <span className="text-xs font-mono bg-alice-blue px-3.5 py-1.5 rounded-full text-grey border border-jet-black/10 self-start sm:self-auto font-medium">
-                Google Drive 5 GB Direct Stream
-              </span>
             </div>
 
             {/* Error Banner */}
