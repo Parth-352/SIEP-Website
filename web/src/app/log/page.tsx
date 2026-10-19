@@ -490,7 +490,7 @@ function LogPageContent() {
                 <svg className={`w-3.5 h-3.5 transition-transform ${isFormOpen ? 'rotate-45' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                 </svg>
-                <span>{isFormOpen ? 'Close Form' : '+ Record New Step'}</span>
+                <span>{isFormOpen ? 'Close Form' : 'Record New Step'}</span>
               </button>
             </div>
 
