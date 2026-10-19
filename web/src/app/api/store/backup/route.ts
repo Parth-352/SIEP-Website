@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       const resetData = resetStore();
       return NextResponse.json({
         success: true,
-        message: 'Database store successfully reset to official seed defaults.',
+        message: 'Database store successfully cleared.',
         data: resetData,
       });
     }

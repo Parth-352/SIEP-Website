@@ -25,7 +25,7 @@ const PRIORITY_BADGES: Record<TaskPriority, { label: string; bg: string }> = {
   low: { label: 'Low', bg: 'bg-zinc-100 text-zinc-600' },
 };
 
-const TASKS_STORAGE_KEY = 'siep_tasks_cache_v2';
+const TASKS_STORAGE_KEY = 'siep_tasks_cache_v3';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -79,12 +79,14 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setIsMounted(true);
-    // Hydrate tasks from local cache if available
+    // Clear legacy mock caches and hydrate tasks from local cache if available
     try {
+      localStorage.removeItem('siep_tasks_cache_v1');
+      localStorage.removeItem('siep_tasks_cache_v2');
       const cached = localStorage.getItem(TASKS_STORAGE_KEY);
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           setTasks(parsed);
         }
       }
@@ -316,7 +318,7 @@ export default function DashboardPage() {
   };
 
   const handleResetDatabase = async () => {
-    if (!confirm('CAUTION: This will reset all tasks and logs back to official SIEP default seed data. Proceed?')) return;
+    if (!confirm('CAUTION: This will clear all tasks and logs to an empty state. Proceed?')) return;
     setIsResetting(true);
     setBackupStatus(null);
     try {
@@ -328,7 +330,9 @@ export default function DashboardPage() {
       const data = await res.json();
       if (data.success) {
         localStorage.removeItem(TASKS_STORAGE_KEY);
-        setBackupStatus('Database successfully reset to official defaults!');
+        setTasks([]);
+        setLogs([]);
+        setBackupStatus('Database successfully cleared to clean empty state!');
         loadDashboardData();
       } else {
         setBackupStatus(`Reset error: ${data.error}`);
@@ -1376,10 +1380,10 @@ export default function DashboardPage() {
 
               <div className="p-4 bg-red-50/50 rounded-xl border border-red-200/60 space-y-2">
                 <h4 className="text-xs font-mono font-bold uppercase text-red-600">
-                  2. Reset to Official Seed Defaults
+                  2. Clear &amp; Reset Database
                 </h4>
                 <p className="text-xs text-grey leading-relaxed">
-                  Reset the entire database back to the 16 official tasks and 8 verified logbook entries.
+                  Reset the database to a clean, empty state with zero tasks and logs.
                 </p>
                 <button
                   type="button"
@@ -1387,7 +1391,7 @@ export default function DashboardPage() {
                   onClick={handleResetDatabase}
                   className="w-full py-2.5 px-4 bg-white text-red-600 border border-red-300 hover:bg-red-600 hover:text-white transition-all font-bold text-xs uppercase font-mono rounded-xl cursor-pointer disabled:opacity-50"
                 >
-                  {isResetting ? 'Resetting...' : 'Reset Database to Seed ↺'}
+                  {isResetting ? 'Resetting...' : 'Clear Database ↺'}
                 </button>
               </div>
             </div>
