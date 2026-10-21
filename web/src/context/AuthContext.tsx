@@ -18,7 +18,6 @@ interface AuthContextType {
   isAdmin: boolean;
   isTeam: boolean;
   login: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
-  quickLogin: (teamId: TeamId) => void;
   logout: () => Promise<void>;
 }
 
@@ -28,7 +27,6 @@ const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   isTeam: false,
   login: async () => ({ success: false }),
-  quickLogin: () => {},
   logout: async () => {},
 });
 
@@ -156,25 +154,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }
 
-  // Quick 1-click login for development & testing
-  function quickLogin(teamId: TeamId) {
-    const team = TEAMS[teamId];
-    if (!team) return;
-
-    const profile: UserProfile = {
-      uid: `quick-${team.id}`,
-      email: team.email,
-      displayName: team.name,
-      role: team.role,
-      teamId: team.id,
-      teamName: team.name,
-    };
-
-    setUser(profile);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
-    syncSessionCookie(profile);
-  }
-
   // Logout handler
   async function logout() {
     if (isFirebaseConfigured() && auth) {
@@ -189,7 +168,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     syncSessionCookie(null);
   }
 
-  const isAdmin = user?.role === 'admin' || user?.teamId === 'core';
+  // Only Core Leadership has full administrative scope
+  const isAdmin = user?.teamId === 'core';
   const isTeam = Boolean(user && !isAdmin);
 
   return (
@@ -200,7 +180,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAdmin,
         isTeam,
         login,
-        quickLogin,
         logout,
       }}
     >

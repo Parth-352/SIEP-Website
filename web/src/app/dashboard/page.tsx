@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { TEAMS_LIST, TEAMS } from '@/lib/teams';
+import { TEAMS_LIST, TEAMS, ALL_TEAMS } from '@/lib/teams';
 import { Task, WorkLog, TeamId, TaskStatus, TaskPriority } from '@/lib/types';
 import { getEmbeddableVideoUrl } from '@/lib/driveUpload';
 import MemberSelect from '@/components/MemberSelect';
@@ -69,6 +69,7 @@ export default function DashboardPage() {
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
+  const [showCredentialsPasswords, setShowCredentialsPasswords] = useState(false);
 
   // Authentication protection: all logged-in members can view dashboard
   useEffect(() => {
@@ -76,6 +77,13 @@ export default function DashboardPage() {
       router.push('/login?from=/dashboard');
     }
   }, [user, authLoading, router]);
+
+  // Security guard: If non-core squad is on accounts tab, reset to kanban
+  useEffect(() => {
+    if (activeTab === 'accounts' && user && user.teamId !== 'core') {
+      setActiveTab('kanban');
+    }
+  }, [activeTab, user]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -178,8 +186,9 @@ export default function DashboardPage() {
     );
   }
 
-  // Permissions
-  const isCoreAdmin = isAdmin || user.teamId === 'core';
+  // Permissions - ONLY Core Leadership squad has full administrative authority
+  const isCore = user.teamId === 'core';
+  const isCoreAdmin = isCore;
 
   // Create Task
   const handleCreateTask = async (e: React.FormEvent) => {
@@ -375,7 +384,7 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-orange animate-pulse"></span>
                 <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-grey font-bold">
-                  {isCoreAdmin ? 'Operations Center • Full Admin Privileges' : `Squad Console • ${TEAMS[user.teamId]?.name || user.teamName}`}
+                  {isCore ? 'Operations Center • Central Leadership Privileges' : `Squad Console • ${TEAMS[user.teamId]?.name || user.teamName}`}
                 </span>
               </div>
               <h1 className="text-3xl sm:text-4xl font-black text-jet-black tracking-tight">
@@ -537,7 +546,7 @@ export default function DashboardPage() {
             </span>
           </button>
 
-          {isCoreAdmin && (
+          {isCore && (
             <button
               type="button"
               onClick={() => setActiveTab('accounts')}
@@ -549,7 +558,7 @@ export default function DashboardPage() {
             >
               <span>Team Credentials</span>
               <span className="text-[10px] text-orange font-bold uppercase font-mono px-1.5 py-0.5 rounded bg-orange/15">
-                Admin
+                Core Only
               </span>
             </button>
           )}
@@ -1053,10 +1062,10 @@ export default function DashboardPage() {
         )}
 
         {/* =========================================================================
-            TAB 4: TEAM CREDENTIALS TABLE (Core/Admin Only)
-            Spacious, readable authentication table
+            TAB 4: TEAM CREDENTIALS TABLE (Core Leadership Only)
+            Protected credentials table strictly restricted to Core Leadership
            ========================================================================= */}
-        {activeTab === 'accounts' && isCoreAdmin && (
+        {activeTab === 'accounts' && isCore && (
           <div className="bg-white border border-jet-black/10 rounded-2xl overflow-hidden shadow-sm">
             <div className="p-6 sm:p-8 border-b border-jet-black/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -1064,12 +1073,16 @@ export default function DashboardPage() {
                   Configured Subsystem Accounts
                 </h3>
                 <p className="text-xs text-grey mt-0.5">
-                  Pre-configured login emails and passwords for the 9 official engineering squads
+                  Authorized login credentials for all 9 SIEP divisions (Core Leadership View)
                 </p>
               </div>
-              <span className="text-xs font-mono px-3.5 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full font-bold self-start sm:self-auto">
-                Pattern: teamName@9352
-              </span>
+              <button
+                type="button"
+                onClick={() => setShowCredentialsPasswords(!showCredentialsPasswords)}
+                className="text-xs font-mono px-3.5 py-1.5 bg-alice-blue text-jet-black hover:bg-jet-black hover:text-white border border-jet-black/10 rounded-xl font-bold transition-all self-start sm:self-auto cursor-pointer"
+              >
+                {showCredentialsPasswords ? '🔒 Mask Passwords' : '👁 Show Passwords'}
+              </button>
             </div>
 
             <div className="overflow-x-auto">
@@ -1078,12 +1091,12 @@ export default function DashboardPage() {
                   <tr>
                     <th className="py-4 px-6">Subsystem Team</th>
                     <th className="py-4 px-6">Login Email</th>
-                    <th className="py-4 px-6">Default Password</th>
+                    <th className="py-4 px-6">Password</th>
                     <th className="py-4 px-6">Access Level</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-jet-black/5">
-                  {TEAMS_LIST.map((team) => (
+                  {ALL_TEAMS.map((team) => (
                     <tr key={team.id} className="hover:bg-alice-blue/40 transition-colors">
                       <td className="py-4 px-6 font-bold text-jet-black">
                         <span className="text-[10px] text-grey mr-2">[{team.code}]</span>
@@ -1093,7 +1106,7 @@ export default function DashboardPage() {
                         {team.email}
                       </td>
                       <td className="py-4 px-6 font-mono text-orange font-bold select-all">
-                        {team.defaultPass}
+                        {showCredentialsPasswords ? team.defaultPass : '••••••••••••'}
                       </td>
                       <td className="py-4 px-6">
                         <span className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase ${
@@ -1101,7 +1114,7 @@ export default function DashboardPage() {
                             ? 'bg-orange/20 text-orange'
                             : 'bg-jet-black/10 text-jet-black'
                         }`}>
-                          {team.role === 'admin' ? 'Admin / Full Project' : 'Team / Scoped Log'}
+                          {team.id === 'core' ? 'Core Leadership' : 'Subsystem Squad'}
                         </span>
                       </td>
                     </tr>

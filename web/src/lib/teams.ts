@@ -8,7 +8,7 @@ export const TEAMS: Record<TeamId, TeamConfig> = {
     code: 'SOFT',
     email: 'software@ridersbay.com',
     defaultPass: 'Software@9352',
-    role: 'admin',
+    role: 'team',
     color: '#8B5CF6',
     badgeBg: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
     badgeText: 'text-purple-400',
@@ -36,7 +36,7 @@ export const TEAMS: Record<TeamId, TeamConfig> = {
     code: 'MECH',
     email: 'mechanical@ridersbay.com',
     defaultPass: 'Mechanical@9352',
-    role: 'admin',
+    role: 'team',
     color: '#F97316',
     badgeBg: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
     badgeText: 'text-orange-400',
@@ -128,6 +128,19 @@ export const TEAMS: Record<TeamId, TeamConfig> = {
     lead: 'Meet Samdadiya',
   },
 };
+
+// All 9 divisions including Core Leadership
+export const ALL_TEAMS: TeamConfig[] = [
+  TEAMS.core,
+  TEAMS.software,
+  TEAMS.entc,
+  TEAMS.mechanical,
+  TEAMS.design,
+  TEAMS.research,
+  TEAMS.sponsorship,
+  TEAMS.socialmedia,
+  TEAMS.documentation,
+];
 
 // Strictly the 8 official team divisions
 export const TEAMS_LIST: TeamConfig[] = [
