@@ -22,7 +22,10 @@ function LogLoadingSkeleton() {
 function LogPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, loading: authLoading, isAdmin } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  // ONLY Core Leadership has master administrative access across all teams.
+  // All other engineering squads (Mechanical, Software, EnTC, etc.) are team-scoped.
+  const isCoreAdmin = Boolean(user && user.teamId === 'core');
 
   const [isMounted, setIsMounted] = useState(false);
   const [logs, setLogs] = useState<WorkLog[]>([]);
@@ -41,7 +44,7 @@ function LogPageContent() {
   // Form state (Create)
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [stepTitle, setStepTitle] = useState('');
-  const [targetTeamId, setTargetTeamId] = useState<TeamId>('mechanical');
+  const [targetTeamId, setTargetTeamId] = useState<TeamId>('core');
   const [authorName, setAuthorName] = useState('');
   const [date, setDate] = useState('');
   const [workTime, setWorkTime] = useState('');
@@ -64,7 +67,7 @@ function LogPageContent() {
   // Edit modal state
   const [editingLog, setEditingLog] = useState<WorkLog | null>(null);
   const [editStepTitle, setEditStepTitle] = useState('');
-  const [editTeamId, setEditTeamId] = useState<TeamId>('mechanical');
+  const [editTeamId, setEditTeamId] = useState<TeamId>('core');
   const [editAuthorName, setEditAuthorName] = useState('');
   const [editDate, setEditDate] = useState('');
   const [editWorkTime, setEditWorkTime] = useState('');
@@ -118,7 +121,7 @@ function LogPageContent() {
   const loadLogs = useCallback(async () => {
     if (!user) return;
     setLoadingLogs(true);
-    const teamQuery = !isAdmin && user ? user.teamId : (selectedTeamFilter !== 'all' ? selectedTeamFilter : '');
+    const teamQuery = !isCoreAdmin && user ? user.teamId : (selectedTeamFilter !== 'all' ? selectedTeamFilter : '');
     const url = teamQuery ? `/api/logs?teamId=${teamQuery}` : '/api/logs';
 
     try {
@@ -132,13 +135,13 @@ function LogPageContent() {
     } finally {
       setLoadingLogs(false);
     }
-  }, [user, isAdmin, selectedTeamFilter]);
+  }, [user, isCoreAdmin, selectedTeamFilter]);
 
   // Fetch team tasks for pipeline context
   const loadTeamTasks = useCallback(async () => {
     if (!user) return;
     setLoadingTasks(true);
-    const teamQuery = user.teamId !== 'core' ? user.teamId : (selectedTeamFilter !== 'all' ? selectedTeamFilter : '');
+    const teamQuery = !isCoreAdmin ? user.teamId : (selectedTeamFilter !== 'all' ? selectedTeamFilter : '');
     const url = teamQuery ? `/api/tasks?teamId=${teamQuery}` : '/api/tasks';
 
     try {
@@ -152,7 +155,7 @@ function LogPageContent() {
     } finally {
       setLoadingTasks(false);
     }
-  }, [user, isAdmin, selectedTeamFilter]);
+  }, [user, isCoreAdmin, selectedTeamFilter]);
 
   useEffect(() => {
     loadLogs();
@@ -234,7 +237,7 @@ function LogPageContent() {
       return;
     }
 
-    const effectiveTeamId: TeamId = isAdmin ? targetTeamId : user.teamId;
+    const effectiveTeamId: TeamId = isCoreAdmin ? targetTeamId : user.teamId;
     const effectiveTeamConfig = TEAMS[effectiveTeamId];
 
     setIsSubmitting(true);
@@ -368,7 +371,7 @@ function LogPageContent() {
         body: JSON.stringify({
           id: editingLog.id,
           stepTitle: editStepTitle.trim(),
-          teamId: isAdmin ? editTeamId : editingLog.teamId,
+          teamId: isCoreAdmin ? editTeamId : editingLog.teamId,
           authorName: editAuthorName.trim() || editingLog.authorName,
           date: editDate || editingLog.date,
           workTime: editWorkTime.trim() || editingLog.workTime,
@@ -499,8 +502,8 @@ function LogPageContent() {
           {/* Scope Indicator Ribbon */}
           <div className="mt-6 pt-5 border-t border-jet-black/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
             <div className="flex items-center gap-2.5 text-grey">
-              <span className={`w-2 h-2 rounded-full ${isAdmin ? 'bg-orange' : 'bg-emerald-500'}`}></span>
-              {isAdmin ? (
+              <span className={`w-2 h-2 rounded-full ${isCoreAdmin ? 'bg-orange' : 'bg-emerald-500'}`}></span>
+              {isCoreAdmin ? (
                 <span>
                   <strong className="text-jet-black">Master Admin Access:</strong> Viewing and logging across all 8 subsystem teams.
                 </span>
@@ -674,7 +677,7 @@ function LogPageContent() {
                   <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-1.5 font-medium">
                     Subsystem Team
                   </label>
-                  {isAdmin ? (
+                  {isCoreAdmin ? (
                     <select
                       value={targetTeamId}
                       onChange={(e) => {
@@ -749,7 +752,7 @@ function LogPageContent() {
                   Assigned Members
                 </label>
                 <MemberSelect
-                  teamId={isAdmin ? targetTeamId : user.teamId}
+                  teamId={isCoreAdmin ? targetTeamId : user.teamId}
                   selectedMembers={selectedMembers}
                   onChange={setSelectedMembers}
                 />
@@ -962,7 +965,7 @@ function LogPageContent() {
                     <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-1.5 font-medium">
                       Subsystem Team
                     </label>
-                    {isAdmin ? (
+                    {isCoreAdmin ? (
                       <select
                         value={editTeamId}
                         onChange={(e) => setEditTeamId(e.target.value as TeamId)}
@@ -1015,7 +1018,7 @@ function LogPageContent() {
                     Contributors
                   </label>
                   <MemberSelect
-                    teamId={isAdmin ? editTeamId : editingLog.teamId}
+                    teamId={isCoreAdmin ? editTeamId : editingLog.teamId}
                     selectedMembers={editMembers}
                     onChange={setEditMembers}
                   />
@@ -1187,7 +1190,7 @@ function LogPageContent() {
           </div>
 
           {/* Subsystem Filter Tabs */}
-          {isAdmin ? (
+          {isCoreAdmin ? (
             <div className="pt-2 border-t border-jet-black/5 flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
               <button
                 type="button"
@@ -1252,7 +1255,7 @@ function LogPageContent() {
             filteredLogs.map((log) => {
               const teamInfo = TEAMS[log.teamId] || currentTeam;
               const embedInfo = getEmbeddableVideoUrl(log.videoUrl);
-              const canModify = isAdmin || user.teamId === log.teamId;
+              const canModify = isCoreAdmin || user.teamId === log.teamId;
 
               const videoActionLabel =
                 embedInfo?.source === 'youtube'

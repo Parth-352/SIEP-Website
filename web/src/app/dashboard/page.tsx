@@ -29,7 +29,7 @@ const TASKS_STORAGE_KEY = 'siep_tasks_cache_v3';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, loading: authLoading, isAdmin } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [isMounted, setIsMounted] = useState(false);
 
   // Active view tab

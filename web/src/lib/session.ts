@@ -34,8 +34,11 @@ export function decodeSession(sessionStr?: string): SessionData | null {
     const json = Buffer.from(sessionStr, 'base64').toString('utf-8');
     const data = JSON.parse(json) as SessionData;
     if (!data.teamId || !data.role) return null;
-    // Verify teamId is one of our valid teams
-    if (!TEAMS[data.teamId]) return null;
+    const team = TEAMS[data.teamId];
+    if (!team) return null;
+    // Strict security: Canonical role enforcement from authoritative team definitions.
+    // ONLY Core Leadership ('core') has admin privileges. All subsystem squads are 'team'.
+    data.role = team.role;
     return data;
   } catch {
     return null;

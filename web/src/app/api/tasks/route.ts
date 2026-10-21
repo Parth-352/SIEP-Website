@@ -48,8 +48,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Role guard: Core/Admin can assign to any team; subsystem teams can create tasks for their own squad
-    if (session.role !== 'admin' && session.teamId !== 'core' && teamId !== session.teamId) {
+    // Role guard: Only Core Leadership can assign to any team; subsystem squads can create tasks for their own squad
+    if (session.teamId !== 'core' && teamId !== session.teamId) {
       return NextResponse.json(
         { success: false, error: 'Forbidden: You can only assign tasks for your own subsystem team.' },
         { status: 403 }
@@ -98,8 +98,8 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Task not found' }, { status: 404 });
     }
 
-    // Role guard: Core/Admin can modify any task; subsystem teams can modify their own team's tasks
-    if (session.role !== 'admin' && session.teamId !== 'core' && existing.teamId !== session.teamId) {
+    // Role guard: Only Core Leadership can modify any task; subsystem squads can modify their own team's tasks
+    if (session.teamId !== 'core' && existing.teamId !== session.teamId) {
       return NextResponse.json(
         { success: false, error: 'Forbidden: You can only modify tasks belonging to your subsystem team.' },
         { status: 403 }
@@ -139,8 +139,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Task not found' }, { status: 404 });
     }
 
-    // Role guard: Core/Admin can delete any task; subsystem teams can delete their own team's tasks
-    if (session.role !== 'admin' && session.teamId !== 'core' && existing.teamId !== session.teamId) {
+    // Role guard: Only Core Leadership can delete any task; subsystem squads can delete their own team's tasks
+    if (session.teamId !== 'core' && existing.teamId !== session.teamId) {
       return NextResponse.json(
         { success: false, error: 'Forbidden: You can only delete tasks belonging to your subsystem team.' },
         { status: 403 }

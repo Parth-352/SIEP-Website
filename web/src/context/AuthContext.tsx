@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserProfile, TeamId, UserRole } from '@/lib/types';
-import { TEAMS, getTeamByEmail } from '@/lib/teams';
+import { TEAMS, getTeamByEmail, getTeamById } from '@/lib/teams';
 import { auth, isFirebaseConfigured } from '@/lib/firebase';
 import { encodeSession, SESSION_COOKIE_NAME } from '@/lib/session';
 import { 
@@ -47,6 +47,20 @@ function getSavedUser(): UserProfile | null {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return null;
     const profile = JSON.parse(saved);
+    // Sanitize cached user against latest team definitions: ONLY Core Leadership has admin role
+    if (profile && profile.teamId) {
+      const canonicalTeam = getTeamById(profile.teamId);
+      if (canonicalTeam) {
+        profile.role = canonicalTeam.role;
+        profile.displayName = canonicalTeam.name;
+        profile.teamName = canonicalTeam.name;
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+        } catch {
+          // ignore storage quota issues
+        }
+      }
+    }
     syncSessionCookie(profile);
     return profile;
   } catch (e) {
@@ -69,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             uid: fbUser.uid,
             email: fbUser.email,
             displayName: matchedTeam ? matchedTeam.name : (fbUser.displayName || fbUser.email),
-            role: (matchedTeam?.role || 'team') as UserRole,
+            role: (matchedTeam?.id === 'core' ? 'admin' : 'team') as UserRole,
             teamId: (matchedTeam?.id || 'core') as TeamId,
             teamName: matchedTeam ? matchedTeam.name : 'Team',
           };
@@ -101,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         uid: `user-${team.id}`,
         email: team.email,
         displayName: team.name,
-        role: team.role,
+        role: team.id === 'core' ? 'admin' : 'team',
         teamId: team.id,
         teamName: team.name,
       };

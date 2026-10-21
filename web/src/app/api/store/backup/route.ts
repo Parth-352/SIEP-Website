@@ -7,9 +7,9 @@ export async function GET(request: NextRequest) {
     const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
     const session = decodeSession(sessionCookie);
 
-    if (!session || (session.role !== 'admin' && session.teamId !== 'core')) {
+    if (!session || session.teamId !== 'core') {
       return NextResponse.json(
-        { success: false, error: 'Forbidden: Only administrators can export project database backups.' },
+        { success: false, error: 'Forbidden: Only Core Leadership can export project database backups.' },
         { status: 403 }
       );
     }
@@ -36,9 +36,9 @@ export async function POST(request: NextRequest) {
     const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
     const session = decodeSession(sessionCookie);
 
-    if (!session || (session.role !== 'admin' && session.teamId !== 'core')) {
+    if (!session || session.teamId !== 'core') {
       return NextResponse.json(
-        { success: false, error: 'Forbidden: Only administrators can modify database store states.' },
+        { success: false, error: 'Forbidden: Only Core Leadership can modify database store states.' },
         { status: 403 }
       );
     }
