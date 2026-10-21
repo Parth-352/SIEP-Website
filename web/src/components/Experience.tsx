@@ -108,21 +108,33 @@ export default function Experience() {
       // 0. Fade out the "Scroll to Explore" indicator immediately upon scrolling
       tl.to('#scroll-indicator', { opacity: 0, duration: 0.2, ease: 'power1.out' }, 0);
 
-      // 1. Hero -> Chassis — smoothly rises above stage text cards
+      // STAGE 1: Hero -> Chassis — low angle looking up at the frame
       tl.to(groupRef.current.position, { x: 0, y: 0.8, z: 1.5, duration: 1, ease: 'power2.inOut' }, 0);
       tl.to(groupRef.current.rotation, { x: -0.3, y: -Math.PI / 8, z: 0.1, duration: 1, ease: 'power2.inOut' }, 0);
 
-      // 2. Chassis -> Powertrain — centered
-      tl.to(groupRef.current.position, { x: 0, y: -1, z: 1, duration: 1, ease: 'power2.inOut' }, 1);
-      tl.to(groupRef.current.rotation, { x: 0.6, y: Math.PI / 6, z: -0.1, duration: 1, ease: 'power2.inOut' }, 1);
+      // STAGE 2: Chassis -> Powertrain — right-side profile showing drivetrain
+      tl.to(groupRef.current.position, { x: 0, y: -0.5, z: 1.5, duration: 1, ease: 'power2.inOut' }, 1);
+      tl.to(groupRef.current.rotation, { x: 0.2, y: Math.PI / 4, z: -0.1, duration: 1, ease: 'power2.inOut' }, 1);
 
-      // 3. Powertrain -> Motion — centered
-      tl.to(groupRef.current.position, { x: 0, y: -1.5, z: 2.5, duration: 1, ease: 'power2.inOut' }, 2);
-      tl.to(groupRef.current.rotation, { x: 0, y: -Math.PI / 2.5, z: 0.15, duration: 1, ease: 'power2.inOut' }, 2);
+      // STAGE 3: Powertrain -> Battery — elevated top-down angle highlighting battery pack
+      tl.to(groupRef.current.position, { x: 0, y: 1.5, z: 2.0, duration: 1, ease: 'power2.inOut' }, 2);
+      tl.to(groupRef.current.rotation, { x: 0.7, y: -Math.PI / 6, z: 0.1, duration: 1, ease: 'power2.inOut' }, 2);
 
-      // 4. Motion -> Final Reveal — centered
-      tl.to(groupRef.current.position, { x: 0, y: -0.3, z: -0.5, duration: 1, ease: 'power2.inOut' }, 3);
-      tl.to(groupRef.current.rotation, { x: 0, y: Math.PI * 1.5, z: 0, duration: 1, ease: 'power2.inOut' }, 3);
+      // STAGE 4: Battery -> Motion — low front-wheel angle, showcasing suspension
+      tl.to(groupRef.current.position, { x: 0, y: -1.5, z: 2.5, duration: 1, ease: 'power2.inOut' }, 3);
+      tl.to(groupRef.current.rotation, { x: 0.1, y: -Math.PI / 2.5, z: 0.15, duration: 1, ease: 'power2.inOut' }, 3);
+
+      // STAGE 5: Motion -> Body — clean side profile showing full silhouette
+      tl.to(groupRef.current.position, { x: 0, y: -0.5, z: 0.5, duration: 1, ease: 'power2.inOut' }, 4);
+      tl.to(groupRef.current.rotation, { x: 0.05, y: -Math.PI / 2, z: 0, duration: 1, ease: 'power2.inOut' }, 4);
+
+      // STAGE 6: Body -> Smart System — rear-quarter angle showing cockpit & electronics
+      tl.to(groupRef.current.position, { x: 0, y: 0.3, z: 1.0, duration: 1, ease: 'power2.inOut' }, 5);
+      tl.to(groupRef.current.rotation, { x: -0.2, y: Math.PI / 1.5, z: -0.1, duration: 1, ease: 'power2.inOut' }, 5);
+
+      // STAGE 7: Smart System -> Ready to Ride — heroic 3/4 front beauty shot
+      tl.to(groupRef.current.position, { x: 0, y: -0.3, z: -0.5, duration: 1, ease: 'power2.inOut' }, 6);
+      tl.to(groupRef.current.rotation, { x: 0.05, y: -Math.PI / 5, z: 0, duration: 1, ease: 'power2.inOut' }, 6);
     } else {
       // Desktop positioning
       // Initial positioning (Hero) - Cinematic 3/4 beauty shot, positioned to the right to avoid overlapping text
@@ -132,21 +144,33 @@ export default function Experience() {
       // 0. Fade out the "Scroll to Explore" indicator immediately upon scrolling
       tl.to('#scroll-indicator', { opacity: 0, duration: 0.2, ease: 'power1.out' }, 0);
 
-      // 1. Hero -> Chassis (Text left) - Dramatic low angle, looking up at the chassis
+      // STAGE 1: Hero -> Chassis (Text LEFT) - Dramatic low angle, looking up at the chassis frame
       tl.to(groupRef.current.position, { x: 1.5, y: 1.2, z: 2, duration: 1, ease: 'power2.inOut' }, 0);
-      tl.to(groupRef.current.rotation, { x: -0.3, y: -Math.PI / 8, z: 0.1, duration: 1, ease: 'power2.inOut' }, 0); // Slight Dutch angle
+      tl.to(groupRef.current.rotation, { x: -0.3, y: -Math.PI / 8, z: 0.1, duration: 1, ease: 'power2.inOut' }, 0);
 
-      // 2. Chassis -> Powertrain & Battery (Text right) - Top-down swoop, looking at the core
-      tl.to(groupRef.current.position, { x: -1.5, y: -1.5, z: 1.5, duration: 1, ease: 'power2.inOut' }, 1);
-      tl.to(groupRef.current.rotation, { x: 0.6, y: Math.PI / 6, z: -0.1, duration: 1, ease: 'power2.inOut' }, 1);
+      // STAGE 2: Chassis -> Powertrain (Text RIGHT) - Right-side profile, highlighting drivetrain
+      tl.to(groupRef.current.position, { x: -1.5, y: -0.5, z: 2.0, duration: 1, ease: 'power2.inOut' }, 1);
+      tl.to(groupRef.current.rotation, { x: 0.2, y: Math.PI / 4, z: -0.1, duration: 1, ease: 'power2.inOut' }, 1);
 
-      // 3. Powertrain -> Systems Integration (Text left) - Extreme macro zoom on front forks/wheel
-      tl.to(groupRef.current.position, { x: 2.5, y: -2, z: 3.5, duration: 1, ease: 'power2.inOut' }, 2);
-      tl.to(groupRef.current.rotation, { x: 0, y: -Math.PI / 2.5, z: 0.15, duration: 1, ease: 'power2.inOut' }, 2);
+      // STAGE 3: Powertrain -> Battery (Text LEFT) - Elevated top-down angle highlighting the battery pack
+      tl.to(groupRef.current.position, { x: 1.5, y: 2.5, z: 2.5, duration: 1, ease: 'power2.inOut' }, 2);
+      tl.to(groupRef.current.rotation, { x: 0.7, y: -Math.PI / 6, z: 0.1, duration: 1, ease: 'power2.inOut' }, 2);
 
-      // 4. Systems Integration -> Final Reveal (Center) - Dramatic pull-back into a heroic left profile
-      tl.to(groupRef.current.position, { x: 0, y: -0.5, z: -1, duration: 1, ease: 'power2.inOut' }, 3);
-      tl.to(groupRef.current.rotation, { x: 0, y: Math.PI * 1.5, z: 0, duration: 1, ease: 'power2.inOut' }, 3);
+      // STAGE 4: Battery -> Motion (Text RIGHT) - Low front-wheel angle, showcasing suspension & wheels
+      tl.to(groupRef.current.position, { x: -2.5, y: -1.8, z: 3.5, duration: 1, ease: 'power2.inOut' }, 3);
+      tl.to(groupRef.current.rotation, { x: 0.1, y: Math.PI / 2.5, z: 0.15, duration: 1, ease: 'power2.inOut' }, 3);
+
+      // STAGE 5: Motion -> Body (Text LEFT) - Clean left-side profile showcasing the full silhouette & fairings
+      tl.to(groupRef.current.position, { x: 1.5, y: -0.5, z: 0.5, duration: 1, ease: 'power2.inOut' }, 4);
+      tl.to(groupRef.current.rotation, { x: 0.05, y: -Math.PI / 2, z: 0, duration: 1, ease: 'power2.inOut' }, 4);
+
+      // STAGE 6: Body -> Smart System (Text RIGHT) - Angled rear-quarter view showing electronics cockpit
+      tl.to(groupRef.current.position, { x: -1.5, y: 0.5, z: 1.5, duration: 1, ease: 'power2.inOut' }, 5);
+      tl.to(groupRef.current.rotation, { x: -0.2, y: Math.PI / 1.5, z: -0.1, duration: 1, ease: 'power2.inOut' }, 5);
+
+      // STAGE 7: Smart System -> Ready to Ride (CENTER) - Dramatic pull-back into heroic 3/4 front beauty shot
+      tl.to(groupRef.current.position, { x: 0, y: -0.5, z: -1, duration: 1, ease: 'power2.inOut' }, 6);
+      tl.to(groupRef.current.rotation, { x: 0.05, y: -Math.PI / 5, z: 0, duration: 1, ease: 'power2.inOut' }, 6);
     }
     
     return () => {
