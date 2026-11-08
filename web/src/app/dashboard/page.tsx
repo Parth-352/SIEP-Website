@@ -1246,8 +1246,8 @@ export default function DashboardPage() {
           Clean modal with validation, member checkbox list, and due date
          ========================================================================= */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 bg-jet-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border-2 border-orange/40 rounded-2xl w-full max-w-lg p-4 sm:p-8 max-h-[92vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200 space-y-5">
+        <div className="fixed inset-0 z-[200] bg-jet-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white border-2 border-orange/40 rounded-2xl w-full max-w-lg p-4 sm:p-8 max-h-[90vh] my-auto overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200 space-y-5">
             
             <div className="flex items-center justify-between pb-4 border-b border-jet-black/10">
               <div>
@@ -1405,8 +1405,8 @@ export default function DashboardPage() {
           DATABASE BACKUP / RESTORE MODAL (Core/Admin Only)
          ========================================================================= */}
       {isBackupModalOpen && isCoreAdmin && (
-        <div className="fixed inset-0 z-50 bg-jet-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border-2 border-jet-black/20 rounded-2xl w-full max-w-md p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 duration-200 space-y-5">
+        <div className="fixed inset-0 z-[200] bg-jet-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white border-2 border-jet-black/20 rounded-2xl w-full max-w-md p-6 sm:p-8 max-h-[90vh] my-auto overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200 space-y-5">
             
             <div className="flex items-center justify-between pb-4 border-b border-jet-black/10">
               <div>

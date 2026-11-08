@@ -316,15 +316,15 @@ function ForgotPasswordModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-jet-black/60 backdrop-blur-sm"
+        className="fixed inset-0 bg-jet-black/70 backdrop-blur-sm"
         onClick={onClose}
       />
 
       {/* Modal Card */}
-      <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-jet-black/10 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-md my-auto max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-jet-black/10 animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
         <div className="bg-jet-black px-6 py-4 flex items-center justify-between">

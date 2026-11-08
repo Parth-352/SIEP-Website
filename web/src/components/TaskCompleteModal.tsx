@@ -224,8 +224,8 @@ export default function TaskCompleteModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-jet-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white border-2 border-emerald-500/40 rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 duration-200 space-y-6">
+    <div className="fixed inset-0 z-[200] bg-jet-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-white border-2 border-emerald-500/40 rounded-2xl w-full max-w-2xl max-h-[90vh] my-auto overflow-y-auto p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 duration-200 space-y-6">
         
         {/* Modal Header */}
         <div className="flex items-start justify-between gap-4 pb-4 border-b border-jet-black/10">

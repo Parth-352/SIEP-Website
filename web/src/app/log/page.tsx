@@ -924,8 +924,8 @@ function LogPageContent() {
             EDIT STEP MODAL DIALOG
            ========================================================================= */}
         {editingLog && (
-          <div className="fixed inset-0 z-50 bg-jet-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-white border-2 border-orange/50 rounded-2xl max-w-3xl w-full p-4 sm:p-8 shadow-2xl space-y-4 sm:space-y-6 my-4 sm:my-8 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+          <div className="fixed inset-0 z-[200] bg-jet-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white border-2 border-orange/50 rounded-2xl max-w-3xl w-full p-4 sm:p-8 shadow-2xl space-y-4 sm:space-y-6 my-auto max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
               
               <div className="flex items-center justify-between pb-4 border-b border-jet-black/10">
                 <div>
@@ -1102,8 +1102,8 @@ function LogPageContent() {
             DELETE CONFIRMATION MODAL
            ========================================================================= */}
         {deleteConfirmLog && (
-          <div className="fixed inset-0 z-50 bg-jet-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white border-2 border-red-500/40 rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+          <div className="fixed inset-0 z-[200] bg-jet-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white border-2 border-red-500/40 rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 my-auto max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
