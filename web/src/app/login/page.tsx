@@ -22,31 +22,38 @@ const LOGIN_TEAMS: TeamConfig[] = [
 
 // ============================================================================
 // FORGOT PASSWORD MODAL COMPONENT
-// 3-step flow: Select Team → Request & Enter OTP → View Recovered Password
+// 4-step flow: Select Team → Verify OTP → Set New Password → Sign In
 // ============================================================================
 
-type ForgotStep = 'select' | 'otp' | 'revealed';
+type ForgotStep = 'select' | 'otp' | 'reset' | 'success';
 
 function ForgotPasswordModal({
   isOpen,
   onClose,
   preSelectedTeamId,
+  onSuccessPasswordReset,
 }: {
   isOpen: boolean;
   onClose: () => void;
   preSelectedTeamId: TeamId | null;
+  onSuccessPasswordReset?: (teamId: TeamId, newPass: string) => void;
 }) {
   const [step, setStep] = useState<ForgotStep>('select');
   const [selectedTeamId, setSelectedTeamId] = useState<TeamId | null>(preSelectedTeamId);
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [isRequesting, setIsRequesting] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [revealedPassword, setRevealedPassword] = useState<string | null>(null);
   const [revealedTeam, setRevealedTeam] = useState<{ code: string; name: string } | null>(null);
+  const [resetToken, setResetToken] = useState<string | null>(null);
+  const [currentPassword, setCurrentPassword] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  const [showPassword, setShowPassword] = useState(false);
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -83,11 +90,16 @@ function ForgotPasswordModal({
         setOtpDigits(['', '', '', '', '', '']);
         setError(null);
         setSuccessMessage(null);
-        setRevealedPassword(null);
         setRevealedTeam(null);
+        setResetToken(null);
+        setCurrentPassword(null);
+        setNewPassword('');
+        setConfirmPassword('');
         setIsRequesting(false);
         setIsVerifying(false);
-        setShowPassword(false);
+        setIsResetting(false);
+        setShowCurrentPassword(false);
+        setShowNewPassword(false);
       }, 300);
     }
   }, [isOpen]);
@@ -181,9 +193,10 @@ function ForgotPasswordModal({
       const data = await res.json();
 
       if (data.success) {
-        setRevealedPassword(data.password);
+        setResetToken(data.resetToken);
+        setCurrentPassword(data.currentPassword);
         setRevealedTeam({ code: data.teamCode, name: data.teamName });
-        setStep('revealed');
+        setStep('reset');
         setError(null);
       } else {
         setError(data.error || 'Verification failed.');
@@ -199,6 +212,55 @@ function ForgotPasswordModal({
       setError('Network error. Please try again.');
     } finally {
       setIsVerifying(false);
+    }
+  };
+
+  // Step 3 → 4: Submit New Password
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!newPassword.trim()) {
+      setError('Please enter a new password.');
+      return;
+    }
+
+    if (newPassword.trim().length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (newPassword.trim() !== confirmPassword.trim()) {
+      setError('Passwords do not match. Please re-enter.');
+      return;
+    }
+
+    setIsResetting(true);
+
+    try {
+      const res = await fetch('/api/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reset',
+          teamId: selectedTeamId,
+          resetToken,
+          newPassword: newPassword.trim(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setStep('success');
+        setError(null);
+      } else {
+        setError(data.error || 'Failed to update password.');
+      }
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -226,7 +288,8 @@ function ForgotPasswordModal({
             <h3 className="text-white font-bold text-sm tracking-tight mt-0.5">
               {step === 'select' && 'Forgot Team Password'}
               {step === 'otp' && 'Enter Verification Code'}
-              {step === 'revealed' && 'Password Recovered'}
+              {step === 'reset' && 'Set New Team Password'}
+              {step === 'success' && 'Password Updated'}
             </h3>
           </div>
           <button
@@ -377,7 +440,7 @@ function ForgotPasswordModal({
                     <span>Verifying...</span>
                   </>
                 ) : (
-                  <span>Verify OTP &amp; Recover Password</span>
+                  <span>Verify OTP Code &rarr;</span>
                 )}
               </button>
 
@@ -409,42 +472,154 @@ function ForgotPasswordModal({
             </>
           )}
 
-          {/* ─── STEP 3: PASSWORD REVEALED ───────────────────────────────── */}
-          {step === 'revealed' && revealedPassword && revealedTeam && (
-            <>
-              <div className="text-center space-y-2">
-                <div className="w-12 h-12 mx-auto rounded-full bg-emerald-100 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          {/* ─── STEP 3: SET NEW PASSWORD ─────────────────────────────────── */}
+          {step === 'reset' && revealedTeam && (
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div className="text-center space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-mono font-bold">
+                  <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                   </svg>
+                  OTP Verified
                 </div>
-                <p className="text-xs text-grey">
-                  Password recovered for <strong className="text-jet-black">[{revealedTeam.code}] {revealedTeam.name}</strong>
+                <h3 className="text-sm font-bold text-jet-black">
+                  Set New Password for [{revealedTeam.code}] {revealedTeam.name}
+                </h3>
+              </div>
+
+              {/* Current Active Password Card */}
+              {currentPassword && (
+                <div className="bg-alice-blue/60 border border-jet-black/10 rounded-xl p-3 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-[10px] font-mono text-grey block uppercase tracking-wider font-semibold">
+                      Current Password
+                    </span>
+                    <code className="font-mono font-bold text-jet-black select-all">
+                      {showCurrentPassword ? currentPassword : '••••••••••••'}
+                    </code>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="text-[11px] text-orange hover:text-jet-black font-mono underline font-bold cursor-pointer"
+                    >
+                      {showCurrentPassword ? 'Hide' : 'Show'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onSuccessPasswordReset && selectedTeamId) {
+                          onSuccessPasswordReset(selectedTeamId, currentPassword);
+                        } else {
+                          onClose();
+                        }
+                      }}
+                      className="px-2.5 py-1 bg-white border border-jet-black/15 rounded-lg text-[10px] font-mono font-bold hover:bg-jet-black hover:text-white transition-colors cursor-pointer"
+                      title="Keep this password and sign in"
+                    >
+                      Keep &amp; Sign In
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* New Password Inputs */}
+              <div className="space-y-3 pt-1">
+                <div>
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-jet-black font-bold mb-1">
+                    New Team Password *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="At least 6 characters..."
+                      className="w-full px-3.5 py-2.5 bg-alice-blue border border-jet-black/15 rounded-xl text-sm font-mono text-jet-black placeholder:text-grey/50 focus:outline-none focus:border-orange focus:ring-2 focus:ring-orange/20 pr-14"
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-grey hover:text-jet-black font-medium cursor-pointer"
+                    >
+                      {showNewPassword ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                  <span className="text-[10px] text-grey font-mono block mt-1">Min. 6 characters</span>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-jet-black font-bold mb-1">
+                    Confirm New Password *
+                  </label>
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter new password..."
+                    className="w-full px-3.5 py-2.5 bg-alice-blue border border-jet-black/15 rounded-xl text-sm font-mono text-jet-black placeholder:text-grey/50 focus:outline-none focus:border-orange focus:ring-2 focus:ring-orange/20"
+                  />
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isResetting || !newPassword.trim() || !confirmPassword.trim()}
+                className={`w-full py-3.5 px-5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer ${
+                  isResetting || !newPassword.trim() || !confirmPassword.trim()
+                    ? 'bg-jet-black/30 text-white/70 cursor-not-allowed'
+                    : 'bg-orange text-white hover:bg-jet-black'
+                }`}
+              >
+                {isResetting ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Updating Password...</span>
+                  </>
+                ) : (
+                  <span>Save New Password &rarr;</span>
+                )}
+              </button>
+            </form>
+          )}
+
+          {/* ─── STEP 4: PASSWORD RESET SUCCESS ───────────────────────────── */}
+          {step === 'success' && revealedTeam && (
+            <div className="space-y-4 text-center">
+              <div className="w-14 h-14 mx-auto rounded-full bg-emerald-100 flex items-center justify-center">
+                <svg className="w-7 h-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+
+              <div>
+                <h3 className="text-base font-bold text-jet-black">Password Changed Successfully!</h3>
+                <p className="text-xs text-grey mt-1">
+                  [{revealedTeam.code}] {revealedTeam.name} can now sign in with this new password.
                 </p>
               </div>
 
               {/* Password Display */}
-              <div className="bg-alice-blue border-2 border-orange/30 rounded-xl p-4 space-y-3">
+              <div className="bg-alice-blue border-2 border-emerald-500/30 rounded-xl p-4 text-left space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-mono uppercase tracking-wider text-grey font-bold">
-                    Team Password
+                    Active Team Password
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="text-[10px] font-mono text-orange hover:text-jet-black cursor-pointer underline font-bold"
-                  >
-                    {showPassword ? 'Hide' : 'Show'}
-                  </button>
+                  <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[9px] font-mono font-bold">
+                    UPDATED
+                  </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <code className="flex-1 text-lg font-bold font-mono text-jet-black tracking-wider select-all">
-                    {showPassword ? revealedPassword : '••••••••••'}
+                  <code className="flex-1 text-base font-bold font-mono text-jet-black tracking-wider select-all">
+                    {newPassword}
                   </code>
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText(revealedPassword);
+                      navigator.clipboard.writeText(newPassword);
                     }}
                     className="px-3 py-1.5 bg-jet-black text-white rounded-lg text-[10px] font-mono font-bold hover:bg-orange transition-colors cursor-pointer uppercase"
                     title="Copy to clipboard"
@@ -454,18 +629,24 @@ function ForgotPasswordModal({
                 </div>
               </div>
 
-              <p className="text-[10px] text-grey text-center font-mono leading-relaxed">
-                Use this password to sign in. Keep it safe — do not share publicly.
+              <p className="text-[10px] text-grey font-mono leading-relaxed">
+                A security alert has been dispatched to administration for audit.
               </p>
 
               <button
                 type="button"
-                onClick={onClose}
-                className="w-full py-3 px-5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange font-bold text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer"
+                onClick={() => {
+                  if (onSuccessPasswordReset && selectedTeamId) {
+                    onSuccessPasswordReset(selectedTeamId, newPassword);
+                  } else {
+                    onClose();
+                  }
+                }}
+                className="w-full py-3.5 px-5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange font-bold text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
               >
-                Close &amp; Sign In &rarr;
+                <span>Sign In With New Password &rarr;</span>
               </button>
-            </>
+            </div>
           )}
 
         </div>
@@ -502,6 +683,17 @@ function LoginForm() {
     setTimeout(() => {
       passwordInputRef.current?.focus();
     }, 100);
+  };
+
+  // Called when password is successfully changed or recovered in modal
+  const handlePasswordResetSuccess = (teamId: TeamId, newPass: string) => {
+    setSelectedTeamId(teamId);
+    setPassword(newPass);
+    setError(null);
+    setIsForgotOpen(false);
+    setTimeout(() => {
+      passwordInputRef.current?.focus();
+    }, 150);
   };
 
   // Login only occurs when submitting with the correct password
@@ -797,6 +989,7 @@ function LoginForm() {
         isOpen={isForgotOpen}
         onClose={() => setIsForgotOpen(false)}
         preSelectedTeamId={selectedTeamId}
+        onSuccessPasswordReset={handlePasswordResetSuccess}
       />
 
     </main>

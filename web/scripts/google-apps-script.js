@@ -70,6 +70,10 @@ function doPost(e) {
       return handleSendInquiryMail(data);
     } else if (action === "sendForgotPasswordOTP") {
       return handleSendForgotPasswordOTP(data);
+    } else if (action === "updateTeamPassword") {
+      return handleUpdateTeamPassword(data);
+    } else if (action === "getTeamPasswords") {
+      return handleGetTeamPasswords();
     } else if (action === "createResumableSession") {
       return handleCreateResumableSession(data);
     } else if (action === "finalizeFile") {
@@ -400,6 +404,98 @@ function handleSendForgotPasswordOTP(data) {
     return responseJSON({
       success: false,
       error: "MailApp error sending OTP: " + mailErr.toString()
+    });
+  }
+}
+
+/**
+ * Handles permanent update of team password in Google Cloud Script Properties
+ * and emails an audit alert to snjbebikeclub@gmail.com
+ */
+function handleUpdateTeamPassword(data) {
+  try {
+    var teamId = data.teamId;
+    var newPassword = data.newPassword;
+    var teamName = data.teamName || teamId;
+    var teamCode = data.teamCode || "TEAM";
+    var timestamp = data.timestamp || new Date().toLocaleString();
+    var to = "snjbebikeclub@gmail.com";
+
+    if (!teamId || !newPassword) {
+      return responseJSON({
+        success: false,
+        error: "teamId and newPassword are required."
+      });
+    }
+
+    // 1. Store permanently in Google Script Properties (cloud key-value store)
+    var props = PropertiesService.getScriptProperties();
+    props.setProperty("team_pass_" + teamId, newPassword);
+
+    // 2. Dispatch security audit alert email to snjbebikeclub@gmail.com
+    var htmlBody =
+      '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; max-width: 620px; margin: 0 auto; border: 1px solid #E5E7EB; border-radius: 14px; overflow: hidden; background-color: #FFFFFF;">' +
+        '<div style="background-color: #1F242E; padding: 24px 28px; color: #FFFFFF; border-bottom: 3px solid #10B981;">' +
+          '<div style="color: #10B981; font-size: 11px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase;">SIEP E-BIKE 2026 // RIDERS BAY SECURITY</div>' +
+          '<h1 style="margin: 6px 0 0 0; font-size: 20px; font-weight: 800; letter-spacing: -0.02em;">Password Changed Successfully</h1>' +
+        '</div>' +
+        '<div style="padding: 28px; color: #1F2937; line-height: 1.6; font-size: 14px;">' +
+          '<p style="margin: 0 0 16px 0; color: #374151;">The login password for <strong>[' + teamCode + '] ' + teamName + '</strong> was updated via verified OTP recovery.</p>' +
+          '<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">' +
+            '<tr><td style="padding: 8px 0; color: #6B7280; width: 140px; font-weight: 600;">Team Division:</td><td style="padding: 8px 0; font-weight: 700; color: #111827;">[' + teamCode + '] ' + teamName + '</td></tr>' +
+            '<tr><td style="padding: 8px 0; color: #6B7280; font-weight: 600;">New Password:</td><td style="padding: 8px 0; font-family: monospace; font-size: 16px; font-weight: 800; color: #059669;">' + newPassword + '</td></tr>' +
+            '<tr><td style="padding: 8px 0; color: #6B7280; font-weight: 600;">Timestamp:</td><td style="padding: 8px 0; color: #111827;">' + timestamp + '</td></tr>' +
+          '</table>' +
+          '<div style="background-color: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 14px; font-size: 12px; color: #166534;">' +
+            'This change is now active across the portal. Team members can sign in using this new password immediately.' +
+          '</div>' +
+          '<div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #F1F5F9; font-size: 11px; color: #94A3B8; text-align: center;">' +
+            'Riders Bay SIEP Portal Security Alert' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    MailApp.sendEmail({
+      to: to,
+      subject: "[" + teamCode + "] " + teamName + " — Password Changed Successfully",
+      htmlBody: htmlBody
+    });
+
+    return responseJSON({
+      success: true,
+      message: "Password updated in cloud store and confirmation email sent."
+    });
+  } catch (err) {
+    return responseJSON({
+      success: false,
+      error: "Error updating password: " + err.toString()
+    });
+  }
+}
+
+/**
+ * Returns all custom team passwords stored in Google Script Properties
+ */
+function handleGetTeamPasswords() {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var keys = props.getKeys();
+    var passwords = {};
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      if (k.indexOf("team_pass_") === 0) {
+        var tId = k.substring("team_pass_".length);
+        passwords[tId] = props.getProperty(k);
+      }
+    }
+    return responseJSON({
+      success: true,
+      passwords: passwords
+    });
+  } catch (err) {
+    return responseJSON({
+      success: false,
+      error: "Error getting passwords: " + err.toString()
     });
   }
 }

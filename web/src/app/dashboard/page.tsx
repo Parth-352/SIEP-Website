@@ -70,6 +70,21 @@ export default function DashboardPage() {
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
   const [showCredentialsPasswords, setShowCredentialsPasswords] = useState(false);
+  const [teamCredentials, setTeamCredentials] = useState<Record<string, { password: string; isCustom: boolean }>>({});
+
+  // Fetch updated team passwords for Core Leadership
+  useEffect(() => {
+    if (user && (user.role === 'admin' || user.teamId === 'core')) {
+      fetch('/api/passwords')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.passwords) {
+            setTeamCredentials(data.passwords);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user]);
 
   // Authentication protection: all logged-in members can view dashboard
   useEffect(() => {
@@ -1097,57 +1112,83 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-jet-black/5">
-                  {ALL_TEAMS.map((team) => (
-                    <tr key={team.id} className="hover:bg-alice-blue/40 transition-colors">
-                      <td className="py-4 px-6 font-bold text-jet-black">
-                        <span className="text-[10px] text-grey mr-2">[{team.code}]</span>
-                        <span>{team.name}</span>
-                      </td>
-                      <td className="py-4 px-6 text-grey font-mono select-all">
-                        {team.email}
-                      </td>
-                      <td className="py-4 px-6 font-mono text-orange font-bold select-all">
-                        {showCredentialsPasswords ? team.defaultPass : '••••••••••••'}
-                      </td>
-                      <td className="py-4 px-6">
-                        <span className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase ${
-                          team.id === 'core'
-                            ? 'bg-orange/20 text-orange'
-                            : 'bg-jet-black/10 text-jet-black'
-                        }`}>
-                          {team.id === 'core' ? 'Core Leadership' : 'Subsystem Squad'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {ALL_TEAMS.map((team) => {
+                    const cred = teamCredentials[team.id];
+                    const activePass = cred?.password || team.defaultPass;
+                    const isCustom = Boolean(cred?.isCustom);
+
+                    return (
+                      <tr key={team.id} className="hover:bg-alice-blue/40 transition-colors">
+                        <td className="py-4 px-6 font-bold text-jet-black">
+                          <span className="text-[10px] text-grey mr-2">[{team.code}]</span>
+                          <span>{team.name}</span>
+                        </td>
+                        <td className="py-4 px-6 text-grey font-mono select-all">
+                          {team.email}
+                        </td>
+                        <td className="py-4 px-6 font-mono text-orange font-bold select-all">
+                          <div className="flex items-center gap-2">
+                            <span>{showCredentialsPasswords ? activePass : '••••••••••••'}</span>
+                            {isCustom && (
+                              <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-mono font-bold tracking-wider">
+                                UPDATED
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase ${
+                            team.id === 'core'
+                              ? 'bg-orange/20 text-orange'
+                              : 'bg-jet-black/10 text-jet-black'
+                          }`}>
+                            {team.id === 'core' ? 'Core Leadership' : 'Subsystem Squad'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
             {/* Mobile Card View */}
             <div className="sm:hidden space-y-3 p-4">
-              {ALL_TEAMS.map((team) => (
-                <div key={team.id} className="bg-alice-blue/40 border border-jet-black/10 rounded-xl p-4 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-jet-black/10 font-bold">[{team.code}]</span>
-                      <span className="text-sm font-bold text-jet-black">{team.name}</span>
+              {ALL_TEAMS.map((team) => {
+                const cred = teamCredentials[team.id];
+                const activePass = cred?.password || team.defaultPass;
+                const isCustom = Boolean(cred?.isCustom);
+
+                return (
+                  <div key={team.id} className="bg-alice-blue/40 border border-jet-black/10 rounded-xl p-4 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-jet-black/10 font-bold">[{team.code}]</span>
+                        <span className="text-sm font-bold text-jet-black">{team.name}</span>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                        team.id === 'core' ? 'bg-orange/20 text-orange' : 'bg-jet-black/10 text-jet-black'
+                      }`}>
+                        {team.id === 'core' ? 'Admin' : 'Squad'}
+                      </span>
                     </div>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                      team.id === 'core' ? 'bg-orange/20 text-orange' : 'bg-jet-black/10 text-jet-black'
-                    }`}>
-                      {team.id === 'core' ? 'Admin' : 'Squad'}
-                    </span>
+                    <div className="text-xs font-mono text-grey break-all select-all">{team.email}</div>
+                    <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-jet-black/10">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-mono uppercase text-grey font-medium">Pass:</span>
+                        {isCustom && (
+                          <span className="px-1 py-0.2 rounded bg-emerald-100 text-emerald-800 text-[8px] font-mono font-bold">
+                            UPDATED
+                          </span>
+                        )}
+                      </div>
+                      <code className="text-sm font-bold font-mono text-orange select-all">
+                        {showCredentialsPasswords ? activePass : '••••••••'}
+                      </code>
+                    </div>
                   </div>
-                  <div className="text-xs font-mono text-grey break-all select-all">{team.email}</div>
-                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-jet-black/10">
-                    <span className="text-[10px] font-mono uppercase text-grey font-medium">Pass:</span>
-                    <code className="text-sm font-bold font-mono text-orange select-all">
-                      {showCredentialsPasswords ? team.defaultPass : '••••••••'}
-                    </code>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

@@ -16,6 +16,7 @@ interface StoreData {
   logs: WorkLog[];
   tasks: Task[];
   inquiries?: PartnerInquiry[];
+  passwords?: Record<string, string>;
 }
 
 const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
@@ -265,4 +266,26 @@ export function getInquiries(): PartnerInquiry[] {
   const store = readStore();
   return store.inquiries || [];
 }
+
+// ======================== PASSWORDS API ========================
+
+export function getTeamPasswords(): Record<string, string> {
+  const store = readStore();
+  return store.passwords || {};
+}
+
+export function getTeamPassword(teamId: string): string | undefined {
+  const store = readStore();
+  return store.passwords ? store.passwords[teamId] : undefined;
+}
+
+export function setTeamPassword(teamId: string, newPass: string): void {
+  const store = readStore();
+  if (!store.passwords) {
+    store.passwords = {};
+  }
+  store.passwords[teamId] = newPass.trim();
+  writeStore(store);
+}
+
 

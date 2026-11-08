@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TEAMS } from '@/lib/teams';
 import { TeamId } from '@/lib/types';
+import { getTeamPassword, setTeamPassword } from '@/lib/store';
 
 // ============================================================================
-// FORGOT PASSWORD API — OTP-BASED PASSWORD RECOVERY
+// FORGOT PASSWORD API — OTP-BASED PASSWORD RECOVERY & RESET
 // All OTPs go to a single admin email: snjbebikeclub@gmail.com
 // Includes rate limiting per team and globally to prevent spam.
 // ============================================================================
@@ -22,6 +23,9 @@ interface OTPRecord {
   expiresAt: number;
   attempts: number;
   used: boolean;
+  verified?: boolean;
+  resetToken?: string;
+  tokenExpiresAt?: number;
 }
 
 // In-memory OTP store (keyed by teamId)
@@ -200,7 +204,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // OTP is correct — reveal the password
+      // OTP is correct — grant reset session
       const team = TEAMS[teamId as TeamId];
       if (!team) {
         return NextResponse.json(
@@ -209,20 +213,105 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Mark as used so it can't be reused
+      // Mark OTP as used and generate a secure 10-minute reset token
       record.used = true;
+      record.verified = true;
+      const resetToken = crypto.randomUUID();
+      record.resetToken = resetToken;
+      record.tokenExpiresAt = Date.now() + 10 * 60 * 1000;
+
+      const activePassword = getTeamPassword(teamId) || team.defaultPass;
 
       return NextResponse.json({
         success: true,
-        message: `Password recovered for [${team.code}] ${team.name}.`,
+        message: `OTP verified for [${team.code}] ${team.name}. You can now set a new password or continue.`,
         teamCode: team.code,
         teamName: team.name,
-        password: team.defaultPass,
+        resetToken: resetToken,
+        currentPassword: activePassword,
+      });
+    }
+
+    // ─── ACTION: RESET PASSWORD ──────────────────────────────────────────
+    if (action === 'reset') {
+      const { teamId, resetToken, newPassword } = body;
+
+      if (!teamId || !resetToken || !newPassword) {
+        return NextResponse.json(
+          { success: false, error: 'Team, reset token, and new password are required.' },
+          { status: 400 }
+        );
+      }
+
+      const team = TEAMS[teamId as TeamId];
+      if (!team) {
+        return NextResponse.json(
+          { success: false, error: 'Team configuration not found.' },
+          { status: 404 }
+        );
+      }
+
+      const record = otpStore.get(teamId);
+      if (!record || record.resetToken !== resetToken || !record.verified) {
+        return NextResponse.json(
+          { success: false, error: 'Password reset session is invalid. Please request a new OTP.' },
+          { status: 401 }
+        );
+      }
+
+      if (record.tokenExpiresAt && Date.now() > record.tokenExpiresAt) {
+        otpStore.delete(teamId);
+        return NextResponse.json(
+          { success: false, error: 'Password reset session has expired. Please request a new OTP.' },
+          { status: 401 }
+        );
+      }
+
+      const cleanNewPass = String(newPassword).trim();
+      if (cleanNewPass.length < 6) {
+        return NextResponse.json(
+          { success: false, error: 'New password must be at least 6 characters long.' },
+          { status: 400 }
+        );
+      }
+
+      // 1. Save new password to the server store
+      setTeamPassword(teamId, cleanNewPass);
+
+      // Invalidate the reset token
+      otpStore.delete(teamId);
+
+      // 2. Dispatch update to Google Apps Script cloud & notify admin email in background
+      const gasUrl = process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL;
+      if (gasUrl) {
+        const timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+        fetch(gasUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'updateTeamPassword',
+            teamId: teamId,
+            teamCode: team.code,
+            teamName: team.name,
+            newPassword: cleanNewPass,
+            timestamp: timestamp,
+          }),
+        }).catch((gasErr) => {
+          console.warn('Background Google Apps Script password sync notice:', gasErr);
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Password for [${team.code}] ${team.name} has been updated successfully!`,
+        teamCode: team.code,
+        teamName: team.name,
+        newPassword: cleanNewPass,
       });
     }
 
     return NextResponse.json(
-      { success: false, error: 'Invalid action. Use "request" or "verify".' },
+      { success: false, error: 'Invalid action. Use "request", "verify", or "reset".' },
       { status: 400 }
     );
   } catch (err: unknown) {

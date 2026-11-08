@@ -104,11 +104,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Check credentials against our 11 pre-configured teams
     const team = getTeamByEmail(cleanEmail);
 
-    // Verify team password (case-insensitive check for convenience: e.g. Core@9352 or core@9352)
-    const isValidTeamPass = team && (
-      cleanPass === team.defaultPass ||
-      cleanPass.toLowerCase() === team.defaultPass.toLowerCase()
+    // Verify team password (first check defaultPass, then verify against custom password store)
+    let isValidTeamPass = Boolean(
+      team && (
+        cleanPass === team.defaultPass ||
+        cleanPass.toLowerCase() === team.defaultPass.toLowerCase()
+      )
     );
+
+    // If not matching default, verify against server custom passwords store
+    if (!isValidTeamPass && team) {
+      try {
+        const verifyRes = await fetch('/api/passwords', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ teamId: team.id, password: cleanPass }),
+        });
+        if (verifyRes.ok) {
+          const verifyData = await verifyRes.json();
+          if (verifyData.success && verifyData.valid) {
+            isValidTeamPass = true;
+          }
+        }
+      } catch (err) {
+        console.warn('Server password verification check notice:', err);
+      }
+    }
 
     if (isValidTeamPass && team) {
       const profile: UserProfile = {
