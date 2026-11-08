@@ -287,7 +287,6 @@ export default function TaskCompleteModal({
                 type="url"
                 value={videoUrlInput}
                 onChange={(e) => setVideoUrlInput(e.target.value)}
-                placeholder="https://drive.google.com/... or YouTube"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white"
               />
               {videoUrlInput && getEmbeddableVideoUrl(videoUrlInput) && (
@@ -352,7 +351,6 @@ export default function TaskCompleteModal({
               type="text"
               value={achievements}
               onChange={(e) => setAchievements(e.target.value)}
-              placeholder="e.g. Tested and verified successfully"
               className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs focus:ring-2 focus:ring-orange focus:outline-none"
             />
           </div>

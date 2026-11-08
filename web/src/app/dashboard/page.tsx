@@ -597,7 +597,6 @@ export default function DashboardPage() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search tasks by title, scope, team, or assigned member..."
                     className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
                   />
                   <svg className="w-4 h-4 text-grey absolute left-3.5 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1282,7 +1281,6 @@ export default function DashboardPage() {
                   required
                   value={newTaskTitle}
                   onChange={(e) => setNewTaskTitle(e.target.value)}
-                  placeholder="e.g. 72V Pack High-Discharge Thermal Analysis"
                   className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-sm font-medium focus:ring-2 focus:ring-orange focus:outline-none"
                 />
               </div>
@@ -1295,7 +1293,6 @@ export default function DashboardPage() {
                   rows={2}
                   value={newTaskDesc}
                   onChange={(e) => setNewTaskDesc(e.target.value)}
-                  placeholder="Specific requirements, testing thresholds, or fabrication steps..."
                   className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs focus:ring-2 focus:ring-orange focus:outline-none leading-relaxed"
                 />
               </div>

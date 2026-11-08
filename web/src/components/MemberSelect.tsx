@@ -124,7 +124,6 @@ export default function MemberSelect({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search member name or role..."
               className="w-full px-3 py-1.5 rounded-lg border border-jet-black/15 text-base sm:text-xs font-mono bg-alice-blue/30 focus:outline-none focus:ring-1 focus:ring-orange"
               autoFocus
             />
@@ -196,7 +195,6 @@ export default function MemberSelect({
                 type="text"
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value)}
-                placeholder="+ Add unlisted member..."
                 className="flex-1 px-2.5 py-1.5 rounded-lg border border-jet-black/15 text-base sm:text-xs font-mono bg-alice-blue/30 focus:outline-none focus:ring-1 focus:ring-orange"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {

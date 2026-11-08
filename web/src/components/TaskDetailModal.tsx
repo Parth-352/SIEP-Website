@@ -412,7 +412,6 @@ export default function TaskDetailModal({
                 rows={3}
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
-                placeholder="Detailed engineering scope, tolerances, or test standards..."
                 className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs focus:ring-2 focus:ring-orange focus:outline-none leading-relaxed"
               />
             </div>

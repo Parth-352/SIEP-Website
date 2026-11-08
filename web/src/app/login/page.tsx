@@ -44,6 +44,7 @@ function ForgotPasswordModal({
   const [isRequesting, setIsRequesting] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [revealedTeam, setRevealedTeam] = useState<{ code: string; name: string } | null>(null);
@@ -554,9 +555,11 @@ function ForgotPasswordModal({
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (onSuccessPasswordReset && selectedTeamId) {
-                          onSuccessPasswordReset(selectedTeamId, currentPassword);
+                      disabled={isSigningIn}
+                      onClick={async () => {
+                        if (onSuccessPasswordReset && selectedTeamId && currentPassword) {
+                          setIsSigningIn(true);
+                          await onSuccessPasswordReset(selectedTeamId, currentPassword);
                         } else {
                           onClose();
                         }
@@ -564,7 +567,7 @@ function ForgotPasswordModal({
                       className="px-2.5 py-1 bg-white border border-jet-black/15 rounded-lg text-[10px] font-mono font-bold hover:bg-jet-black hover:text-white transition-colors cursor-pointer"
                       title="Keep this password and sign in"
                     >
-                      Keep &amp; Sign In
+                      {isSigningIn ? 'Signing In...' : 'Keep & Sign In'}
                     </button>
                   </div>
                 </div>
@@ -581,8 +584,7 @@ function ForgotPasswordModal({
                       type={showNewPassword ? 'text' : 'password'}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="e.g. Squad@2026..."
-                      className="w-full px-3.5 py-2.5 bg-alice-blue border border-jet-black/15 rounded-xl text-sm font-mono text-jet-black placeholder:text-grey/50 focus:outline-none focus:border-orange focus:ring-2 focus:ring-orange/20 pr-14"
+                      className="w-full px-3.5 py-2.5 bg-alice-blue border border-jet-black/15 rounded-xl text-sm font-mono text-jet-black focus:outline-none focus:border-orange focus:ring-2 focus:ring-orange/20 pr-14"
                       autoFocus
                     />
                     <button
@@ -669,8 +671,7 @@ function ForgotPasswordModal({
                     type={showNewPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Re-enter new password..."
-                    className="w-full px-3.5 py-2.5 bg-alice-blue border border-jet-black/15 rounded-xl text-sm font-mono text-jet-black placeholder:text-grey/50 focus:outline-none focus:border-orange focus:ring-2 focus:ring-orange/20"
+                    className="w-full px-3.5 py-2.5 bg-alice-blue border border-jet-black/15 rounded-xl text-sm font-mono text-jet-black focus:outline-none focus:border-orange focus:ring-2 focus:ring-orange/20"
                   />
                 </div>
               </div>
@@ -746,16 +747,25 @@ function ForgotPasswordModal({
 
               <button
                 type="button"
-                onClick={() => {
+                disabled={isSigningIn}
+                onClick={async () => {
                   if (onSuccessPasswordReset && selectedTeamId) {
-                    onSuccessPasswordReset(selectedTeamId, newPassword);
+                    setIsSigningIn(true);
+                    await onSuccessPasswordReset(selectedTeamId, newPassword);
                   } else {
                     onClose();
                   }
                 }}
                 className="w-full py-3.5 px-5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange font-bold text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
               >
-                <span>Sign In With New Password &rarr;</span>
+                {isSigningIn ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Signing In...</span>
+                  </>
+                ) : (
+                  <span>Sign In With New Password &rarr;</span>
+                )}
               </button>
             </div>
           )}
@@ -796,15 +806,36 @@ function LoginForm() {
     }, 100);
   };
 
-  // Called when password is successfully changed or recovered in modal
-  const handlePasswordResetSuccess = (teamId: TeamId, newPass: string) => {
+  // Called when password is successfully changed or recovered in modal: DIRECTLY LOG IN!
+  const handlePasswordResetSuccess = async (teamId: TeamId, newPass: string) => {
     setSelectedTeamId(teamId);
     setPassword(newPass);
     setError(null);
     setIsForgotOpen(false);
-    setTimeout(() => {
-      passwordInputRef.current?.focus();
-    }, 150);
+    setIsSubmitting(true);
+
+    const team = TEAMS[teamId];
+    if (team) {
+      try {
+        const res = await login(team.email, newPass);
+        if (res.success) {
+          if (fromUrl && !fromUrl.startsWith('/login')) {
+            router.push(fromUrl);
+          } else if (team.role === 'admin' || team.id === 'core') {
+            router.push('/dashboard');
+          } else {
+            router.push('/log');
+          }
+        } else {
+          setError(res.error || `Invalid credentials for [${team.code}] ${team.name}.`);
+          setIsSubmitting(false);
+        }
+      } catch (err) {
+        console.error('Direct sign-in error:', err);
+        setError('Auto sign-in failed. Please click Sign In below.');
+        setIsSubmitting(false);
+      }
+    }
   };
 
   // Login only occurs when submitting with the correct password

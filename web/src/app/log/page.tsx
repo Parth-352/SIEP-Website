@@ -664,7 +664,6 @@ function LogPageContent() {
                   required
                   value={stepTitle}
                   onChange={(e) => setStepTitle(e.target.value)}
-                  placeholder="e.g. Swingarm welding & alignment"
                   className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-white text-jet-black text-base sm:text-sm font-medium focus:ring-2 focus:ring-orange focus:outline-none transition-all"
                 />
               </div>
@@ -723,7 +722,6 @@ function LogPageContent() {
                     type="text"
                     value={workTime}
                     onChange={(e) => setWorkTime(e.target.value)}
-                    placeholder="e.g. 14:30"
                     className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-white text-jet-black text-base sm:text-xs focus:ring-2 focus:ring-orange focus:outline-none font-mono transition-all"
                   />
                 </div>
@@ -768,7 +766,6 @@ function LogPageContent() {
                   rows={3}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe the work completed..."
                   className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-white text-jet-black text-base sm:text-xs focus:ring-2 focus:ring-orange focus:outline-none leading-relaxed transition-all"
                 />
               </div>
@@ -783,7 +780,6 @@ function LogPageContent() {
                     rows={2}
                     value={achievements}
                     onChange={(e) => setAchievements(e.target.value)}
-                    placeholder="Results or milestones achieved..."
                     className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-white text-jet-black text-base sm:text-xs focus:ring-2 focus:ring-orange focus:outline-none"
                   />
                 </div>
@@ -796,7 +792,6 @@ function LogPageContent() {
                     rows={2}
                     value={blockers}
                     onChange={(e) => setBlockers(e.target.value)}
-                    placeholder="Any challenges or pending parts..."
                     className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-white text-jet-black text-base sm:text-xs focus:ring-2 focus:ring-orange focus:outline-none"
                   />
                 </div>
@@ -855,7 +850,6 @@ function LogPageContent() {
                       type="url"
                       value={videoUrlInput}
                       onChange={(e) => setVideoUrlInput(e.target.value)}
-                      placeholder="https://drive.google.com/... or YouTube link"
                       className="w-full px-3.5 py-2.5 rounded-xl border border-jet-black/15 bg-white text-jet-black text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
                     />
 
@@ -1070,7 +1064,6 @@ function LogPageContent() {
                     type="url"
                     value={editVideoUrl}
                     onChange={(e) => setEditVideoUrl(e.target.value)}
-                    placeholder="https://drive.google.com/file/d/... or YouTube"
                     className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
                   />
                 </div>
@@ -1171,8 +1164,7 @@ function LogPageContent() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search moves, parts, contributors..."
-                className="w-full pl-9 pr-12 py-2.5 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none shadow-sm placeholder:text-grey/60"
+                className="w-full pl-9 pr-12 py-2.5 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none shadow-sm"
               />
               <svg className="w-4 h-4 text-grey absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
