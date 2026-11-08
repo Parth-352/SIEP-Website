@@ -12,12 +12,13 @@ export default function Navigation() {
   const pathname = usePathname();
   const { user, isAdmin, logout } = useAuth();
   const currentTeam = user ? TEAMS[user.teamId] : null;
+  const isPortalOnly = process.env.NEXT_PUBLIC_PORTAL_ONLY === 'true';
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  const isPortalPage = pathname.startsWith('/log') || pathname.startsWith('/dashboard');
+  const isPortalPage = isPortalOnly || pathname.startsWith('/log') || pathname.startsWith('/dashboard');
 
   // Close mobile menu on route change
   const [prevPath, setPrevPath] = useState(pathname);
@@ -108,16 +109,18 @@ export default function Navigation() {
                 {isAdmin ? 'Build Log' : 'Team Log'}
               </Link>
 
-              <Link
-                href="/"
-                target="_blank"
-                className="h-9 px-3 rounded-xl text-grey hover:text-jet-black text-xs font-sans font-bold uppercase tracking-wider inline-flex items-center gap-1.5 transition-colors hover:bg-jet-black/5"
-              >
-                <span>Public Site</span>
-                <svg className="w-3.5 h-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </Link>
+              {!isPortalOnly && (
+                <Link
+                  href="/"
+                  target="_blank"
+                  className="h-9 px-3 rounded-xl text-grey hover:text-jet-black text-xs font-sans font-bold uppercase tracking-wider inline-flex items-center gap-1.5 transition-colors hover:bg-jet-black/5"
+                >
+                  <span>Public Site</span>
+                  <svg className="w-3.5 h-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </Link>
+              )}
 
               {/* User Team Pill + Logout */}
               <div className="flex items-center gap-2 pl-3 border-l border-jet-black/15">
@@ -252,34 +255,38 @@ export default function Navigation() {
         aria-hidden={!isMobileMenuOpen}
       >
         <div className="flex flex-col items-center space-y-5 text-2xl uppercase tracking-widest font-bold text-jet-black w-full px-8 py-20 max-w-sm">
-          <Link 
-            href="/" 
-            onClick={closeMenu} 
-            className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center"
-          >
-            Home
-          </Link>
-          <Link 
-            href="/about" 
-            onClick={closeMenu} 
-            className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center"
-          >
-            About
-          </Link>
-          <Link 
-            href="/competition" 
-            onClick={closeMenu} 
-            className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center"
-          >
-            Competition
-          </Link>
-          <Link 
-            href="/bike" 
-            onClick={closeMenu} 
-            className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center"
-          >
-            The Bike
-          </Link>
+          {!isPortalOnly && (
+            <>
+              <Link 
+                href="/" 
+                onClick={closeMenu} 
+                className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center"
+              >
+                Home
+              </Link>
+              <Link 
+                href="/about" 
+                onClick={closeMenu} 
+                className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center"
+              >
+                About
+              </Link>
+              <Link 
+                href="/competition" 
+                onClick={closeMenu} 
+                className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center"
+              >
+                Competition
+              </Link>
+              <Link 
+                href="/bike" 
+                onClick={closeMenu} 
+                className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center"
+              >
+                The Bike
+              </Link>
+            </>
+          )}
 
           {/* Authenticated Links in Mobile */}
           {isMounted && (
@@ -309,7 +316,7 @@ export default function Navigation() {
                       logout();
                       closeMenu();
                     }}
-                    className="text-xs font-mono text-red-500 underline"
+                    className="text-xs font-mono text-red-500 underline min-h-[44px] flex items-center px-2"
                   >
                     Logout
                   </button>
@@ -326,13 +333,15 @@ export default function Navigation() {
             )
           )}
           
-          <Link 
-            href="/contact" 
-            onClick={closeMenu} 
-            className="w-full text-center px-6 py-4 bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold mt-2 rounded-xl min-h-[48px] flex items-center justify-center text-sm tracking-widest uppercase shadow-md"
-          >
-            Partner With Us
-          </Link>
+          {!isPortalOnly && (
+            <Link 
+              href="/contact" 
+              onClick={closeMenu} 
+              className="w-full text-center px-6 py-4 bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold mt-2 rounded-xl min-h-[48px] flex items-center justify-center text-sm tracking-widest uppercase shadow-md"
+            >
+              Partner With Us
+            </Link>
+          )}
         </div>
       </div>
     </>

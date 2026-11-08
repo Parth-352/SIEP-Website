@@ -238,7 +238,7 @@ function ForgotPasswordModal({
           </button>
         </div>
 
-        <div className="p-6 space-y-5">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
 
           {/* Error Banner */}
           {error && (
@@ -268,7 +268,7 @@ function ForgotPasswordModal({
                 SIEP admin inbox for verification. This prevents unauthorized access.
               </p>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {LOGIN_TEAMS.map((t) => {
                   const isSelected = selectedTeamId === t.id;
                   return (
@@ -344,7 +344,7 @@ function ForgotPasswordModal({
               </p>
 
               {/* OTP Input Boxes */}
-              <div className="flex justify-center gap-2.5" onPaste={handleOtpPaste}>
+              <div className="flex justify-center gap-1.5 sm:gap-2.5" onPaste={handleOtpPaste}>
                 {otpDigits.map((digit, idx) => (
                   <input
                     key={idx}
@@ -355,7 +355,7 @@ function ForgotPasswordModal({
                     value={digit}
                     onChange={(e) => handleOtpChange(idx, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                    className="w-11 h-13 text-center text-lg font-bold font-mono rounded-xl border-2 border-jet-black/15 bg-alice-blue/40 text-jet-black focus:border-orange focus:ring-2 focus:ring-orange/30 focus:outline-none transition-all"
+                    className="w-10 sm:w-11 h-12 sm:h-13 text-center text-base sm:text-lg font-bold font-mono rounded-xl border-2 border-jet-black/15 bg-alice-blue/40 text-jet-black focus:border-orange focus:ring-2 focus:ring-orange/30 focus:outline-none transition-all"
                   />
                 ))}
               </div>
@@ -551,7 +551,7 @@ function LoginForm() {
   const selectedTeam = selectedTeamId ? TEAMS[selectedTeamId] : null;
 
   return (
-    <main className="min-h-screen bg-alice-blue text-jet-black pt-24 pb-16 px-4 sm:px-6 font-sans flex flex-col justify-center items-center">
+    <main className="min-h-screen bg-alice-blue text-jet-black pt-20 sm:pt-24 pb-16 px-4 sm:px-6 font-sans flex flex-col justify-center items-center">
       
       {/* Background subtle grid pattern */}
       <div className="fixed inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#2B303A_1px,transparent_1px)] [background-size:24px_24px]"></div>

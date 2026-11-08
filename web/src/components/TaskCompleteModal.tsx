@@ -225,7 +225,7 @@ export default function TaskCompleteModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-jet-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white border-2 border-emerald-500/40 rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 duration-200 space-y-6">
+      <div className="bg-white border-2 border-emerald-500/40 rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 duration-200 space-y-6">
         
         {/* Modal Header */}
         <div className="flex items-start justify-between gap-4 pb-4 border-b border-jet-black/10">
@@ -288,7 +288,7 @@ export default function TaskCompleteModal({
                 value={videoUrlInput}
                 onChange={(e) => setVideoUrlInput(e.target.value)}
                 placeholder="https://drive.google.com/... or YouTube"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white"
               />
               {videoUrlInput && getEmbeddableVideoUrl(videoUrlInput) && (
                 <div className="text-[10px] font-mono text-emerald-700 font-bold">
@@ -327,7 +327,7 @@ export default function TaskCompleteModal({
               required
               value={stepTitle}
               onChange={(e) => setStepTitle(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-sm font-medium focus:ring-2 focus:ring-orange focus:outline-none"
+              className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-sm font-medium focus:ring-2 focus:ring-orange focus:outline-none"
             />
           </div>
 
@@ -340,7 +340,7 @@ export default function TaskCompleteModal({
               required
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-xs focus:ring-2 focus:ring-orange focus:outline-none leading-relaxed"
+              className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs focus:ring-2 focus:ring-orange focus:outline-none leading-relaxed"
             />
           </div>
 
@@ -353,7 +353,7 @@ export default function TaskCompleteModal({
               value={achievements}
               onChange={(e) => setAchievements(e.target.value)}
               placeholder="e.g. Tested and verified successfully"
-              className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-xs focus:ring-2 focus:ring-orange focus:outline-none"
+              className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs focus:ring-2 focus:ring-orange focus:outline-none"
             />
           </div>
 
@@ -379,7 +379,7 @@ export default function TaskCompleteModal({
                 required
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
+                className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
               />
             </div>
 
@@ -395,7 +395,7 @@ export default function TaskCompleteModal({
                 required
                 value={hoursSpent}
                 onChange={(e) => setHoursSpent(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
+                className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
               />
             </div>
 
@@ -407,27 +407,27 @@ export default function TaskCompleteModal({
                 type="text"
                 value={authorName}
                 onChange={(e) => setAuthorName(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
+                className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
               />
             </div>
           </div>
 
           {/* Dialog Action Buttons */}
-          <div className="pt-5 border-t border-jet-black/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="pt-5 border-t border-jet-black/10 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3">
             <button
               type="button"
               disabled={isSubmitting}
               onClick={handleMarkDoneOnly}
-              className="text-xs font-mono text-grey hover:text-jet-black underline cursor-pointer text-left sm:text-center py-1 font-medium disabled:opacity-50"
+              className="text-xs font-mono text-grey hover:text-jet-black underline cursor-pointer text-center sm:text-left py-2 font-medium disabled:opacity-50 min-h-[40px] sm:min-h-0 flex items-center justify-center sm:justify-start"
             >
               Skip video log &amp; mark done only
             </button>
 
-            <div className="flex items-center gap-3 self-end sm:self-auto">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2.5 rounded-xl border border-jet-black/20 text-xs font-mono uppercase cursor-pointer hover:bg-alice-blue transition-colors font-medium"
+                className="px-4 py-2.5 rounded-xl border border-jet-black/20 text-xs font-mono uppercase cursor-pointer hover:bg-alice-blue transition-colors font-medium min-h-[40px] sm:min-h-0 text-center"
               >
                 Cancel
               </button>
@@ -435,7 +435,7 @@ export default function TaskCompleteModal({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition-all font-bold text-xs uppercase font-mono tracking-wider shadow-sm cursor-pointer flex items-center gap-2 disabled:opacity-50"
+                className="px-6 py-3 sm:py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition-all font-bold text-xs uppercase font-mono tracking-wider shadow-sm cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 min-h-[44px]"
               >
                 {isSubmitting ? (
                   <>

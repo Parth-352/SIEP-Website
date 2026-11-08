@@ -4,6 +4,17 @@ import { SESSION_COOKIE_NAME, decodeSession } from './lib/session';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Separation mode: If deployed as standalone log portal, redirect public pages to login
+  const isPortalOnly = process.env.NEXT_PUBLIC_PORTAL_ONLY === 'true';
+  const isPublicPage = ['/', '/about', '/bike', '/competition', '/contact'].some(
+    (p) => pathname === p || pathname.startsWith(p + '/')
+  );
+
+  if (isPortalOnly && isPublicPage) {
+    const loginUrl = new URL('/login', request.url);
+    return NextResponse.redirect(loginUrl);
+  }
+
   // Protected paths
   const isDashboardRoute = pathname.startsWith('/dashboard');
   const isLogRoute = pathname.startsWith('/log');
@@ -46,5 +57,10 @@ export const config = {
     '/log/:path*',
     '/api/logs/:path*',
     '/api/tasks/:path*',
+    '/',
+    '/about/:path*',
+    '/bike/:path*',
+    '/competition/:path*',
+    '/contact/:path*',
   ],
 };

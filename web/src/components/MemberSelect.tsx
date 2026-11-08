@@ -76,7 +76,7 @@ export default function MemberSelect({
               <button
                 type="button"
                 onClick={() => removeMember(name)}
-                className="text-grey hover:text-white transition-colors focus:outline-none p-0.5 cursor-pointer"
+                className="text-grey hover:text-white transition-colors focus:outline-none p-1.5 sm:p-0.5 -mr-1 sm:mr-0 cursor-pointer"
                 title={`Remove ${name}`}
               >
                 ✕
@@ -116,7 +116,7 @@ export default function MemberSelect({
 
       {/* Floating Checkbox Dropdown Menu */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white border border-jet-black/15 rounded-2xl shadow-2xl p-3 animate-in fade-in zoom-in-95 duration-150 max-h-80 flex flex-col">
+        <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white border border-jet-black/15 rounded-2xl shadow-2xl p-3 animate-in fade-in zoom-in-95 duration-150 max-h-60 sm:max-h-80 flex flex-col">
           
           {/* Search & Team Filter Row */}
           <div className="pb-2 mb-2 border-b border-jet-black/10 space-y-2">
@@ -125,7 +125,7 @@ export default function MemberSelect({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search member name or role..."
-              className="w-full px-3 py-1.5 rounded-lg border border-jet-black/15 text-xs font-mono bg-alice-blue/30 focus:outline-none focus:ring-1 focus:ring-orange"
+              className="w-full px-3 py-1.5 rounded-lg border border-jet-black/15 text-base sm:text-xs font-mono bg-alice-blue/30 focus:outline-none focus:ring-1 focus:ring-orange"
               autoFocus
             />
 
@@ -157,7 +157,7 @@ export default function MemberSelect({
                 return (
                   <label
                     key={member.id}
-                    className={`flex items-center justify-between p-2 rounded-lg cursor-pointer text-xs font-mono transition-colors ${
+                    className={`flex items-center justify-between p-2.5 sm:p-2 min-h-[44px] sm:min-h-0 rounded-lg cursor-pointer text-xs font-mono transition-colors ${
                       isSelected
                         ? 'bg-orange/10 text-jet-black font-semibold'
                         : 'hover:bg-alice-blue text-jet-black/80'
@@ -197,7 +197,7 @@ export default function MemberSelect({
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value)}
                 placeholder="+ Add unlisted member..."
-                className="flex-1 px-2.5 py-1.5 rounded-lg border border-jet-black/15 text-xs font-mono bg-alice-blue/30 focus:outline-none focus:ring-1 focus:ring-orange"
+                className="flex-1 px-2.5 py-1.5 rounded-lg border border-jet-black/15 text-base sm:text-xs font-mono bg-alice-blue/30 focus:outline-none focus:ring-1 focus:ring-orange"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();

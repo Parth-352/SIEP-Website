@@ -210,7 +210,7 @@ export default function TaskDetailModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-jet-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white border-2 border-jet-black/15 rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 duration-200 space-y-6">
+      <div className="bg-white border-2 border-jet-black/15 rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 duration-200 space-y-6">
         
         {/* Modal Header */}
         <div className="flex items-start justify-between gap-4 pb-4 border-b border-jet-black/10">
@@ -346,7 +346,7 @@ export default function TaskDetailModal({
                     type="button"
                     disabled={isDeleting}
                     onClick={handleDelete}
-                    className="px-3.5 py-2 text-xs font-mono text-red-600 hover:bg-red-50 border border-red-200 rounded-xl font-bold cursor-pointer transition-colors"
+                    className="px-3.5 py-2 text-xs font-mono text-red-600 hover:bg-red-50 border border-red-200 rounded-xl font-bold cursor-pointer transition-colors min-h-[40px] sm:min-h-0"
                   >
                     {isDeleting ? 'Deleting...' : '✕ Delete Task'}
                   </button>
@@ -358,7 +358,7 @@ export default function TaskDetailModal({
                   <button
                     type="button"
                     onClick={() => onCompleteWithVideo(task)}
-                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase font-mono tracking-wider shadow-sm transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase font-mono tracking-wider shadow-sm transition-all inline-flex items-center gap-1.5 cursor-pointer min-h-[40px] sm:min-h-0"
                   >
                     <span>✓ Complete &amp; Attach Video</span>
                   </button>
@@ -367,7 +367,7 @@ export default function TaskDetailModal({
                 {/* Pre-fill Log Entry */}
                 <Link
                   href={`/log?team=${task.teamId}&task=${encodeURIComponent(task.title)}`}
-                  className="px-4 py-2.5 rounded-xl border border-orange text-orange hover:bg-orange hover:text-white text-xs font-mono uppercase font-bold transition-all shadow-sm inline-flex items-center gap-1.5"
+                  className="px-4 py-2.5 rounded-xl border border-orange text-orange hover:bg-orange hover:text-white text-xs font-mono uppercase font-bold transition-all shadow-sm inline-flex items-center gap-1.5 min-h-[40px] sm:min-h-0"
                 >
                   <span>Log Work for this Task</span>
                   <span>→</span>
@@ -377,7 +377,7 @@ export default function TaskDetailModal({
                   <button
                     type="button"
                     onClick={() => setIsEditing(true)}
-                    className="px-5 py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer"
+                    className="px-5 py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer min-h-[40px] sm:min-h-0"
                   >
                     Edit Task ✎
                   </button>
@@ -400,7 +400,7 @@ export default function TaskDetailModal({
                 required
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-sm font-medium focus:ring-2 focus:ring-orange focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-sm font-medium focus:ring-2 focus:ring-orange focus:outline-none"
               />
             </div>
 
@@ -413,7 +413,7 @@ export default function TaskDetailModal({
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
                 placeholder="Detailed engineering scope, tolerances, or test standards..."
-                className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-xs focus:ring-2 focus:ring-orange focus:outline-none leading-relaxed"
+                className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs focus:ring-2 focus:ring-orange focus:outline-none leading-relaxed"
               />
             </div>
 
@@ -429,7 +429,7 @@ export default function TaskDetailModal({
                     setEditTeamId(e.target.value as TeamId);
                     setEditAssignedMembers([]);
                   }}
-                  className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none disabled:bg-zinc-100 disabled:cursor-not-allowed"
+                  className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none disabled:bg-zinc-100 disabled:cursor-not-allowed"
                 >
                   {TEAMS_LIST.map((t) => (
                     <option key={t.id} value={t.id}>
@@ -451,7 +451,7 @@ export default function TaskDetailModal({
                 <select
                   value={editPriority}
                   onChange={(e) => setEditPriority(e.target.value as TaskPriority)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
+                  className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
                 >
                   <option value="low">Low Priority</option>
                   <option value="medium">Medium Priority</option>
@@ -481,7 +481,7 @@ export default function TaskDetailModal({
                 <select
                   value={editStatus}
                   onChange={(e) => setEditStatus(e.target.value as TaskStatus)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
+                  className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
                 >
                   <option value="todo">To Do</option>
                   <option value="in_progress">In Progress</option>
@@ -498,23 +498,23 @@ export default function TaskDetailModal({
                   type="date"
                   value={editDueDate}
                   onChange={(e) => setEditDueDate(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
                 />
               </div>
             </div>
 
-            <div className="pt-4 border-t border-jet-black/10 flex items-center justify-end gap-3">
+            <div className="pt-4 border-t border-jet-black/10 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3">
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
-                className="px-4 py-2.5 rounded-xl border border-jet-black/20 text-xs font-mono uppercase cursor-pointer hover:bg-alice-blue transition-colors font-medium"
+                className="px-4 py-2.5 rounded-xl border border-jet-black/20 text-xs font-mono uppercase cursor-pointer hover:bg-alice-blue transition-colors font-medium min-h-[40px] sm:min-h-0 text-center w-full sm:w-auto"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSaving}
-                className="px-6 py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer disabled:opacity-50"
+                className="px-6 py-3 sm:py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer disabled:opacity-50 flex items-center justify-center w-full sm:w-auto min-h-[44px] sm:min-h-0"
               >
                 {isSaving ? 'Saving Changes...' : 'Save Changes ✓'}
               </button>

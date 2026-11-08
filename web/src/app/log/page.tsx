@@ -435,17 +435,17 @@ function LogPageContent() {
   });
 
   return (
-    <main className="min-h-screen bg-alice-blue text-jet-black pt-24 pb-24 px-4 sm:px-6 lg:px-8 font-sans">
+    <main className="min-h-screen bg-alice-blue text-jet-black pt-20 sm:pt-24 pb-16 sm:pb-24 px-3 sm:px-6 lg:px-8 font-sans">
       
       {/* Background CAD Accent */}
       <div className="fixed inset-0 opacity-[0.02] pointer-events-none bg-[radial-gradient(#2B303A_1px,transparent_1px)] [background-size:24px_24px]"></div>
 
-      <div className="max-w-6xl mx-auto relative z-10 space-y-8">
+      <div className="max-w-6xl mx-auto relative z-10 space-y-5 sm:space-y-8">
 
         {/* =========================================================================
             HEADER & SCOPE CONSOLE
            ========================================================================= */}
-        <div className="bg-white border border-jet-black/10 rounded-2xl p-6 sm:p-8 shadow-sm">
+        <div className="bg-white border border-jet-black/10 rounded-2xl p-4 sm:p-8 shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             
             {/* Title & Metadata */}
@@ -456,7 +456,7 @@ function LogPageContent() {
                   SIEP 2026–27 • Engineering Logbook
                 </span>
               </div>
-              <h1 className="text-3xl sm:text-4xl font-black text-jet-black tracking-tight">
+              <h1 className="text-2xl sm:text-4xl font-black text-jet-black tracking-tight">
                 Build Log &amp; Step Tracker<span className="text-orange">.</span>
               </h1>
               <p className="text-grey font-light text-sm max-w-2xl leading-relaxed">
@@ -465,12 +465,12 @@ function LogPageContent() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-3 shrink-0 self-start lg:self-center">
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => loadLogs()}
                 title="Sync logs with cloud storage"
-                className="px-4 py-2.5 rounded-xl border border-jet-black/15 bg-white hover:bg-alice-blue text-jet-black transition-all shadow-sm flex items-center gap-2 cursor-pointer text-xs font-mono font-medium"
+                className="px-4 py-2.5 rounded-xl border border-jet-black/15 bg-white hover:bg-alice-blue text-jet-black transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer text-xs font-mono font-medium"
               >
                 <svg className={`w-3.5 h-3.5 text-grey ${loadingLogs ? 'animate-spin text-orange' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -484,7 +484,7 @@ function LogPageContent() {
                   setIsFormOpen(!isFormOpen);
                   setFormError(null);
                 }}
-                className={`px-5 py-2.5 rounded-xl transition-all font-bold text-xs uppercase tracking-wider shadow-sm flex items-center gap-2 cursor-pointer ${
+                className={`px-4 sm:px-5 py-2.5 rounded-xl transition-all font-bold text-xs uppercase tracking-wider shadow-sm flex items-center justify-center gap-2 cursor-pointer ${
                   isFormOpen
                     ? 'bg-jet-black/10 text-jet-black hover:bg-jet-black/20'
                     : 'bg-jet-black text-alice-blue hover:bg-orange'
@@ -493,7 +493,7 @@ function LogPageContent() {
                 <svg className={`w-3.5 h-3.5 transition-transform ${isFormOpen ? 'rotate-45' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                 </svg>
-                <span>{isFormOpen ? 'Close Form' : 'Record New Step'}</span>
+                <span>{isFormOpen ? 'Close' : 'Record Step'}</span>
               </button>
             </div>
 
@@ -528,7 +528,7 @@ function LogPageContent() {
             Shows assigned deliverables for the team, allowing 1-click step prefill
            ========================================================================= */}
         {teamTasks.length > 0 && (
-          <div className="bg-white border border-jet-black/10 rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="bg-white border border-jet-black/10 rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-jet-black/10">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-orange animate-pulse"></span>
@@ -587,22 +587,22 @@ function LogPageContent() {
                         )}
                       </div>
 
-                      <div className="pt-2 border-t border-jet-black/5 flex items-center justify-between gap-1.5">
+                      <div className="pt-2 border-t border-jet-black/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-1.5">
                         <button
                           type="button"
                           onClick={() => handleSelectTaskForLog(task)}
-                          className="px-2 py-1 bg-jet-black text-alice-blue hover:bg-orange rounded-lg text-[10px] font-mono font-bold uppercase transition-colors cursor-pointer"
+                          className="px-2.5 py-1.5 sm:py-1 bg-jet-black text-alice-blue hover:bg-orange rounded-lg text-[10px] font-mono font-bold uppercase transition-colors cursor-pointer w-full sm:w-auto min-h-[36px] sm:min-h-0 flex items-center justify-center"
                         >
                           Log Work ✎
                         </button>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 w-full sm:w-auto">
                           <button
                             type="button"
                             onClick={() => {
                               setTaskToComplete(task);
                               setIsCompleteModalOpen(true);
                             }}
-                            className="px-2 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border border-emerald-300 rounded-lg text-[10px] font-mono font-bold transition-colors cursor-pointer"
+                            className="px-2.5 py-1.5 sm:py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border border-emerald-300 rounded-lg text-[10px] font-mono font-bold transition-colors cursor-pointer flex-1 sm:flex-initial min-h-[36px] sm:min-h-0 flex items-center justify-center text-center"
                             title="Mark completed with video evidence"
                           >
                             Done + Video ✓
@@ -610,7 +610,7 @@ function LogPageContent() {
                           <button
                             type="button"
                             onClick={() => handleQuickAdvanceTask(task)}
-                            className="px-2 py-1 bg-white hover:bg-jet-black/5 border border-jet-black/15 rounded-lg text-[10px] font-mono font-bold text-jet-black transition-colors cursor-pointer"
+                            className="px-2.5 py-1.5 sm:py-1 bg-white hover:bg-jet-black/5 border border-jet-black/15 rounded-lg text-[10px] font-mono font-bold text-jet-black transition-colors cursor-pointer flex-1 sm:flex-initial min-h-[36px] sm:min-h-0 flex items-center justify-center text-center"
                             title="Advance task status"
                           >
                             {task.status === 'review' ? 'Mark Done' : 'Advance →'}
@@ -628,7 +628,7 @@ function LogPageContent() {
             RECORD NEW STEP FORM DRAWER
            ========================================================================= */}
         {isFormOpen && (
-          <div className="bg-white border-2 border-orange/40 rounded-2xl p-6 sm:p-10 shadow-lg animate-in fade-in duration-200">
+          <div className="bg-white border-2 border-orange/40 rounded-2xl p-4 sm:p-10 shadow-lg animate-in fade-in duration-200">
             
             {/* Form Top Title */}
             <div className="pb-4 border-b border-jet-black/10">
@@ -665,15 +665,15 @@ function LogPageContent() {
                   value={stepTitle}
                   onChange={(e) => setStepTitle(e.target.value)}
                   placeholder="e.g. Swingarm welding & alignment"
-                  className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-white text-jet-black text-sm font-medium focus:ring-2 focus:ring-orange focus:outline-none transition-all"
+                  className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-white text-jet-black text-base sm:text-sm font-medium focus:ring-2 focus:ring-orange focus:outline-none transition-all"
                 />
               </div>
 
               {/* Subsystem, Date, Time & Hours */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 
                 {/* Team Scope */}
-                <div>
+                <div className="col-span-2 md:col-span-1">
                   <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-1.5 font-medium">
                     Subsystem Team
                   </label>
@@ -684,7 +684,7 @@ function LogPageContent() {
                         setTargetTeamId(e.target.value as TeamId);
                         setSelectedMembers([]);
                       }}
-                      className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-white text-jet-black text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none transition-all"
+                      className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-white text-jet-black text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none transition-all"
                     >
                       {TEAMS_LIST.map((t) => (
                         <option key={t.id} value={t.id}>
@@ -701,7 +701,7 @@ function LogPageContent() {
                 </div>
 
                 {/* Work Date */}
-                <div>
+                <div className="col-span-2 md:col-span-1">
                   <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-1.5 font-medium">
                     Date
                   </label>
@@ -710,12 +710,12 @@ function LogPageContent() {
                     required
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-white text-jet-black text-xs focus:ring-2 focus:ring-orange focus:outline-none font-mono transition-all"
+                    className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-white text-jet-black text-base sm:text-xs focus:ring-2 focus:ring-orange focus:outline-none font-mono transition-all"
                   />
                 </div>
 
                 {/* Time */}
-                <div>
+                <div className="col-span-1">
                   <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-1.5 font-medium">
                     Time
                   </label>
@@ -724,12 +724,12 @@ function LogPageContent() {
                     value={workTime}
                     onChange={(e) => setWorkTime(e.target.value)}
                     placeholder="e.g. 14:30"
-                    className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-white text-jet-black text-xs focus:ring-2 focus:ring-orange focus:outline-none font-mono transition-all"
+                    className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-white text-jet-black text-base sm:text-xs focus:ring-2 focus:ring-orange focus:outline-none font-mono transition-all"
                   />
                 </div>
 
                 {/* Hours */}
-                <div>
+                <div className="col-span-1">
                   <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-1.5 font-medium">
                     Hours
                   </label>
@@ -740,7 +740,7 @@ function LogPageContent() {
                     max="24"
                     value={hoursSpent}
                     onChange={(e) => setHoursSpent(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-white text-jet-black text-xs focus:ring-2 focus:ring-orange focus:outline-none font-mono transition-all"
+                    className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-white text-jet-black text-base sm:text-xs focus:ring-2 focus:ring-orange focus:outline-none font-mono transition-all"
                   />
                 </div>
 
@@ -769,7 +769,7 @@ function LogPageContent() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe the work completed..."
-                  className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-white text-jet-black text-xs focus:ring-2 focus:ring-orange focus:outline-none leading-relaxed transition-all"
+                  className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-white text-jet-black text-base sm:text-xs focus:ring-2 focus:ring-orange focus:outline-none leading-relaxed transition-all"
                 />
               </div>
 
@@ -784,7 +784,7 @@ function LogPageContent() {
                     value={achievements}
                     onChange={(e) => setAchievements(e.target.value)}
                     placeholder="Results or milestones achieved..."
-                    className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-white text-jet-black text-xs focus:ring-2 focus:ring-orange focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-white text-jet-black text-base sm:text-xs focus:ring-2 focus:ring-orange focus:outline-none"
                   />
                 </div>
 
@@ -797,7 +797,7 @@ function LogPageContent() {
                     value={blockers}
                     onChange={(e) => setBlockers(e.target.value)}
                     placeholder="Any challenges or pending parts..."
-                    className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-white text-jet-black text-xs focus:ring-2 focus:ring-orange focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-white text-jet-black text-base sm:text-xs focus:ring-2 focus:ring-orange focus:outline-none"
                   />
                 </div>
               </div>
@@ -856,7 +856,7 @@ function LogPageContent() {
                       value={videoUrlInput}
                       onChange={(e) => setVideoUrlInput(e.target.value)}
                       placeholder="https://drive.google.com/... or YouTube link"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-jet-black/15 bg-white text-jet-black text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-jet-black/15 bg-white text-jet-black text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
                     />
 
                     {videoUrlInput && (
@@ -889,18 +889,18 @@ function LogPageContent() {
               </div>
 
               {/* Form Action Buttons */}
-              <div className="pt-4 border-t border-jet-black/10 flex items-center justify-end gap-3">
+              <div className="pt-4 border-t border-jet-black/10 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3">
                 <button
                   type="button"
                   onClick={() => setIsFormOpen(false)}
-                  className="px-5 py-2.5 rounded-xl border border-jet-black/20 text-jet-black text-xs font-mono uppercase font-semibold hover:bg-jet-black/5 cursor-pointer transition-colors"
+                  className="px-5 py-2.5 rounded-xl border border-jet-black/20 text-jet-black text-xs font-mono uppercase font-semibold hover:bg-jet-black/5 cursor-pointer transition-colors w-full sm:w-auto text-center"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-6 py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                  className="px-6 py-3 sm:py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 w-full sm:w-auto min-h-[44px] sm:min-h-0"
                 >
                   {isSubmitting ? (
                     <>
@@ -923,7 +923,7 @@ function LogPageContent() {
            ========================================================================= */}
         {editingLog && (
           <div className="fixed inset-0 z-50 bg-jet-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-white border-2 border-orange/50 rounded-2xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl space-y-6 my-8 animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-white border-2 border-orange/50 rounded-2xl max-w-3xl w-full p-4 sm:p-8 shadow-2xl space-y-4 sm:space-y-6 my-4 sm:my-8 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
               
               <div className="flex items-center justify-between pb-4 border-b border-jet-black/10">
                 <div>
@@ -956,7 +956,7 @@ function LogPageContent() {
                     required
                     value={editStepTitle}
                     onChange={(e) => setEditStepTitle(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-jet-black text-sm focus:ring-2 focus:ring-orange focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-jet-black text-base sm:text-sm focus:ring-2 focus:ring-orange focus:outline-none"
                   />
                 </div>
 
@@ -969,7 +969,7 @@ function LogPageContent() {
                       <select
                         value={editTeamId}
                         onChange={(e) => setEditTeamId(e.target.value as TeamId)}
-                        className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
+                        className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
                       >
                         {TEAMS_LIST.map((t) => (
                           <option key={t.id} value={t.id}>
@@ -993,7 +993,7 @@ function LogPageContent() {
                       required
                       value={editDate}
                       onChange={(e) => setEditDate(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
                     />
                   </div>
 
@@ -1008,7 +1008,7 @@ function LogPageContent() {
                       max="24"
                       value={editHoursSpent}
                       onChange={(e) => setEditHoursSpent(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
                     />
                   </div>
                 </div>
@@ -1033,7 +1033,7 @@ function LogPageContent() {
                     rows={4}
                     value={editDescription}
                     onChange={(e) => setEditDescription(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-xs focus:ring-2 focus:ring-orange focus:outline-none leading-relaxed"
+                    className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-base sm:text-xs focus:ring-2 focus:ring-orange focus:outline-none leading-relaxed"
                   />
                 </div>
 
@@ -1046,7 +1046,7 @@ function LogPageContent() {
                       rows={2}
                       value={editAchievements}
                       onChange={(e) => setEditAchievements(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50/20 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50/20 text-base sm:text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                     />
                   </div>
                   <div>
@@ -1057,7 +1057,7 @@ function LogPageContent() {
                       rows={2}
                       value={editBlockers}
                       onChange={(e) => setEditBlockers(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-amber-200 bg-amber-50/20 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-amber-200 bg-amber-50/20 text-base sm:text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     />
                   </div>
                 </div>
@@ -1071,22 +1071,22 @@ function LogPageContent() {
                     value={editVideoUrl}
                     onChange={(e) => setEditVideoUrl(e.target.value)}
                     placeholder="https://drive.google.com/file/d/... or YouTube"
-                    className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
                   />
                 </div>
 
-                <div className="pt-4 border-t border-jet-black/10 flex items-center justify-end gap-3">
+                <div className="pt-4 border-t border-jet-black/10 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3">
                   <button
                     type="button"
                     onClick={() => setEditingLog(null)}
-                    className="px-5 py-2.5 rounded-xl border border-jet-black/20 text-xs font-mono uppercase font-semibold hover:bg-jet-black/5 cursor-pointer"
+                    className="px-5 py-2.5 rounded-xl border border-jet-black/20 text-xs font-mono uppercase font-semibold hover:bg-jet-black/5 cursor-pointer w-full sm:w-auto text-center"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isEditSubmitting}
-                    className="px-6 py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer disabled:opacity-50"
+                    className="px-6 py-3 sm:py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 w-full sm:w-auto min-h-[44px] sm:min-h-0"
                   >
                     {isEditSubmitting ? 'Saving Changes...' : 'Save Revisions'}
                   </button>
@@ -1102,7 +1102,7 @@ function LogPageContent() {
            ========================================================================= */}
         {deleteConfirmLog && (
           <div className="fixed inset-0 z-50 bg-jet-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white border-2 border-red-500/40 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-white border-2 border-red-500/40 rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1125,14 +1125,14 @@ function LogPageContent() {
                 Are you sure you want to permanently delete step record: <strong className="text-jet-black">&ldquo;{deleteConfirmLog.stepTitle}&rdquo;</strong>? This action cannot be undone.
               </p>
 
-              <div className="pt-3 border-t border-jet-black/10 flex items-center justify-end gap-3">
+              <div className="pt-3 border-t border-jet-black/10 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3">
                 <button
                   type="button"
                   onClick={() => {
                     setDeleteConfirmLog(null);
                     setDeleteError(null);
                   }}
-                  className="px-4 py-2 rounded-xl border border-jet-black/20 text-xs font-mono uppercase font-semibold hover:bg-jet-black/5 cursor-pointer"
+                  className="px-4 py-2 rounded-xl border border-jet-black/20 text-xs font-mono uppercase font-semibold hover:bg-jet-black/5 cursor-pointer w-full sm:w-auto text-center"
                 >
                   Cancel
                 </button>
@@ -1140,7 +1140,7 @@ function LogPageContent() {
                   type="button"
                   disabled={isDeleting}
                   onClick={handleDeleteLog}
-                  className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer disabled:opacity-50 w-full sm:w-auto text-center min-h-[40px] sm:min-h-0 flex items-center justify-center"
                 >
                   {isDeleting ? 'Deleting...' : 'Delete Step'}
                 </button>
@@ -1152,7 +1152,7 @@ function LogPageContent() {
         {/* =========================================================================
             ENGINEERING FEED HEADER & FILTER BAR
            ========================================================================= */}
-        <div id="engineering-feed" className="bg-white border border-jet-black/10 rounded-2xl p-6 sm:p-7 shadow-sm scroll-mt-24 space-y-5">
+        <div id="engineering-feed" className="bg-white border border-jet-black/10 rounded-2xl p-4 sm:p-7 shadow-sm scroll-mt-20 sm:scroll-mt-24 space-y-4 sm:space-y-5">
           
           {/* Top Row: Title & Counter + Search Input */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1172,7 +1172,7 @@ function LogPageContent() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search moves, parts, contributors..."
-                className="w-full pl-9 pr-12 py-2.5 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none shadow-sm placeholder:text-grey/60"
+                className="w-full pl-9 pr-12 py-2.5 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none shadow-sm placeholder:text-grey/60"
               />
               <svg className="w-4 h-4 text-grey absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -1191,7 +1191,7 @@ function LogPageContent() {
 
           {/* Subsystem Filter Tabs */}
           {isCoreAdmin ? (
-            <div className="pt-2 border-t border-jet-black/5 flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
+            <div className="pt-2 border-t border-jet-black/5 flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar touch-pan-x overscroll-x-contain scroll-smooth">
               <button
                 type="button"
                 onClick={() => setSelectedTeamFilter('all')}
@@ -1235,12 +1235,12 @@ function LogPageContent() {
            ========================================================================= */}
         <div className="space-y-6">
           {loadingLogs ? (
-            <div className="bg-white border border-jet-black/10 rounded-2xl p-16 text-center text-sm font-mono text-grey shadow-sm">
+            <div className="bg-white border border-jet-black/10 rounded-2xl p-8 sm:p-16 text-center text-sm font-mono text-grey shadow-sm">
               <span className="w-6 h-6 border-2 border-orange border-t-transparent rounded-full animate-spin inline-block mb-3"></span>
               <p>Syncing engineering logbook...</p>
             </div>
           ) : filteredLogs.length === 0 ? (
-            <div className="bg-white border border-jet-black/10 rounded-2xl p-16 text-center text-grey shadow-sm space-y-3">
+            <div className="bg-white border border-jet-black/10 rounded-2xl p-8 sm:p-16 text-center text-grey shadow-sm space-y-3">
               <div className="w-12 h-12 rounded-full bg-alice-blue flex items-center justify-center mx-auto text-grey">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -1271,28 +1271,60 @@ function LogPageContent() {
                 >
                   
                   {/* Card Header Bar */}
-                  <div className="px-6 sm:px-8 py-4 bg-jet-black/[0.02] border-b border-jet-black/5 flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <span className="px-2.5 py-1 rounded bg-jet-black text-alice-blue font-mono font-black text-xs tracking-wider">
-                        STEP #{String(log.stepNumber).padStart(2, '0')}
-                      </span>
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-mono font-bold border flex items-center gap-1.5 ${teamInfo?.badgeBg || 'bg-jet-black/10 text-jet-black'}`}>
-                        <span className="text-[10px] opacity-70">[{teamInfo?.code}]</span>
-                        <span>{log.teamName}</span>
-                      </span>
+                  <div className="px-4 sm:px-8 py-3.5 sm:py-4 bg-jet-black/[0.02] border-b border-jet-black/5 space-y-2.5 sm:space-y-0 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
+                    {/* Top Row on Mobile: Badges Left, Edit/Delete Right */}
+                    <div className="flex items-center justify-between gap-2 sm:gap-3">
+                      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                        <span className="px-2 sm:px-2.5 py-1 rounded bg-jet-black text-alice-blue font-mono font-black text-[11px] sm:text-xs tracking-wider shrink-0">
+                          STEP #{String(log.stepNumber).padStart(2, '0')}
+                        </span>
+                        <span className={`px-2 sm:px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-mono font-bold border flex items-center gap-1 sm:gap-1.5 truncate ${teamInfo?.badgeBg || 'bg-jet-black/10 text-jet-black'}`}>
+                          <span className="text-[10px] opacity-70">[{teamInfo?.code}]</span>
+                          <span className="truncate">{log.teamName}</span>
+                        </span>
+                      </div>
+
+                      {/* Edit & Delete Action Buttons (Mobile inline right) */}
+                      {canModify && (
+                        <div className="flex sm:hidden items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(log)}
+                            title="Edit this step record"
+                            className="p-2 rounded-lg border border-jet-black/15 bg-white hover:border-orange hover:text-orange text-grey transition-colors cursor-pointer shadow-2xs min-h-[36px] min-w-[36px] flex items-center justify-center"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirmLog(log)}
+                            title="Delete this step record"
+                            className="p-2 rounded-lg border border-jet-black/15 bg-white hover:border-red-400 hover:text-red-600 text-grey transition-colors cursor-pointer shadow-2xs min-h-[36px] min-w-[36px] flex items-center justify-center"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
                     </div>
 
-                    <div className="flex items-center gap-2.5 text-xs font-mono text-grey">
-                      <span className="bg-alice-blue px-2.5 py-1 rounded border border-jet-black/10">
-                        {log.date} {log.workTime ? `• ${log.workTime}` : ''}
-                      </span>
-                      <span className="bg-alice-blue px-2.5 py-1 rounded border border-jet-black/10 font-bold text-jet-black">
-                        {log.hoursSpent} hrs
-                      </span>
+                    {/* Sub Row: Date, Time, Hours + Desktop Action Buttons */}
+                    <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-2.5 text-xs font-mono text-grey">
+                      <div className="flex items-center gap-2">
+                        <span className="bg-alice-blue px-2 sm:px-2.5 py-1 rounded border border-jet-black/10 text-[11px] sm:text-xs">
+                          {log.date} {log.workTime ? `• ${log.workTime}` : ''}
+                        </span>
+                        <span className="bg-alice-blue px-2 sm:px-2.5 py-1 rounded border border-jet-black/10 font-bold text-jet-black text-[11px] sm:text-xs">
+                          {log.hoursSpent} hrs
+                        </span>
+                      </div>
 
-                      {/* Edit & Delete Action Buttons */}
+                      {/* Edit & Delete Action Buttons (Desktop) */}
                       {canModify && (
-                        <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-jet-black/15">
+                        <div className="hidden sm:flex items-center gap-1.5 ml-2 pl-2 border-l border-jet-black/15">
                           <button
                             type="button"
                             onClick={() => openEditModal(log)}
@@ -1319,11 +1351,11 @@ function LogPageContent() {
                   </div>
 
                   {/* Card Body */}
-                  <div className="p-6 sm:p-8 space-y-6">
+                  <div className="p-4 sm:p-8 space-y-4 sm:space-y-6">
                     
                     {/* Step Title */}
                     <div>
-                      <h3 className="text-xl sm:text-2xl font-black text-jet-black tracking-tight leading-snug">
+                      <h3 className="text-lg sm:text-2xl font-black text-jet-black tracking-tight leading-snug">
                         {log.stepTitle}
                       </h3>
                     </div>

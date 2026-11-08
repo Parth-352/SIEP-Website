@@ -366,18 +366,18 @@ export default function DashboardPage() {
   const videoLogsCount = logs.filter((l) => Boolean(l.videoUrl)).length;
 
   return (
-    <main className="min-h-screen bg-alice-blue text-jet-black pt-24 pb-24 px-4 sm:px-6 lg:px-8 font-sans">
+    <main className="min-h-screen bg-alice-blue text-jet-black pt-20 sm:pt-24 pb-16 sm:pb-24 px-3 sm:px-6 lg:px-8 font-sans">
       
       {/* Background CAD accent */}
       <div className="fixed inset-0 opacity-[0.02] pointer-events-none bg-[radial-gradient(#2B303A_1px,transparent_1px)] [background-size:24px_24px]"></div>
 
-      <div className="max-w-7xl mx-auto relative z-10 space-y-8">
+      <div className="max-w-7xl mx-auto relative z-10 space-y-5 sm:space-y-8">
 
         {/* =========================================================================
             DASHBOARD HEADER
             Spacious, modern project command console with quick actions
            ========================================================================= */}
-        <div className="bg-white border border-jet-black/10 rounded-2xl p-6 sm:p-8 shadow-sm">
+        <div className="bg-white border border-jet-black/10 rounded-2xl p-4 sm:p-8 shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             
             <div className="space-y-2">
@@ -387,7 +387,7 @@ export default function DashboardPage() {
                   {isCore ? 'Operations Center • Central Leadership Privileges' : `Squad Console • ${TEAMS[user.teamId]?.name || user.teamName}`}
                 </span>
               </div>
-              <h1 className="text-3xl sm:text-4xl font-black text-jet-black tracking-tight">
+              <h1 className="text-2xl sm:text-4xl font-black text-jet-black tracking-tight">
                 Project Operations Dashboard<span className="text-orange">.</span>
               </h1>
               <p className="text-grey font-light text-sm max-w-2xl leading-relaxed">
@@ -396,7 +396,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Quick Header Actions */}
-            <div className="flex flex-wrap items-center gap-3 shrink-0 self-start lg:self-center">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
               <Link
                 href="/log"
                 className="px-4 py-2.5 rounded-xl border border-jet-black/15 bg-white hover:bg-alice-blue text-jet-black hover:border-orange hover:text-orange text-xs font-mono uppercase font-bold transition-all shadow-sm"
@@ -583,7 +583,7 @@ export default function DashboardPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search tasks by title, scope, team, or assigned member..."
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
                   />
                   <svg className="w-4 h-4 text-grey absolute left-3.5 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -605,7 +605,7 @@ export default function DashboardPage() {
                   <select
                     value={selectedPriorityFilter}
                     onChange={(e) => setSelectedPriorityFilter(e.target.value)}
-                    className="px-3 py-2 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none bg-white cursor-pointer"
+                    className="px-3 py-2 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none bg-white cursor-pointer"
                   >
                     <option value="all">All Priorities</option>
                     <option value="urgent">🔴 Urgent</option>
@@ -618,7 +618,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Subsystem Filter Pills */}
-              <div className="pt-3 border-t border-jet-black/5 flex items-center gap-2 overflow-x-auto hide-scrollbar">
+              <div className="pt-3 border-t border-jet-black/5 flex items-center gap-2 overflow-x-auto hide-scrollbar touch-pan-x overscroll-x-contain scroll-smooth">
                 <span className="text-[10px] font-mono uppercase text-grey font-bold shrink-0">
                   Subsystem:
                 </span>
@@ -774,7 +774,7 @@ export default function DashboardPage() {
                                         if (prevIdx >= 0) handleMoveStatus(e, task.id, STATUS_COLUMNS[prevIdx].id);
                                       }}
                                       title="Move back"
-                                      className="px-2.5 py-1 text-[10px] font-mono bg-white hover:bg-jet-black/5 rounded-lg border border-jet-black/15 cursor-pointer font-bold transition-colors disabled:opacity-40"
+                                      className="px-2.5 py-2 sm:py-1 text-[10px] font-mono bg-white hover:bg-jet-black/5 rounded-lg border border-jet-black/15 cursor-pointer font-bold transition-colors disabled:opacity-40"
                                     >
                                       ←
                                     </button>
@@ -788,7 +788,7 @@ export default function DashboardPage() {
                                         if (nextIdx < STATUS_COLUMNS.length) handleMoveStatus(e, task.id, STATUS_COLUMNS[nextIdx].id);
                                       }}
                                       title="Move forward"
-                                      className="px-3 py-1 text-[10px] font-mono bg-jet-black text-alice-blue hover:bg-orange rounded-lg font-bold transition-colors cursor-pointer disabled:opacity-40"
+                                      className="px-3 py-2 sm:py-1 text-[10px] font-mono bg-jet-black text-alice-blue hover:bg-orange rounded-lg font-bold transition-colors cursor-pointer disabled:opacity-40"
                                     >
                                       Advance →
                                     </button>
@@ -804,7 +804,7 @@ export default function DashboardPage() {
                                       type="button"
                                       onClick={(e) => handleDeleteTask(e, task.id)}
                                       title="Delete task"
-                                      className="text-xs text-grey hover:text-red-500 font-mono p-1 cursor-pointer transition-colors"
+                                      className="text-xs text-grey hover:text-red-500 font-mono p-2 sm:p-1 cursor-pointer transition-colors"
                                     >
                                       ✕
                                     </button>
@@ -884,7 +884,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Stats bar */}
-                    <div className="grid grid-cols-4 gap-2 p-3 bg-alice-blue/60 rounded-xl text-center font-mono text-xs border border-jet-black/5">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 bg-alice-blue/60 rounded-xl text-center font-mono text-xs border border-jet-black/5">
                       <div>
                         <div className="font-black text-jet-black text-sm">{teamTasks.length}</div>
                         <div className="text-[9px] text-grey uppercase tracking-wider">Total</div>
@@ -1085,7 +1085,8 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            <div className="overflow-x-auto">
+            {/* Desktop Table View */}
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-left text-xs font-mono">
                 <thead className="bg-alice-blue border-b border-jet-black/10 text-grey uppercase tracking-wider">
                   <tr>
@@ -1121,6 +1122,32 @@ export default function DashboardPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="sm:hidden space-y-3 p-4">
+              {ALL_TEAMS.map((team) => (
+                <div key={team.id} className="bg-alice-blue/40 border border-jet-black/10 rounded-xl p-4 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-jet-black/10 font-bold">[{team.code}]</span>
+                      <span className="text-sm font-bold text-jet-black">{team.name}</span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                      team.id === 'core' ? 'bg-orange/20 text-orange' : 'bg-jet-black/10 text-jet-black'
+                    }`}>
+                      {team.id === 'core' ? 'Admin' : 'Squad'}
+                    </span>
+                  </div>
+                  <div className="text-xs font-mono text-grey break-all select-all">{team.email}</div>
+                  <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-jet-black/10">
+                    <span className="text-[10px] font-mono uppercase text-grey font-medium">Pass:</span>
+                    <code className="text-sm font-bold font-mono text-orange select-all">
+                      {showCredentialsPasswords ? team.defaultPass : '••••••••'}
+                    </code>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -1180,7 +1207,7 @@ export default function DashboardPage() {
          ========================================================================= */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 bg-jet-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border-2 border-orange/40 rounded-2xl w-full max-w-lg p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 duration-200 space-y-5">
+          <div className="bg-white border-2 border-orange/40 rounded-2xl w-full max-w-lg p-4 sm:p-8 max-h-[92vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200 space-y-5">
             
             <div className="flex items-center justify-between pb-4 border-b border-jet-black/10">
               <div>
@@ -1215,7 +1242,7 @@ export default function DashboardPage() {
                   value={newTaskTitle}
                   onChange={(e) => setNewTaskTitle(e.target.value)}
                   placeholder="e.g. 72V Pack High-Discharge Thermal Analysis"
-                  className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-sm font-medium focus:ring-2 focus:ring-orange focus:outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-sm font-medium focus:ring-2 focus:ring-orange focus:outline-none"
                 />
               </div>
 
@@ -1228,7 +1255,7 @@ export default function DashboardPage() {
                   value={newTaskDesc}
                   onChange={(e) => setNewTaskDesc(e.target.value)}
                   placeholder="Specific requirements, testing thresholds, or fabrication steps..."
-                  className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-xs focus:ring-2 focus:ring-orange focus:outline-none leading-relaxed"
+                  className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs focus:ring-2 focus:ring-orange focus:outline-none leading-relaxed"
                 />
               </div>
 
@@ -1244,7 +1271,7 @@ export default function DashboardPage() {
                       setNewTaskTeam(e.target.value as TeamId);
                       setNewTaskMembers([]);
                     }}
-                    className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none disabled:bg-zinc-100"
+                    className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none disabled:bg-zinc-100"
                   >
                     {TEAMS_LIST.map((t) => (
                       <option key={t.id} value={t.id}>
@@ -1261,7 +1288,7 @@ export default function DashboardPage() {
                   <select
                     value={newTaskPriority}
                     onChange={(e) => setNewTaskPriority(e.target.value as TaskPriority)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
+                    className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
                   >
                     <option value="low">Low Priority</option>
                     <option value="medium">Medium Priority</option>
@@ -1291,7 +1318,7 @@ export default function DashboardPage() {
                   <select
                     value={newTaskStatus}
                     onChange={(e) => setNewTaskStatus(e.target.value as TaskStatus)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
+                    className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
                   >
                     <option value="todo">To Do</option>
                     <option value="in_progress">In Progress</option>
@@ -1308,23 +1335,23 @@ export default function DashboardPage() {
                     type="date"
                     value={newTaskDueDate}
                     onChange={(e) => setNewTaskDueDate(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-jet-black/10 flex items-center justify-end gap-3">
+              <div className="pt-4 border-t border-jet-black/10 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3">
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl border border-jet-black/20 text-xs font-mono uppercase cursor-pointer hover:bg-alice-blue transition-colors font-medium"
+                  className="px-5 py-2.5 rounded-xl border border-jet-black/20 text-xs font-mono uppercase cursor-pointer hover:bg-alice-blue transition-colors font-medium w-full sm:w-auto text-center"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingTask}
-                  className="px-6 py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer disabled:opacity-50"
+                  className="px-6 py-3 sm:py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 w-full sm:w-auto"
                 >
                   {isSubmittingTask ? 'Assigning...' : 'Assign Task →'}
                 </button>
