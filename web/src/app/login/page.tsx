@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, Suspense } from 'react';
+import React, { useState, useRef, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
@@ -20,6 +20,465 @@ const LOGIN_TEAMS: TeamConfig[] = [
   TEAMS.documentation,
 ];
 
+// ============================================================================
+// FORGOT PASSWORD MODAL COMPONENT
+// 3-step flow: Select Team → Request & Enter OTP → View Recovered Password
+// ============================================================================
+
+type ForgotStep = 'select' | 'otp' | 'revealed';
+
+function ForgotPasswordModal({
+  isOpen,
+  onClose,
+  preSelectedTeamId,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  preSelectedTeamId: TeamId | null;
+}) {
+  const [step, setStep] = useState<ForgotStep>('select');
+  const [selectedTeamId, setSelectedTeamId] = useState<TeamId | null>(preSelectedTeamId);
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+  const [isRequesting, setIsRequesting] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [revealedPassword, setRevealedPassword] = useState<string | null>(null);
+  const [revealedTeam, setRevealedTeam] = useState<{ code: string; name: string } | null>(null);
+  const [countdown, setCountdown] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Sync preSelectedTeamId when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedTeamId(preSelectedTeamId);
+      if (preSelectedTeamId) {
+        setStep('select'); // Still show select but pre-highlighted
+      }
+    }
+  }, [isOpen, preSelectedTeamId]);
+
+  // Countdown timer for cooldown
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [countdown]);
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setTimeout(() => {
+        setStep('select');
+        setOtpDigits(['', '', '', '', '', '']);
+        setError(null);
+        setSuccessMessage(null);
+        setRevealedPassword(null);
+        setRevealedTeam(null);
+        setIsRequesting(false);
+        setIsVerifying(false);
+        setShowPassword(false);
+      }, 300);
+    }
+  }, [isOpen]);
+
+  // Handle OTP digit input with auto-advance
+  const handleOtpChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return; // Only allow digits
+    const newDigits = [...otpDigits];
+    newDigits[index] = value.slice(-1); // Only keep last digit
+    setOtpDigits(newDigits);
+
+    // Auto-advance to next input
+    if (value && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
+  // Handle paste for OTP
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pasted.length === 0) return;
+    const newDigits = [...otpDigits];
+    for (let i = 0; i < 6; i++) {
+      newDigits[i] = pasted[i] || '';
+    }
+    setOtpDigits(newDigits);
+    // Focus last filled or last input
+    const focusIdx = Math.min(pasted.length, 5);
+    otpRefs.current[focusIdx]?.focus();
+  };
+
+  // Step 1 → 2: Request OTP
+  const handleRequestOTP = async () => {
+    if (!selectedTeamId) {
+      setError('Please select a team first.');
+      return;
+    }
+
+    setError(null);
+    setIsRequesting(true);
+
+    try {
+      const res = await fetch('/api/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'request', teamId: selectedTeamId }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setSuccessMessage(data.message);
+        setStep('otp');
+        setCountdown(120); // 2 minute cooldown
+        setTimeout(() => otpRefs.current[0]?.focus(), 200);
+      } else {
+        setError(data.error || 'Failed to send OTP.');
+      }
+    } catch {
+      setError('Network error. Please check your connection.');
+    } finally {
+      setIsRequesting(false);
+    }
+  };
+
+  // Step 2 → 3: Verify OTP
+  const handleVerifyOTP = async () => {
+    const otpValue = otpDigits.join('');
+    if (otpValue.length !== 6) {
+      setError('Please enter the complete 6-digit OTP.');
+      return;
+    }
+
+    setError(null);
+    setIsVerifying(true);
+
+    try {
+      const res = await fetch('/api/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify', teamId: selectedTeamId, otp: otpValue }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setRevealedPassword(data.password);
+        setRevealedTeam({ code: data.teamCode, name: data.teamName });
+        setStep('revealed');
+        setError(null);
+      } else {
+        setError(data.error || 'Verification failed.');
+        if (data.expired) {
+          // OTP expired, go back to select
+          setTimeout(() => {
+            setStep('select');
+            setOtpDigits(['', '', '', '', '', '']);
+          }, 2000);
+        }
+      }
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const selectedTeam = selectedTeamId ? TEAMS[selectedTeamId] : null;
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-jet-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal Card */}
+      <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-jet-black/10 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        
+        {/* Header */}
+        <div className="bg-jet-black px-6 py-4 flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-orange font-bold block">
+              SIEP Portal Security
+            </span>
+            <h3 className="text-white font-bold text-sm tracking-tight mt-0.5">
+              {step === 'select' && 'Forgot Team Password'}
+              {step === 'otp' && 'Enter Verification Code'}
+              {step === 'revealed' && 'Password Recovered'}
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-white/50 hover:text-white text-lg font-mono cursor-pointer p-1"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="p-6 space-y-5">
+
+          {/* Error Banner */}
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start gap-2 animate-in fade-in">
+              <svg className="w-4 h-4 text-red-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <p className="leading-relaxed flex-1">{error}</p>
+            </div>
+          )}
+
+          {/* Success Banner */}
+          {successMessage && step === 'otp' && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl flex items-start gap-2">
+              <svg className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="leading-relaxed flex-1">{successMessage}</p>
+            </div>
+          )}
+
+          {/* ─── STEP 1: SELECT TEAM ─────────────────────────────────────── */}
+          {step === 'select' && (
+            <>
+              <p className="text-xs text-grey leading-relaxed">
+                Select your subsystem team below. A <strong>6-digit OTP</strong> will be sent to the
+                SIEP admin inbox for verification. This prevents unauthorized access.
+              </p>
+
+              <div className="grid grid-cols-3 gap-2">
+                {LOGIN_TEAMS.map((t) => {
+                  const isSelected = selectedTeamId === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedTeamId(t.id);
+                        setError(null);
+                      }}
+                      className={`text-left p-2.5 rounded-xl border text-xs font-mono transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-orange/10 border-orange text-jet-black ring-2 ring-orange/30'
+                          : 'bg-alice-blue/40 border-jet-black/10 hover:border-jet-black/30 hover:bg-white text-jet-black'
+                      }`}
+                    >
+                      <span
+                        className={`text-[9px] font-bold px-1 py-0.5 rounded ${
+                          isSelected ? 'bg-orange text-white' : 'bg-jet-black/10 text-jet-black'
+                        }`}
+                      >
+                        {t.code}
+                      </span>
+                      <span className="block font-bold text-[11px] mt-1 truncate">{t.shortName}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selectedTeam && (
+                <div className="p-3 bg-alice-blue/60 border border-orange/20 rounded-xl text-xs font-mono">
+                  <span className="text-grey">Requesting reset for:</span>
+                  <span className="font-bold text-jet-black ml-1">
+                    [{selectedTeam.code}] {selectedTeam.name}
+                  </span>
+                  <span className="block text-[10px] text-grey mt-0.5">{selectedTeam.email}</span>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleRequestOTP}
+                disabled={!selectedTeamId || isRequesting}
+                className={`w-full py-3 px-5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md ${
+                  !selectedTeamId
+                    ? 'bg-jet-black/30 text-white/70 cursor-not-allowed'
+                    : 'bg-jet-black text-alice-blue hover:bg-orange cursor-pointer'
+                } disabled:opacity-60`}
+              >
+                {isRequesting ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Sending OTP to Admin...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <span>Send OTP to Admin Email</span>
+                  </>
+                )}
+              </button>
+            </>
+          )}
+
+          {/* ─── STEP 2: ENTER OTP ───────────────────────────────────────── */}
+          {step === 'otp' && (
+            <>
+              <p className="text-xs text-grey leading-relaxed">
+                A 6-digit code was sent to the SIEP admin email for <strong>[{selectedTeam?.code}] {selectedTeam?.name}</strong>.
+                Ask your admin to check and share the OTP with you.
+              </p>
+
+              {/* OTP Input Boxes */}
+              <div className="flex justify-center gap-2.5" onPaste={handleOtpPaste}>
+                {otpDigits.map((digit, idx) => (
+                  <input
+                    key={idx}
+                    ref={(el) => { otpRefs.current[idx] = el; }}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleOtpChange(idx, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                    className="w-11 h-13 text-center text-lg font-bold font-mono rounded-xl border-2 border-jet-black/15 bg-alice-blue/40 text-jet-black focus:border-orange focus:ring-2 focus:ring-orange/30 focus:outline-none transition-all"
+                  />
+                ))}
+              </div>
+
+              {/* Verify Button */}
+              <button
+                type="button"
+                onClick={handleVerifyOTP}
+                disabled={isVerifying || otpDigits.join('').length !== 6}
+                className={`w-full py-3 px-5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md ${
+                  otpDigits.join('').length !== 6
+                    ? 'bg-jet-black/30 text-white/70 cursor-not-allowed'
+                    : 'bg-jet-black text-alice-blue hover:bg-orange cursor-pointer'
+                } disabled:opacity-60`}
+              >
+                {isVerifying ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Verifying...</span>
+                  </>
+                ) : (
+                  <span>Verify OTP &amp; Recover Password</span>
+                )}
+              </button>
+
+              {/* Resend / Back */}
+              <div className="flex items-center justify-between text-[11px] font-mono">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep('select');
+                    setOtpDigits(['', '', '', '', '', '']);
+                    setError(null);
+                    setSuccessMessage(null);
+                  }}
+                  className="text-grey hover:text-jet-black transition-colors cursor-pointer underline"
+                >
+                  &larr; Change Team
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRequestOTP}
+                  disabled={countdown > 0 || isRequesting}
+                  className={`transition-colors ${
+                    countdown > 0 ? 'text-grey/50 cursor-not-allowed' : 'text-orange hover:text-jet-black cursor-pointer underline'
+                  }`}
+                >
+                  {countdown > 0 ? `Resend in ${countdown}s` : 'Resend OTP'}
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ─── STEP 3: PASSWORD REVEALED ───────────────────────────────── */}
+          {step === 'revealed' && revealedPassword && revealedTeam && (
+            <>
+              <div className="text-center space-y-2">
+                <div className="w-12 h-12 mx-auto rounded-full bg-emerald-100 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-xs text-grey">
+                  Password recovered for <strong className="text-jet-black">[{revealedTeam.code}] {revealedTeam.name}</strong>
+                </p>
+              </div>
+
+              {/* Password Display */}
+              <div className="bg-alice-blue border-2 border-orange/30 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-grey font-bold">
+                    Team Password
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-[10px] font-mono text-orange hover:text-jet-black cursor-pointer underline font-bold"
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                <div className="flex items-center gap-3">
+                  <code className="flex-1 text-lg font-bold font-mono text-jet-black tracking-wider select-all">
+                    {showPassword ? revealedPassword : '••••••••••'}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(revealedPassword);
+                    }}
+                    className="px-3 py-1.5 bg-jet-black text-white rounded-lg text-[10px] font-mono font-bold hover:bg-orange transition-colors cursor-pointer uppercase"
+                    title="Copy to clipboard"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+
+              <p className="text-[10px] text-grey text-center font-mono leading-relaxed">
+                Use this password to sign in. Keep it safe — do not share publicly.
+              </p>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full py-3 px-5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange font-bold text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer"
+              >
+                Close &amp; Sign In &rarr;
+              </button>
+            </>
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ============================================================================
+// LOGIN FORM COMPONENT
+// ============================================================================
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -32,6 +491,7 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isForgotOpen, setIsForgotOpen] = useState(false);
   const passwordInputRef = useRef<HTMLInputElement>(null);
 
   // Clicking a team ONLY selects it and focuses password - DOES NOT LOG IN DIRECTLY
@@ -252,6 +712,14 @@ function LoginForm() {
                 <label className="text-xs font-mono uppercase tracking-wider text-grey font-medium">
                   Team Password *
                 </label>
+                {/* Forgot Password Link */}
+                <button
+                  type="button"
+                  onClick={() => setIsForgotOpen(true)}
+                  className="text-[11px] font-mono text-orange hover:text-jet-black transition-colors cursor-pointer font-bold hover:underline"
+                >
+                  Forgot Password?
+                </button>
               </div>
               <div className="relative">
                 <input
@@ -308,6 +776,13 @@ function LoginForm() {
         </div>
 
       </div>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={isForgotOpen}
+        onClose={() => setIsForgotOpen(false)}
+        preSelectedTeamId={selectedTeamId}
+      />
 
     </main>
   );

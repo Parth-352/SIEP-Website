@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * RIDERS BAY (SIEP E-BIKE) — PERSONAL GOOGLE DRIVE UPLOAD WEB APP SCRIPT
- * Version: 2.0 (High-Speed Resumable Upload Architecture: Up to 5 GB)
+ * Version: 2.1 (With Forgot Password OTP)
  * ============================================================================
  * 
  * INSTRUCTIONS FOR DEPLOYMENT / UPDATE (Takes 1-2 minutes):
@@ -10,7 +10,7 @@
  * 3. Replace all code in "Code.gs" with this entire file.
  * 4. Click "Deploy" (top right) -> "Manage deployments".
  * 5. Click the Edit (pencil) icon next to your active deployment.
- * 6. Under "Version", select "New version" (Description: "v2.0 5GB Resumable").
+ * 6. Under "Version", select "New version" (Description: "v2.1 + OTP").
  * 7. Ensure "Execute as": "Me (<your-email>)"
  * 8. Ensure "Who has access": "Anyone"  <-- CRITICAL for public uploads to work!
  * 9. Click "Deploy".
@@ -19,7 +19,7 @@
  * ============================================================================
  */
 
-const ROOT_FOLDER_NAME = "SIEP Team Logs";
+var ROOT_FOLDER_NAME = "SIEP Team Logs";
 
 /**
  * ============================================================================
@@ -48,23 +48,27 @@ function authorizeScript() {
 /**
  * Handles incoming POST requests.
  * Supports:
- *  1. action = "createResumableSession" (Fast <1KB session initiation for up to 5 GB uploads)
- *  2. action = "finalizeFile" (Sets sharing permission and generates embed links)
- *  3. action = "classic" / base64Data (Legacy base64 upload for smaller clips)
+ *  1. action = "createResumableSession"
+ *  2. action = "finalizeFile"
+ *  3. action = "sendInquiryMail"
+ *  4. action = "sendForgotPasswordOTP"  <-- NEW
+ *  5. action = "classic" / base64Data
  */
 function doPost(e) {
   try {
-    let data;
+    var data;
     if (e.postData && e.postData.contents) {
       data = JSON.parse(e.postData.contents);
     } else {
       return responseJSON({ success: false, error: "No post data received" });
     }
 
-    const action = data.action || (data.base64Data ? "classic" : "createResumableSession");
+    var action = data.action || (data.base64Data ? "classic" : "createResumableSession");
 
     if (action === "sendInquiryMail") {
       return handleSendInquiryMail(data);
+    } else if (action === "sendForgotPasswordOTP") {
+      return handleSendForgotPasswordOTP(data);
     } else if (action === "createResumableSession") {
       return handleCreateResumableSession(data);
     } else if (action === "finalizeFile") {
@@ -82,35 +86,31 @@ function doPost(e) {
 }
 
 /**
- * STEP 1: Initiates a Google Drive Resumable Upload Session (Tiny payload <1KB).
- * Returns the resumable upload URL directly from Google Drive API v3.
+ * STEP 1: Initiates a Google Drive Resumable Upload Session.
  */
 function handleCreateResumableSession(data) {
   try {
-    const filename = data.filename || "clip_" + Date.now() + ".mp4";
-    const mimeType = data.mimeType || "video/mp4";
-    const teamName = data.teamName || "General";
-    const stepTitle = data.stepTitle || "Step Update";
-    const fileSize = data.fileSize || 0;
-    const clientOrigin = data.origin || "";
+    var filename = data.filename || "clip_" + Date.now() + ".mp4";
+    var mimeType = data.mimeType || "video/mp4";
+    var teamName = data.teamName || "General";
+    var stepTitle = data.stepTitle || "Step Update";
+    var fileSize = data.fileSize || 0;
+    var clientOrigin = data.origin || "";
 
-    // 1. Get or create root & team destination folder
-    const targetFolder = getOrCreateFolder(ROOT_FOLDER_NAME);
-    const sanitizedTeam = teamName.replace(/[^a-zA-Z0-9 &_-]/g, "");
-    const destinationFolder = getOrCreateSubfolder(targetFolder, sanitizedTeam);
+    var targetFolder = getOrCreateFolder(ROOT_FOLDER_NAME);
+    var sanitizedTeam = teamName.replace(/[^a-zA-Z0-9 &_-]/g, "");
+    var destinationFolder = getOrCreateSubfolder(targetFolder, sanitizedTeam);
 
-    // 2. Format final standardized filename
-    const datePrefix = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd_HH-mm");
-    const sanitizedTitle = stepTitle.replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 40);
-    const finalFilename = `[${sanitizedTeam}]_${datePrefix}_${sanitizedTitle}_${filename}`;
+    var datePrefix = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd_HH-mm");
+    var sanitizedTitle = stepTitle.replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 40);
+    var finalFilename = "[" + sanitizedTeam + "]_" + datePrefix + "_" + sanitizedTitle + "_" + filename;
 
-    // 3. Initiate Google Drive v3 Resumable Session using script OAuth token
-    const metadata = {
+    var metadata = {
       name: finalFilename,
       parents: [destinationFolder.getId()]
     };
 
-    const headers = {
+    var headers = {
       "Authorization": "Bearer " + ScriptApp.getOAuthToken(),
       "Content-Type": "application/json; charset=UTF-8",
       "X-Upload-Content-Type": mimeType
@@ -124,17 +124,17 @@ function handleCreateResumableSession(data) {
       headers["Origin"] = clientOrigin;
     }
 
-    const apiUrl = "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable";
-    const res = UrlFetchApp.fetch(apiUrl, {
+    var apiUrl = "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable";
+    var res = UrlFetchApp.fetch(apiUrl, {
       method: "POST",
       headers: headers,
       payload: JSON.stringify(metadata),
       muteHttpExceptions: true
     });
 
-    const statusCode = res.getResponseCode();
-    const allHeaders = res.getAllHeaders();
-    const uploadUrl = allHeaders["Location"] || allHeaders["location"];
+    var statusCode = res.getResponseCode();
+    var allHeaders = res.getAllHeaders();
+    var uploadUrl = allHeaders["Location"] || allHeaders["location"];
 
     if (!uploadUrl || (statusCode !== 200 && statusCode !== 201)) {
       return responseJSON({
@@ -161,24 +161,22 @@ function handleCreateResumableSession(data) {
 
 /**
  * STEP 3: Finalizes the uploaded file permissions.
- * Sets sharing to ANYONE_WITH_LINK (View) and constructs streaming & preview URLs.
  */
 function handleFinalizeFile(data) {
   try {
-    const fileId = data.fileId;
+    var fileId = data.fileId;
     if (!fileId) {
       return responseJSON({ success: false, error: "fileId is required to finalize upload." });
     }
 
-    const file = DriveApp.getFileById(fileId);
+    var file = DriveApp.getFileById(fileId);
     
-    // Set permission so video embeds and streams work on website without authentication
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
-    const filename = file.getName();
-    const viewUrl = file.getUrl();
-    const embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
-    const directStreamUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
+    var filename = file.getName();
+    var viewUrl = file.getUrl();
+    var embedUrl = "https://drive.google.com/file/d/" + fileId + "/preview";
+    var directStreamUrl = "https://drive.google.com/uc?export=view&id=" + fileId;
 
     return responseJSON({
       success: true,
@@ -202,34 +200,34 @@ function handleFinalizeFile(data) {
  */
 function handleClassicUpload(data) {
   try {
-    const filename = data.filename || "upload_" + new Date().getTime() + ".mp4";
-    const mimeType = data.mimeType || "video/mp4";
-    const base64Data = data.base64Data;
-    const teamName = data.teamName || "General";
-    const stepTitle = data.stepTitle || "Step Update";
+    var filename = data.filename || "upload_" + new Date().getTime() + ".mp4";
+    var mimeType = data.mimeType || "video/mp4";
+    var base64Data = data.base64Data;
+    var teamName = data.teamName || "General";
+    var stepTitle = data.stepTitle || "Step Update";
 
     if (!base64Data) {
       return responseJSON({ success: false, error: "base64Data is required for classic upload" });
     }
 
-    const targetFolder = getOrCreateFolder(ROOT_FOLDER_NAME);
-    const sanitizedTeam = teamName.replace(/[^a-zA-Z0-9 &_-]/g, "");
-    const destinationFolder = getOrCreateSubfolder(targetFolder, sanitizedTeam);
+    var targetFolder = getOrCreateFolder(ROOT_FOLDER_NAME);
+    var sanitizedTeam = teamName.replace(/[^a-zA-Z0-9 &_-]/g, "");
+    var destinationFolder = getOrCreateSubfolder(targetFolder, sanitizedTeam);
 
-    const decodedBytes = Utilities.base64Decode(base64Data);
-    const datePrefix = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd_HH-mm");
-    const sanitizedTitle = stepTitle.replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 40);
-    const finalFilename = `[${sanitizedTeam}]_${datePrefix}_${sanitizedTitle}_${filename}`;
+    var decodedBytes = Utilities.base64Decode(base64Data);
+    var datePrefix = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd_HH-mm");
+    var sanitizedTitle = stepTitle.replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 40);
+    var finalFilename = "[" + sanitizedTeam + "]_" + datePrefix + "_" + sanitizedTitle + "_" + filename;
 
-    const blob = Utilities.newBlob(decodedBytes, mimeType, finalFilename);
-    const file = destinationFolder.createFile(blob);
+    var blob = Utilities.newBlob(decodedBytes, mimeType, finalFilename);
+    var file = destinationFolder.createFile(blob);
 
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
-    const fileId = file.getId();
-    const viewUrl = file.getUrl();
-    const embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
-    const directStreamUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
+    var fileId = file.getId();
+    var viewUrl = file.getUrl();
+    var embedUrl = "https://drive.google.com/file/d/" + fileId + "/preview";
+    var directStreamUrl = "https://drive.google.com/uc?export=view&id=" + fileId;
 
     return responseJSON({
       success: true,
@@ -253,7 +251,7 @@ function handleClassicUpload(data) {
 function doGet(e) {
   return responseJSON({
     status: "ok",
-    version: "2.0-resumable-500mb",
+    version: "2.1-with-otp",
     message: "Riders Bay SIEP Google Drive Resumable Uploader is online.",
     targetFolder: ROOT_FOLDER_NAME,
     timestamp: new Date().toISOString()
@@ -264,7 +262,7 @@ function doGet(e) {
  * Helper: Find or create root folder
  */
 function getOrCreateFolder(name) {
-  const folders = DriveApp.getFoldersByName(name);
+  var folders = DriveApp.getFoldersByName(name);
   if (folders.hasNext()) {
     return folders.next();
   }
@@ -275,7 +273,7 @@ function getOrCreateFolder(name) {
  * Helper: Find or create subfolder inside parent
  */
 function getOrCreateSubfolder(parent, name) {
-  const folders = parent.getFoldersByName(name);
+  var folders = parent.getFoldersByName(name);
   if (folders.hasNext()) {
     return folders.next();
   }
@@ -287,14 +285,14 @@ function getOrCreateSubfolder(parent, name) {
  */
 function handleSendInquiryMail(data) {
   try {
-    const to = data.to || "ebikeclubcoe@snjb.org";
-    const name = data.name || "Anonymous";
-    const email = data.email || "no-reply@ridersbay.com";
-    const phone = data.phone || "Not provided";
-    const organization = data.organization || "Individual";
-    const message = data.message || "No message content provided.";
+    var to = data.to || "ebikeclubcoe@snjb.org";
+    var name = data.name || "Anonymous";
+    var email = data.email || "no-reply@ridersbay.com";
+    var phone = data.phone || "Not provided";
+    var organization = data.organization || "Individual";
+    var message = data.message || "No message content provided.";
 
-    const htmlBody = 
+    var htmlBody = 
       '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; max-width: 620px; margin: 0 auto; border: 1px solid #E5E7EB; border-radius: 14px; overflow: hidden; background-color: #FFFFFF;">' +
         '<div style="background-color: #1F242E; padding: 24px 28px; color: #FFFFFF; border-bottom: 3px solid #F97316;">' +
           '<div style="color: #F97316; font-size: 11px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase;">SIEP E-BIKE 2026 // RIDERS BAY</div>' +
@@ -319,7 +317,7 @@ function handleSendInquiryMail(data) {
     MailApp.sendEmail({
       to: to,
       replyTo: email,
-      subject: "⚡ New Partner Inquiry: " + name + " (" + organization + ")",
+      subject: "New Partner Inquiry: " + name + " (" + organization + ")",
       htmlBody: htmlBody
     });
 
@@ -331,6 +329,76 @@ function handleSendInquiryMail(data) {
     return responseJSON({
       success: false,
       error: "MailApp error: " + mailErr.toString()
+    });
+  }
+}
+
+/**
+ * Handles sending Forgot Password OTP email to the single SIEP admin mailbox.
+ * Includes which team/domain is requesting the reset to prevent abuse.
+ */
+function handleSendForgotPasswordOTP(data) {
+  try {
+    var to = data.to || "snjbebikeclub@gmail.com";
+    var otp = data.otp || "000000";
+    var teamCode = data.teamCode || "???";
+    var teamName = data.teamName || "Unknown Team";
+    var teamEmail = data.teamEmail || "unknown@ridersbay.com";
+    var teamLead = data.teamLead || "Unknown";
+    var timestamp = data.timestamp || new Date().toLocaleString();
+    var expiryMinutes = data.expiryMinutes || 5;
+
+    var htmlBody =
+      '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; max-width: 620px; margin: 0 auto; border: 1px solid #E5E7EB; border-radius: 14px; overflow: hidden; background-color: #FFFFFF;">' +
+        '<div style="background-color: #1F242E; padding: 24px 28px; color: #FFFFFF; border-bottom: 3px solid #F97316;">' +
+          '<div style="color: #F97316; font-size: 11px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase;">SIEP E-BIKE 2026 // RIDERS BAY SECURITY</div>' +
+          '<h1 style="margin: 6px 0 0 0; font-size: 20px; font-weight: 800; letter-spacing: -0.02em;">Password Reset OTP</h1>' +
+        '</div>' +
+        '<div style="padding: 28px; color: #1F2937; line-height: 1.6; font-size: 14px;">' +
+
+          '<div style="background-color: #FFF7ED; border: 2px solid #FDBA74; border-radius: 12px; padding: 20px; margin-bottom: 24px; text-align: center;">' +
+            '<div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em; color: #9A3412; font-weight: 700; margin-bottom: 8px;">One-Time Password (OTP)</div>' +
+            '<div style="font-size: 36px; font-weight: 900; letter-spacing: 0.3em; color: #1F242E; font-family: monospace;">' + otp + '</div>' +
+            '<div style="font-size: 12px; color: #C2410C; margin-top: 8px; font-weight: 600;">Expires in ' + expiryMinutes + ' minutes</div>' +
+          '</div>' +
+
+          '<div style="font-weight: 700; color: #374151; margin-bottom: 12px; text-transform: uppercase; font-size: 11px; letter-spacing: 0.1em;">Reset Request Details:</div>' +
+          '<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">' +
+            '<tr><td style="padding: 8px 0; color: #6B7280; width: 150px; font-weight: 600;">Team Division:</td><td style="padding: 8px 0; font-weight: 700; color: #111827;">[' + teamCode + '] ' + teamName + '</td></tr>' +
+            '<tr><td style="padding: 8px 0; color: #6B7280; font-weight: 600;">Team Email:</td><td style="padding: 8px 0; color: #111827;">' + teamEmail + '</td></tr>' +
+            '<tr><td style="padding: 8px 0; color: #6B7280; font-weight: 600;">Team Lead:</td><td style="padding: 8px 0; color: #111827;">' + teamLead + '</td></tr>' +
+            '<tr><td style="padding: 8px 0; color: #6B7280; font-weight: 600;">Requested At:</td><td style="padding: 8px 0; color: #111827;">' + timestamp + '</td></tr>' +
+            '<tr><td style="padding: 8px 0; color: #6B7280; font-weight: 600;">Domain:</td><td style="padding: 8px 0; color: #111827;">ridersbay.com (SIEP Portal)</td></tr>' +
+          '</table>' +
+
+          '<hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;" />' +
+
+          '<div style="background-color: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; padding: 14px; font-size: 12px; color: #991B1B;">' +
+            '<strong>Security Notice:</strong> This OTP was generated from the Riders Bay login portal. ' +
+            'If you did not expect a password reset request from <strong>[' + teamCode + '] ' + teamName + '</strong>, ' +
+            'please ignore this email. The OTP will expire automatically in ' + expiryMinutes + ' minutes.' +
+          '</div>' +
+
+          '<div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #F1F5F9; font-size: 11px; color: #94A3B8; text-align: center;">' +
+            'Riders Bay SIEP Portal - Automated Security Alert - Do not forward this email' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    MailApp.sendEmail({
+      to: to,
+      subject: "[" + teamCode + "] " + teamName + " — Password Reset OTP: " + otp,
+      htmlBody: htmlBody
+    });
+
+    return responseJSON({
+      success: true,
+      message: "Forgot password OTP sent to admin inbox for [" + teamCode + "] " + teamName
+    });
+  } catch (mailErr) {
+    return responseJSON({
+      success: false,
+      error: "MailApp error sending OTP: " + mailErr.toString()
     });
   }
 }
