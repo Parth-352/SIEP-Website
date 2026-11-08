@@ -90,6 +90,9 @@ function LogPageContent() {
     const urlTeam = searchParams.get('team') || searchParams.get('teamId');
     if (urlTeam && (urlTeam === 'all' || TEAMS[urlTeam as TeamId])) {
       setSelectedTeamFilter(urlTeam);
+      if (urlTeam !== 'all') {
+        setTargetTeamId(urlTeam as TeamId);
+      }
     }
     const taskParam = searchParams.get('task') || searchParams.get('taskTitle');
     if (taskParam) {
@@ -103,7 +106,12 @@ function LogPageContent() {
     if (!authLoading && !user) {
       router.push('/login?from=/log');
     } else if (user) {
-      setTargetTeamId(user.teamId);
+      const urlTeam = searchParams.get('team') || searchParams.get('teamId');
+      if (user.teamId === 'core' && urlTeam && urlTeam !== 'all' && TEAMS[urlTeam as TeamId]) {
+        setTargetTeamId(urlTeam as TeamId);
+      } else {
+        setTargetTeamId(user.teamId);
+      }
       setAuthorName(user.displayName);
       const now = new Date();
       setDate(now.toISOString().split('T')[0]);
@@ -111,7 +119,7 @@ function LogPageContent() {
       const mins = String(now.getMinutes()).padStart(2, '0');
       setWorkTime(`${hours}:${mins}`);
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, searchParams]);
 
   useEffect(() => {
     setIsMounted(true);

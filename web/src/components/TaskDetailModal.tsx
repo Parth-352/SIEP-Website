@@ -338,27 +338,29 @@ export default function TaskDetailModal({
             </div>
 
             {/* Modal Bottom Actions */}
-            <div className="pt-4 border-t border-jet-black/10 flex flex-wrap items-center justify-between gap-3">
+            <div className="pt-4 border-t border-jet-black/10 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
               
-              <div className="flex items-center gap-2">
+              {/* Destructive Action (Safely at bottom on mobile, left on desktop) */}
+              <div className="order-last md:order-first">
                 {canDelete && (
                   <button
                     type="button"
                     disabled={isDeleting}
                     onClick={handleDelete}
-                    className="px-3.5 py-2 text-xs font-mono text-red-600 hover:bg-red-50 border border-red-200 rounded-xl font-bold cursor-pointer transition-colors min-h-[40px] sm:min-h-0"
+                    className="w-full md:w-auto px-4 py-2.5 text-xs font-mono text-red-600 hover:bg-red-50 hover:border-red-300 border border-red-200 rounded-xl font-bold cursor-pointer transition-colors flex items-center justify-center gap-1.5 min-h-[42px] md:min-h-0"
                   >
                     {isDeleting ? 'Deleting...' : '✕ Delete Task'}
                   </button>
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              {/* Primary Actions Group */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 {task.status !== 'done' && canEdit && onCompleteWithVideo && (
                   <button
                     type="button"
                     onClick={() => onCompleteWithVideo(task)}
-                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase font-mono tracking-wider shadow-sm transition-all inline-flex items-center gap-1.5 cursor-pointer min-h-[40px] sm:min-h-0"
+                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase font-mono tracking-wider shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[42px] sm:min-h-0"
                   >
                     <span>✓ Complete &amp; Attach Video</span>
                   </button>
@@ -367,17 +369,16 @@ export default function TaskDetailModal({
                 {/* Pre-fill Log Entry */}
                 <Link
                   href={`/log?team=${task.teamId}&task=${encodeURIComponent(task.title)}`}
-                  className="px-4 py-2.5 rounded-xl border border-orange text-orange hover:bg-orange hover:text-white text-xs font-mono uppercase font-bold transition-all shadow-sm inline-flex items-center gap-1.5 min-h-[40px] sm:min-h-0"
+                  className="px-4 py-2.5 rounded-xl border border-orange text-orange hover:bg-orange hover:text-white text-xs font-mono uppercase font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 min-h-[42px] sm:min-h-0 text-center"
                 >
-                  <span>Log Work for this Task</span>
-                  <span>→</span>
+                  <span>Log Work for this Task &rarr;</span>
                 </Link>
 
                 {canEdit && (
                   <button
                     type="button"
                     onClick={() => setIsEditing(true)}
-                    className="px-5 py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer min-h-[40px] sm:min-h-0"
+                    className="px-5 py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer flex items-center justify-center min-h-[42px] sm:min-h-0"
                   >
                     Edit Task ✎
                   </button>
