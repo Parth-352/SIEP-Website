@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { TEAMS } from '@/lib/teams';
 import { TeamId } from '@/lib/types';
 import { getTeamPasswords, getTeamPassword } from '@/lib/store';
+import { getFirestorePasswords } from '@/lib/firestoreService';
 import { SESSION_COOKIE_NAME, decodeSession } from '@/lib/session';
 
 /**
@@ -13,9 +14,13 @@ export async function GET(request: NextRequest) {
     const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
     const session = decodeSession(sessionCookie);
 
+    // Merge store passwords and Firestore passwords
+    const fsPasswords = await getFirestorePasswords();
+    const storePasswords = getTeamPasswords();
+    const customPasswords = { ...storePasswords, ...fsPasswords };
+
     // If Core Leadership (admin), return all passwords (custom or default)
-    if (session && session.role === 'admin') {
-      const customPasswords = getTeamPasswords();
+    if (session && (session.role === 'admin' || session.teamId === 'core')) {
       const allPasswords: Record<string, { password: string; isCustom: boolean }> = {};
 
       Object.values(TEAMS).forEach((team) => {
@@ -31,7 +36,6 @@ export async function GET(request: NextRequest) {
 
     // For unauthenticated or normal teams, return list of team IDs that have custom passwords
     // (does not leak the actual passwords publicly)
-    const customPasswords = getTeamPasswords();
     const updatedTeamIds = Object.keys(customPasswords);
 
     return NextResponse.json({
@@ -67,7 +71,8 @@ export async function POST(request: NextRequest) {
     }
 
     const cleanPass = String(password).trim();
-    const customPass = getTeamPassword(teamId);
+    const fsPasswords = await getFirestorePasswords();
+    const customPass = fsPasswords[teamId] || getTeamPassword(teamId);
     const activePass = customPass || team.defaultPass;
 
     const isValid =

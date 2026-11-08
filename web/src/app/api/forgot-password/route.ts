@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { TEAMS } from '@/lib/teams';
 import { TeamId } from '@/lib/types';
 import { getTeamPassword, setTeamPassword } from '@/lib/store';
+import { getFirestorePasswords, saveFirestorePassword } from '@/lib/firestoreService';
 
 // ============================================================================
 // FORGOT PASSWORD API — OTP-BASED PASSWORD RECOVERY & RESET
@@ -244,7 +245,8 @@ export async function POST(request: NextRequest) {
       record.resetToken = resetToken;
       record.tokenExpiresAt = Date.now() + 10 * 60 * 1000;
 
-      const activePassword = getTeamPassword(teamId) || team.defaultPass;
+      const fsPasswords = await getFirestorePasswords();
+      const activePassword = fsPasswords[teamId] || getTeamPassword(teamId) || team.defaultPass;
 
       return NextResponse.json({
         success: true,
@@ -300,8 +302,11 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // 1. Save new password to the server store
+      // 1. Save new password to the server store & Google Cloud Firestore
       setTeamPassword(teamId, cleanNewPass);
+      await saveFirestorePassword(teamId, cleanNewPass).catch((fsErr) => {
+        console.warn('Firestore password save notice:', fsErr);
+      });
 
       // Invalidate the reset token
       otpStore.delete(teamId);

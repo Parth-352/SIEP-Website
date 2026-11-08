@@ -165,3 +165,40 @@ export async function deleteFirestoreLog(id: string): Promise<boolean> {
     return false;
   }
 }
+
+// ======================== PASSWORDS FIRESTORE ========================
+
+export async function getFirestorePasswords(): Promise<Record<string, string>> {
+  if (!isFirebaseConfigured() || !db) return {};
+  try {
+    const col = collection(db, 'team_passwords');
+    const snapshot = await getDocs(col);
+    const passwords: Record<string, string> = {};
+    snapshot.forEach((d) => {
+      const data = d.data();
+      if (data.password) {
+        passwords[d.id] = data.password;
+      }
+    });
+    return passwords;
+  } catch (err) {
+    console.warn('Firestore getPasswords error:', err);
+    return {};
+  }
+}
+
+export async function saveFirestorePassword(teamId: string, password: string): Promise<boolean> {
+  if (!isFirebaseConfigured() || !db) return false;
+  try {
+    const docRef = doc(db, 'team_passwords', teamId);
+    await setDoc(docRef, {
+      teamId,
+      password,
+      updatedAt: Date.now(),
+    });
+    return true;
+  } catch (err) {
+    console.warn('Firestore savePassword error:', err);
+    return false;
+  }
+}

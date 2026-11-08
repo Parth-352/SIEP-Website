@@ -76,8 +76,8 @@ export default function DashboardPage() {
   const [showCredentialsPasswords, setShowCredentialsPasswords] = useState(false);
   const [teamCredentials, setTeamCredentials] = useState<Record<string, { password: string; isCustom: boolean }>>({});
 
-  // Fetch updated team passwords for Core Leadership
-  useEffect(() => {
+  // Fetch updated team passwords for Core Leadership from Cloud Database
+  const loadCredentials = useCallback(() => {
     if (user && (user.role === 'admin' || user.teamId === 'core')) {
       fetch('/api/passwords')
         .then((res) => res.json())
@@ -89,6 +89,10 @@ export default function DashboardPage() {
         .catch(() => {});
     }
   }, [user]);
+
+  useEffect(() => {
+    loadCredentials();
+  }, [loadCredentials, activeTab]);
 
   // Authentication protection: all logged-in members can view dashboard
   useEffect(() => {
@@ -1103,13 +1107,23 @@ export default function DashboardPage() {
                   Authorized login credentials for all 9 SIEP divisions (Core Leadership View)
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowCredentialsPasswords(!showCredentialsPasswords)}
-                className="text-xs font-mono px-3.5 py-1.5 bg-alice-blue text-jet-black hover:bg-jet-black hover:text-white border border-jet-black/10 rounded-xl font-bold transition-all self-start sm:self-auto cursor-pointer"
-              >
-                {showCredentialsPasswords ? '🔒 Mask Passwords' : '👁 Show Passwords'}
-              </button>
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={loadCredentials}
+                  className="text-xs font-mono px-3 py-1.5 bg-alice-blue text-jet-black hover:bg-jet-black hover:text-white border border-jet-black/10 rounded-xl font-bold transition-all cursor-pointer"
+                  title="Reload passwords from Google Cloud database"
+                >
+                  ⟳ Refresh
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCredentialsPasswords(!showCredentialsPasswords)}
+                  className="text-xs font-mono px-3.5 py-1.5 bg-alice-blue text-jet-black hover:bg-jet-black hover:text-white border border-jet-black/10 rounded-xl font-bold transition-all cursor-pointer"
+                >
+                  {showCredentialsPasswords ? '🔒 Mask Passwords' : '👁 Show Passwords'}
+                </button>
+              </div>
             </div>
 
             {/* Desktop Table View */}
