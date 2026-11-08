@@ -716,9 +716,12 @@ function LoginForm() {
                 <button
                   type="button"
                   onClick={() => setIsForgotOpen(true)}
-                  className="text-[11px] font-mono text-orange hover:text-jet-black transition-colors cursor-pointer font-bold hover:underline"
+                  className="text-xs font-mono text-orange hover:text-jet-black transition-colors cursor-pointer font-bold hover:underline flex items-center gap-1"
                 >
-                  Forgot Password?
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                  <span>Forgot Password?</span>
                 </button>
               </div>
               <div className="relative">
@@ -764,6 +767,18 @@ function LoginForm() {
                 <span>Select a Subsystem Team Above</span>
               )}
             </button>
+
+            {/* Secondary Forgot Password Link */}
+            <div className="pt-1 text-center">
+              <button
+                type="button"
+                onClick={() => setIsForgotOpen(true)}
+                className="text-xs font-mono text-grey hover:text-orange transition-colors cursor-pointer inline-flex items-center gap-1.5 py-1"
+              >
+                <span>Forgot your password?</span>
+                <span className="font-bold text-orange underline">Recover via Admin OTP →</span>
+              </button>
+            </div>
           </form>
 
         </div>
