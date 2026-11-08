@@ -46,6 +46,7 @@ export default function TaskDetailModal({
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Edit form state
@@ -67,6 +68,7 @@ export default function TaskDetailModal({
       setEditDueDate(task.dueDate || '');
       setEditStatus(task.status);
       setIsEditing(false);
+      setShowDeleteConfirm(false);
       setError(null);
     }
   }, [task]);
@@ -185,9 +187,7 @@ export default function TaskDetailModal({
   };
 
   // Delete Handler
-  const handleDelete = async () => {
-    if (!confirm(`Are you sure you want to delete task "${task.title}"?`)) return;
-
+  const handleConfirmDelete = async () => {
     setIsDeleting(true);
     setError(null);
 
@@ -196,13 +196,16 @@ export default function TaskDetailModal({
       const data = await res.json();
       if (data.success) {
         onTaskDeleted(task.id);
+        setShowDeleteConfirm(false);
         onClose();
       } else {
         setError(data.error || 'Failed to delete task');
+        setShowDeleteConfirm(false);
       }
     } catch (err) {
       console.error('Error deleting task:', err);
       setError('Network error while deleting task');
+      setShowDeleteConfirm(false);
     } finally {
       setIsDeleting(false);
     }
@@ -338,29 +341,29 @@ export default function TaskDetailModal({
             </div>
 
             {/* Modal Bottom Actions */}
-            <div className="pt-4 border-t border-jet-black/10 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            <div className="pt-5 border-t border-jet-black/10 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
               
-              {/* Destructive Action (Safely at bottom on mobile, left on desktop) */}
+              {/* Destructive Action (Safely isolated on left on desktop, bottom on mobile) */}
               <div className="order-last md:order-first">
                 {canDelete && (
                   <button
                     type="button"
                     disabled={isDeleting}
-                    onClick={handleDelete}
-                    className="w-full md:w-auto px-4 py-2.5 text-xs font-mono text-red-600 hover:bg-red-50 hover:border-red-300 border border-red-200 rounded-xl font-bold cursor-pointer transition-colors flex items-center justify-center gap-1.5 min-h-[42px] md:min-h-0"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="w-full md:w-auto h-10 px-3.5 rounded-xl text-xs font-mono font-bold text-red-600 hover:text-red-700 bg-red-50/60 hover:bg-red-50 border border-red-200/80 hover:border-red-300 transition-all cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap shadow-xs"
                   >
-                    {isDeleting ? 'Deleting...' : '✕ Delete Task'}
+                    <span>✕ Delete Task</span>
                   </button>
                 )}
               </div>
 
               {/* Primary Actions Group */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-wrap justify-end">
                 {task.status !== 'done' && canEdit && onCompleteWithVideo && (
                   <button
                     type="button"
                     onClick={() => onCompleteWithVideo(task)}
-                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase font-mono tracking-wider shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[42px] sm:min-h-0"
+                    className="h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase font-mono tracking-wider shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                   >
                     <span>✓ Complete &amp; Attach Video</span>
                   </button>
@@ -369,18 +372,18 @@ export default function TaskDetailModal({
                 {/* Pre-fill Log Entry */}
                 <Link
                   href={`/log?team=${task.teamId}&task=${encodeURIComponent(task.title)}`}
-                  className="px-4 py-2.5 rounded-xl border border-orange text-orange hover:bg-orange hover:text-white text-xs font-mono uppercase font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 min-h-[42px] sm:min-h-0 text-center"
+                  className="h-10 px-4 rounded-xl border border-orange/80 text-orange hover:bg-orange hover:text-white text-xs font-mono uppercase font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap text-center"
                 >
-                  <span>Log Work for this Task &rarr;</span>
+                  <span>Log Work &rarr;</span>
                 </Link>
 
                 {canEdit && (
                   <button
                     type="button"
                     onClick={() => setIsEditing(true)}
-                    className="px-5 py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer flex items-center justify-center min-h-[42px] sm:min-h-0"
+                    className="h-10 px-4 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase font-mono tracking-wider shadow-sm cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap"
                   >
-                    Edit Task ✎
+                    <span>Edit Task ✎</span>
                   </button>
                 )}
               </div>
@@ -524,6 +527,75 @@ export default function TaskDetailModal({
         )}
 
       </div>
+
+      {/* =========================================================================
+          CUSTOM DELETE CONFIRMATION MODAL
+         ========================================================================= */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[250] bg-jet-black/75 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white border-2 border-red-500/30 rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-150 space-y-4">
+            
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-red-50 border border-red-200/80 text-red-600 flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-base font-bold text-jet-black tracking-tight">
+                  Delete Task Permanently?
+                </h4>
+                <p className="text-xs text-grey leading-relaxed">
+                  Are you sure you want to delete this task? This action cannot be undone and will remove it from Cloud Firestore.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-alice-blue/70 rounded-xl border border-jet-black/10 space-y-1.5">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-grey block font-bold">Task:</span>
+              <p className="text-sm font-bold text-jet-black line-clamp-2 leading-snug">{task.title}</p>
+              <div className="flex items-center gap-2 pt-0.5">
+                <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${currentTeam?.badgeBg || 'bg-jet-black/5 text-jet-black'}`}>
+                  [{currentTeam?.code}] {currentTeam?.name}
+                </span>
+                <span className="text-[10px] font-mono text-grey">ID: {task.id}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-jet-black/10">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono font-bold text-grey hover:text-jet-black hover:bg-alice-blue transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmDelete}
+                className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-mono font-bold transition-all shadow-sm cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>✕ Confirm Delete</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }
