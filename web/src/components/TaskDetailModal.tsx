@@ -341,24 +341,42 @@ export default function TaskDetailModal({
             </div>
 
             {/* Modal Bottom Actions */}
-            <div className="pt-5 border-t border-jet-black/10 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            <div className="pt-5 border-t border-jet-black/10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               
-              {/* Destructive Action (Safely isolated on left on desktop, bottom on mobile) */}
-              <div className="order-last md:order-first">
+              {/* Left Group: Task Management (Delete & Edit) */}
+              <div className="flex items-center gap-2 order-2 sm:order-1">
                 {canDelete && (
                   <button
                     type="button"
                     disabled={isDeleting}
                     onClick={() => setShowDeleteConfirm(true)}
-                    className="w-full md:w-auto h-10 px-3.5 rounded-xl text-xs font-mono font-bold text-red-600 hover:text-red-700 bg-red-50/60 hover:bg-red-50 border border-red-200/80 hover:border-red-300 transition-all cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap shadow-xs"
+                    className="flex-1 sm:flex-none h-10 px-3.5 rounded-xl text-xs font-mono font-bold text-red-600 hover:text-red-700 bg-red-50/60 hover:bg-red-50 border border-red-200/80 hover:border-red-300 transition-all cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap shadow-xs"
                   >
-                    <span>✕ Delete Task</span>
+                    <span>✕ Delete</span>
+                  </button>
+                )}
+
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(true)}
+                    className="flex-1 sm:flex-none h-10 px-3.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase font-mono tracking-wider shadow-sm cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap"
+                  >
+                    <span>Edit ✎</span>
                   </button>
                 )}
               </div>
 
-              {/* Primary Actions Group */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-wrap justify-end">
+              {/* Right Group: Workflow Progression (Log Work & Complete) */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 order-1 sm:order-2">
+                {/* Pre-fill Log Entry */}
+                <Link
+                  href={`/log?team=${task.teamId}&task=${encodeURIComponent(task.title)}`}
+                  className="h-10 px-3.5 rounded-xl border border-orange/80 text-orange hover:bg-orange hover:text-white text-xs font-mono uppercase font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap text-center"
+                >
+                  <span>Log Work &rarr;</span>
+                </Link>
+
                 {task.status !== 'done' && canEdit && onCompleteWithVideo && (
                   <button
                     type="button"
@@ -366,24 +384,6 @@ export default function TaskDetailModal({
                     className="h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase font-mono tracking-wider shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                   >
                     <span>✓ Complete &amp; Attach Video</span>
-                  </button>
-                )}
-
-                {/* Pre-fill Log Entry */}
-                <Link
-                  href={`/log?team=${task.teamId}&task=${encodeURIComponent(task.title)}`}
-                  className="h-10 px-4 rounded-xl border border-orange/80 text-orange hover:bg-orange hover:text-white text-xs font-mono uppercase font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap text-center"
-                >
-                  <span>Log Work &rarr;</span>
-                </Link>
-
-                {canEdit && (
-                  <button
-                    type="button"
-                    onClick={() => setIsEditing(true)}
-                    className="h-10 px-4 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase font-mono tracking-wider shadow-sm cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap"
-                  >
-                    <span>Edit Task ✎</span>
                   </button>
                 )}
               </div>
