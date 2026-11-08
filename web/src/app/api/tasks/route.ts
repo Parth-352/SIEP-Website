@@ -78,8 +78,8 @@ export async function POST(request: NextRequest) {
       dueDate: dueDate || undefined,
     });
 
-    // Sync to Firestore in Cloud (non-blocking)
-    saveFirestoreTask(task).catch((err) => {
+    // Sync to Firestore in Cloud
+    await saveFirestoreTask(task).catch((err) => {
       console.warn('Firestore task sync notice:', err);
     });
 
@@ -129,7 +129,7 @@ export async function PATCH(request: NextRequest) {
         ...updates,
         updatedAt: Date.now(),
       };
-      saveFirestoreTask(updatedFs).catch(() => {});
+      await saveFirestoreTask(updatedFs).catch(() => {});
       return NextResponse.json({ success: true, task: updatedFs });
     }
 
@@ -143,7 +143,7 @@ export async function PATCH(request: NextRequest) {
 
     const updated = updateTask(id, updates);
     if (updated) {
-      saveFirestoreTask(updated).catch((err) => {
+      await saveFirestoreTask(updated).catch((err) => {
         console.warn('Firestore task update sync notice:', err);
       });
     }
@@ -202,7 +202,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const deleted = deleteTask(id);
-    deleteFirestoreTask(id).catch((err) => {
+    await deleteFirestoreTask(id).catch((err) => {
       console.warn('Firestore task delete sync notice:', err);
     });
 

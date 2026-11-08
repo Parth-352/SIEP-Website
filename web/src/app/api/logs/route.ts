@@ -108,8 +108,8 @@ export async function POST(request: NextRequest) {
       videoSource: videoSource || (videoUrl ? 'drive' : undefined),
     });
 
-    // Cloud Firestore Sync (non-blocking)
-    saveFirestoreLog(newLog).catch((err) => {
+    // Cloud Firestore Sync
+    await saveFirestoreLog(newLog).catch((err) => {
       console.warn('Firestore log sync notice:', err);
     });
 
@@ -188,7 +188,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Failed to apply log update.' }, { status: 500 });
     }
 
-    saveFirestoreLog(updated).catch((err) => {
+    await saveFirestoreLog(updated).catch((err) => {
       console.warn('Firestore log update sync notice:', err);
     });
 
@@ -245,7 +245,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const deleted = deleteLog(id);
-    deleteFirestoreLog(id).catch((err) => {
+    await deleteFirestoreLog(id).catch((err) => {
       console.warn('Firestore log delete sync notice:', err);
     });
 
