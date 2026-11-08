@@ -220,17 +220,43 @@ function ForgotPasswordModal({
     e.preventDefault();
     setError(null);
 
-    if (!newPassword.trim()) {
+    const p = newPassword.trim();
+    if (!p) {
       setError('Please enter a new password.');
       return;
     }
 
-    if (newPassword.trim().length < 6) {
-      setError('Password must be at least 6 characters long.');
+    if (p.length < 8) {
+      setError('Password must be at least 8 characters long.');
       return;
     }
 
-    if (newPassword.trim() !== confirmPassword.trim()) {
+    if (p.length > 40) {
+      setError('Password cannot exceed 40 characters.');
+      return;
+    }
+
+    if (!/[A-Z]/.test(p)) {
+      setError('Password must contain at least one uppercase letter (A-Z).');
+      return;
+    }
+
+    if (!/[a-z]/.test(p)) {
+      setError('Password must contain at least one lowercase letter (a-z).');
+      return;
+    }
+
+    if (!/[0-9]/.test(p)) {
+      setError('Password must contain at least one number (0-9).');
+      return;
+    }
+
+    if (!/[!@#$%^&*()_+\-=[\]{}|;:,.<>?/~`\\]/.test(p)) {
+      setError('Password must contain at least one special symbol (e.g. @, #, $, %, !).');
+      return;
+    }
+
+    if (p !== confirmPassword.trim()) {
       setError('Passwords do not match. Please re-enter.');
       return;
     }
@@ -265,6 +291,26 @@ function ForgotPasswordModal({
   };
 
   const selectedTeam = selectedTeamId ? TEAMS[selectedTeamId] : null;
+
+  // Real-time password criteria evaluation
+  const passwordCriteria = {
+    length: newPassword.length >= 8 && newPassword.length <= 40,
+    upper: /[A-Z]/.test(newPassword),
+    lower: /[a-z]/.test(newPassword),
+    number: /[0-9]/.test(newPassword),
+    symbol: /[!@#$%^&*()_+\-=[\]{}|;:,.<>?/~`\\]/.test(newPassword),
+    matches: Boolean(newPassword && confirmPassword && newPassword === confirmPassword),
+  };
+
+  const metCount = [
+    passwordCriteria.length,
+    passwordCriteria.upper,
+    passwordCriteria.lower,
+    passwordCriteria.number,
+    passwordCriteria.symbol,
+  ].filter(Boolean).length;
+
+  const isPasswordReady = metCount === 5 && passwordCriteria.matches;
 
   if (!isOpen) return null;
 
@@ -535,7 +581,7 @@ function ForgotPasswordModal({
                       type={showNewPassword ? 'text' : 'password'}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="At least 6 characters..."
+                      placeholder="e.g. Squad@2026..."
                       className="w-full px-3.5 py-2.5 bg-alice-blue border border-jet-black/15 rounded-xl text-sm font-mono text-jet-black placeholder:text-grey/50 focus:outline-none focus:border-orange focus:ring-2 focus:ring-orange/20 pr-14"
                       autoFocus
                     />
@@ -547,13 +593,78 @@ function ForgotPasswordModal({
                       {showNewPassword ? 'Hide' : 'Show'}
                     </button>
                   </div>
-                  <span className="text-[10px] text-grey font-mono block mt-1">Min. 6 characters</span>
+                </div>
+
+                {/* Real-time Security Checklist */}
+                <div className="bg-alice-blue/60 border border-jet-black/10 rounded-xl p-3 space-y-2">
+                  <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-grey font-bold">
+                    <span>Password Requirements</span>
+                    <span className={metCount === 5 ? 'text-emerald-600 font-bold' : 'text-grey'}>
+                      {metCount}/5 Met
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-1.5 text-[11px] font-mono">
+                    <div className={`flex items-center gap-1.5 ${passwordCriteria.length ? 'text-emerald-700 font-bold' : 'text-grey'}`}>
+                      <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] ${
+                        passwordCriteria.length ? 'bg-emerald-500 text-white' : 'bg-jet-black/10 text-grey'
+                      }`}>
+                        {passwordCriteria.length ? '✓' : '•'}
+                      </span>
+                      <span>8+ characters</span>
+                    </div>
+
+                    <div className={`flex items-center gap-1.5 ${passwordCriteria.upper ? 'text-emerald-700 font-bold' : 'text-grey'}`}>
+                      <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] ${
+                        passwordCriteria.upper ? 'bg-emerald-500 text-white' : 'bg-jet-black/10 text-grey'
+                      }`}>
+                        {passwordCriteria.upper ? '✓' : '•'}
+                      </span>
+                      <span>Uppercase (A-Z)</span>
+                    </div>
+
+                    <div className={`flex items-center gap-1.5 ${passwordCriteria.lower ? 'text-emerald-700 font-bold' : 'text-grey'}`}>
+                      <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] ${
+                        passwordCriteria.lower ? 'bg-emerald-500 text-white' : 'bg-jet-black/10 text-grey'
+                      }`}>
+                        {passwordCriteria.lower ? '✓' : '•'}
+                      </span>
+                      <span>Lowercase (a-z)</span>
+                    </div>
+
+                    <div className={`flex items-center gap-1.5 ${passwordCriteria.number ? 'text-emerald-700 font-bold' : 'text-grey'}`}>
+                      <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] ${
+                        passwordCriteria.number ? 'bg-emerald-500 text-white' : 'bg-jet-black/10 text-grey'
+                      }`}>
+                        {passwordCriteria.number ? '✓' : '•'}
+                      </span>
+                      <span>Number (0-9)</span>
+                    </div>
+
+                    <div className={`col-span-2 flex items-center gap-1.5 ${passwordCriteria.symbol ? 'text-emerald-700 font-bold' : 'text-grey'}`}>
+                      <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] ${
+                        passwordCriteria.symbol ? 'bg-emerald-500 text-white' : 'bg-jet-black/10 text-grey'
+                      }`}>
+                        {passwordCriteria.symbol ? '✓' : '•'}
+                      </span>
+                      <span>Special symbol (@ # $ % ! &amp; etc.)</span>
+                    </div>
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-mono uppercase tracking-wider text-jet-black font-bold mb-1">
-                    Confirm New Password *
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[11px] font-mono uppercase tracking-wider text-jet-black font-bold">
+                      Confirm New Password *
+                    </label>
+                    {confirmPassword && (
+                      <span className={`text-[10px] font-mono font-bold ${
+                        passwordCriteria.matches ? 'text-emerald-600' : 'text-rose-500'
+                      }`}>
+                        {passwordCriteria.matches ? '✓ Passwords match' : '✕ Passwords do not match'}
+                      </span>
+                    )}
+                  </div>
                   <input
                     type={showNewPassword ? 'text' : 'password'}
                     value={confirmPassword}
@@ -567,9 +678,9 @@ function ForgotPasswordModal({
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={isResetting || !newPassword.trim() || !confirmPassword.trim()}
+                disabled={isResetting || !isPasswordReady}
                 className={`w-full py-3.5 px-5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer ${
-                  isResetting || !newPassword.trim() || !confirmPassword.trim()
+                  isResetting || !isPasswordReady
                     ? 'bg-jet-black/30 text-white/70 cursor-not-allowed'
                     : 'bg-orange text-white hover:bg-jet-black'
                 }`}

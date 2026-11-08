@@ -31,6 +31,30 @@ interface OTPRecord {
 // In-memory OTP store (keyed by teamId)
 const otpStore = new Map<string, OTPRecord>();
 
+// Validate strict password requirements: 8+ chars, uppercase, lowercase, digit, and symbol
+function validatePasswordStrength(password: string): { valid: boolean; error?: string } {
+  const p = password.trim();
+  if (p.length < 8) {
+    return { valid: false, error: 'Password must be at least 8 characters long.' };
+  }
+  if (p.length > 40) {
+    return { valid: false, error: 'Password cannot exceed 40 characters.' };
+  }
+  if (!/[A-Z]/.test(p)) {
+    return { valid: false, error: 'Password must contain at least one uppercase letter (A-Z).' };
+  }
+  if (!/[a-z]/.test(p)) {
+    return { valid: false, error: 'Password must contain at least one lowercase letter (a-z).' };
+  }
+  if (!/[0-9]/.test(p)) {
+    return { valid: false, error: 'Password must contain at least one number (0-9).' };
+  }
+  if (!/[!@#$%^&*()_+\-=[\]{}|;:,.<>?/~`\\]/.test(p)) {
+    return { valid: false, error: 'Password must contain at least one special symbol (e.g. @, #, $, %, !).' };
+  }
+  return { valid: true };
+}
+
 // Generate a 6-digit numeric OTP
 function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -268,9 +292,10 @@ export async function POST(request: NextRequest) {
       }
 
       const cleanNewPass = String(newPassword).trim();
-      if (cleanNewPass.length < 6) {
+      const validation = validatePasswordStrength(cleanNewPass);
+      if (!validation.valid) {
         return NextResponse.json(
-          { success: false, error: 'New password must be at least 6 characters long.' },
+          { success: false, error: validation.error || 'Password does not meet security requirements.' },
           { status: 400 }
         );
       }
