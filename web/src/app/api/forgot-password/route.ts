@@ -83,8 +83,11 @@ export async function POST(request: NextRequest) {
       // Send OTP email via Google Apps Script
       const gasUrl = process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL;
       let mailSent = false;
+      let failureReason = '';
 
-      if (gasUrl) {
+      if (!gasUrl) {
+        failureReason = 'Google Apps Script URL is not configured on the server.';
+      } else {
         try {
           const timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
 
@@ -106,10 +109,18 @@ export async function POST(request: NextRequest) {
           });
 
           if (gasRes.ok) {
-            const gasData = await gasRes.json();
-            mailSent = gasData.success === true;
+            const gasData = await gasRes.json().catch(() => null);
+            if (gasData && gasData.success === true) {
+              mailSent = true;
+            } else {
+              failureReason = gasData?.error || 'Google Apps Script returned an unhandled error.';
+              console.warn('Google Apps Script returned failure for OTP mail:', gasData);
+            }
+          } else {
+            failureReason = `Google Apps Script returned HTTP ${gasRes.status}.`;
           }
         } catch (gasErr) {
+          failureReason = gasErr instanceof Error ? gasErr.message : 'Network error reaching Google Apps Script';
           console.error('Failed to send OTP via Google Apps Script:', gasErr);
         }
       }
@@ -118,7 +129,12 @@ export async function POST(request: NextRequest) {
         // Clear the OTP if mail couldn't be sent
         otpStore.delete(teamId);
         return NextResponse.json(
-          { success: false, error: 'Failed to send OTP email. Please try again later or contact administration.' },
+          {
+            success: false,
+            error: failureReason
+              ? `Failed to send OTP email (${failureReason}). Please update the Google Apps Script deployment.`
+              : 'Failed to send OTP email. Please try again later or contact administration.',
+          },
           { status: 500 }
         );
       }

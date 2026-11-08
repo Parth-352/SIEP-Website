@@ -41,7 +41,8 @@ var ROOT_FOLDER_NAME = "SIEP Team Logs";
 function authorizeScript() {
   DriveApp.getRootFolder();
   UrlFetchApp.fetch("https://www.google.com");
-  Logger.log("ALL PERMISSIONS AUTHORIZED! You can now deploy and upload 5 GB files.");
+  MailApp.getRemainingDailyQuota();
+  Logger.log("ALL PERMISSIONS AUTHORIZED (Drive, UrlFetch, Mail)! You can now deploy.");
 }
 
 
