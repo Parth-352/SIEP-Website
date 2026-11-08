@@ -1,30 +1,49 @@
 "use client";
 
 import React, { Suspense, useMemo, useState, useEffect } from 'react';
-import { Canvas, useLoader } from '@react-three/fiber';
-import { OrbitControls, Environment, Center } from '@react-three/drei';
-import { STLLoader } from 'three-stdlib';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, Environment, Center, useGLTF, ContactShadows, SpotLight } from '@react-three/drei';
 import * as THREE from 'three';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
-function ChassisModel() {
-  const geom = useLoader(STLLoader, '/models/chassis.stl');
+// Preload the model
+useGLTF.preload('/moto.glb');
 
-  // Ensure the geometry is properly centered and computed
-  useMemo(() => {
-    geom.computeVertexNormals();
-  }, [geom]);
+function ScramblerModel() {
+  const { scene } = useGLTF('/moto.glb');
+
+  // Clone and enhance for interactive viewer
+  const clonedScene = useMemo(() => {
+    const clone = scene.clone(true);
+    
+    clone.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+        
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach(mat => {
+          if (mat instanceof THREE.MeshStandardMaterial) {
+            // Higher env map intensity for interactive viewer (user wants to see reflections)
+            mat.envMapIntensity = 1.5;
+            
+            // Allow LED glow to bloom through tonemapping
+            if (mat.emissiveIntensity > 0) {
+              mat.toneMapped = false;
+            }
+            
+            mat.needsUpdate = true;
+          }
+        });
+      }
+    });
+
+    return clone;
+  }, [scene]);
 
   return (
-    <Center scale={0.002}>
-      {/* Adjusted rotation to make the chassis stand upright instead of laying flat */}
-      <mesh geometry={geom} rotation={[0, 0, 0]}>
-        <meshStandardMaterial 
-          color="#1a1a1a" 
-          metalness={0.8} 
-          roughness={0.3} 
-        />
-      </mesh>
+    <Center scale={1}>
+      <primitive object={clonedScene} />
     </Center>
   );
 }
@@ -42,7 +61,7 @@ export default function BikeExplorer() {
   }, []);
 
   return (
-    <div className="w-full h-[45vh] md:h-[60vh] bg-alice-blue/30 rounded-xl overflow-hidden relative border border-jet-black/10">
+    <div className="w-full h-[45vh] md:h-[60vh] bg-gradient-to-b from-alice-blue/40 to-jet-black/[0.03] rounded-xl overflow-hidden relative border border-jet-black/10 shadow-inner">
       {showTouchHint && (
         <div 
           className="absolute inset-0 z-20 flex items-center justify-center bg-black/30 backdrop-blur-sm md:hidden cursor-pointer select-none"
@@ -69,29 +88,88 @@ export default function BikeExplorer() {
           </div>
         }
       >
-        <Canvas camera={{ position: [2, 1.5, 3], fov: 45 }}>
+        <Canvas 
+          camera={{ position: [2.2, 1.2, 2.8], fov: 38 }}
+          gl={{ 
+            antialias: true,
+            toneMapping: THREE.ACESFilmicToneMapping,
+            toneMappingExposure: 1.1,
+            outputColorSpace: THREE.SRGBColorSpace,
+            powerPreference: 'high-performance',
+          }}
+          dpr={[1, 2]}
+          shadows
+        >
           <Suspense fallback={null}>
+            {/* HDR Environment for chrome, steel, gold reflections */}
             <Environment preset="city" />
-            <ambientLight intensity={0.5} />
-            <directionalLight position={[5, 5, 5]} intensity={1} />
-            <ChassisModel />
+            
+            {/* Studio Lighting — 4 point rig matching Blender setup */}
+            <ambientLight intensity={0.3} color="#f8f9fa" />
+            
+            {/* Key Light — warm from above-right */}
+            <directionalLight 
+              position={[3, 4, 3]} 
+              intensity={1.8} 
+              color="#fff7eb" 
+              castShadow
+              shadow-mapSize-width={1024}
+              shadow-mapSize-height={1024}
+            />
+            
+            {/* Fill Light — cool blue from opposite */}
+            <directionalLight position={[-2.5, 2, 1.5]} intensity={0.7} color="#bfe6ff" />
+            
+            {/* Rim Light — brand orange accent defining silhouette */}
+            <spotLight 
+              position={[1.5, 1.5, -2]} 
+              intensity={2.5} 
+              color="#FF7300" 
+              angle={0.35} 
+              penumbra={0.9}
+              distance={10}
+              decay={2}
+            />
+            
+            {/* Bottom bounce fill */}
+            <pointLight position={[0, -1, 0]} intensity={0.4} color="#f2f2ff" distance={5} decay={2} />
+            
+            <ScramblerModel />
+            
+            {/* Contact shadows for grounding */}
+            <ContactShadows 
+              position={[0, -0.85, 0]} 
+              opacity={0.45} 
+              scale={8} 
+              blur={2.2} 
+              far={3}
+              color="#2B303A"
+            />
+            
             <OrbitControls 
               enableZoom={true} 
               enablePan={false}
               autoRotate={true}
-              autoRotateSpeed={1.0}
-              maxPolarAngle={Math.PI / 2 + 0.1}
+              autoRotateSpeed={0.6}
+              maxPolarAngle={Math.PI / 2 + 0.15}
+              minPolarAngle={0.2}
+              minDistance={1.2}
+              maxDistance={5.5}
               touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }}
+              dampingFactor={0.08}
+              enableDamping={true}
             />
           </Suspense>
         </Canvas>
       </ErrorBoundary>
+      
+      {/* Info badges */}
       <div className="absolute bottom-4 left-4 pointer-events-none flex flex-col max-w-[calc(100%-2rem)]">
         <span className="text-[10px] uppercase font-mono tracking-widest text-jet-black/70 bg-white/70 px-2 py-1 rounded mb-1 w-max max-w-full truncate shadow-sm backdrop-blur">
           Interactive Explorer
         </span>
         <span className="text-[10px] uppercase font-mono tracking-widest text-orange bg-jet-black/80 px-2 py-1 rounded w-max max-w-full truncate shadow-sm backdrop-blur">
-          Loaded: Chassis 300mm STL
+          Smart Scrambler — Full Assembly GLB
         </span>
       </div>
     </div>

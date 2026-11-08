@@ -22,10 +22,16 @@ let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
 let db: Firestore | undefined;
 
-if (typeof window !== 'undefined' && isFirebaseConfigured()) {
-  app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
+if (isFirebaseConfigured()) {
+  try {
+    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    if (typeof window !== 'undefined') {
+      auth = getAuth(app);
+    }
+  } catch (err) {
+    console.warn('Firebase initialization notice:', err);
+  }
 }
 
 export { app, auth, db };

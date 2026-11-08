@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLogs, createLog, getLogById, updateLog, deleteLog } from '@/lib/store';
+import { 
+  getFirestoreLogs, 
+  saveFirestoreLog, 
+  deleteFirestoreLog 
+} from '@/lib/firestoreService';
 import { TeamId } from '@/lib/types';
 import { TEAMS } from '@/lib/teams';
 import { SESSION_COOKIE_NAME, decodeSession } from '@/lib/session';
@@ -25,8 +30,15 @@ export async function GET(request: NextRequest) {
       teamId = session.teamId;
     }
 
+    // 1. Try Firestore first
+    const firestoreLogs = await getFirestoreLogs(teamId);
+    if (firestoreLogs !== null) {
+      return NextResponse.json({ success: true, logs: firestoreLogs, source: 'firestore' });
+    }
+
+    // 2. Fallback to local store
     const logs = getLogs(teamId);
-    return NextResponse.json({ success: true, logs });
+    return NextResponse.json({ success: true, logs, source: 'local' });
   } catch (error) {
     console.error('Error fetching logs:', error);
     return NextResponse.json({ success: false, error: 'Failed to fetch logs' }, { status: 500 });
@@ -96,6 +108,11 @@ export async function POST(request: NextRequest) {
       videoSource: videoSource || (videoUrl ? 'drive' : undefined),
     });
 
+    // Cloud Firestore Sync (non-blocking)
+    saveFirestoreLog(newLog).catch((err) => {
+      console.warn('Firestore log sync notice:', err);
+    });
+
     return NextResponse.json({ success: true, log: newLog }, { status: 201 });
   } catch (error) {
     console.error('Error creating log:', error);
@@ -124,7 +141,25 @@ export async function PATCH(request: NextRequest) {
 
     const existingLog = getLogById(id);
     if (!existingLog) {
-      return NextResponse.json({ success: false, error: 'Log record not found.' }, { status: 404 });
+      // Try from Firestore
+      const fsLogs = await getFirestoreLogs();
+      const fsExisting = fsLogs?.find((l) => l.id === id);
+      if (!fsExisting) {
+        return NextResponse.json({ success: false, error: 'Log record not found.' }, { status: 404 });
+      }
+      if (session.teamId !== 'core' && fsExisting.teamId !== session.teamId) {
+        return NextResponse.json(
+          { success: false, error: 'Forbidden: You can only edit step logs created by your subsystem team.' },
+          { status: 403 }
+        );
+      }
+      const updatedFs = {
+        ...fsExisting,
+        ...updates,
+        updatedAt: Date.now(),
+      };
+      saveFirestoreLog(updatedFs).catch(() => {});
+      return NextResponse.json({ success: true, log: updatedFs });
     }
 
     // Role enforcement: ONLY Core Leadership can edit logs belonging to other teams
@@ -152,6 +187,10 @@ export async function PATCH(request: NextRequest) {
     if (!updated) {
       return NextResponse.json({ success: false, error: 'Failed to apply log update.' }, { status: 500 });
     }
+
+    saveFirestoreLog(updated).catch((err) => {
+      console.warn('Firestore log update sync notice:', err);
+    });
 
     return NextResponse.json({ success: true, log: updated });
   } catch (error) {
@@ -181,7 +220,19 @@ export async function DELETE(request: NextRequest) {
 
     const existingLog = getLogById(id);
     if (!existingLog) {
-      return NextResponse.json({ success: false, error: 'Log record not found.' }, { status: 404 });
+      const fsLogs = await getFirestoreLogs();
+      const fsExisting = fsLogs?.find((l) => l.id === id);
+      if (!fsExisting) {
+        return NextResponse.json({ success: false, error: 'Log record not found.' }, { status: 404 });
+      }
+      if (session.teamId !== 'core' && fsExisting.teamId !== session.teamId) {
+        return NextResponse.json(
+          { success: false, error: 'Forbidden: You can only delete step logs created by your subsystem team.' },
+          { status: 403 }
+        );
+      }
+      await deleteFirestoreLog(id);
+      return NextResponse.json({ success: true });
     }
 
     // Role enforcement: ONLY Core Leadership can delete logs belonging to other teams
@@ -194,6 +245,10 @@ export async function DELETE(request: NextRequest) {
     }
 
     const deleted = deleteLog(id);
+    deleteFirestoreLog(id).catch((err) => {
+      console.warn('Firestore log delete sync notice:', err);
+    });
+
     return NextResponse.json({ success: deleted });
   } catch (error) {
     console.error('Error deleting log:', error);
