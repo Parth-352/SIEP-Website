@@ -111,12 +111,6 @@ function LogPageContent() {
     }
 
     if (!authLoading && user) {
-      // Tier 3 Team Members are blocked from /log and redirected to /dashboard
-      if (!isCore && !isLead && user.teamId !== 'core') {
-        router.push('/dashboard?restricted=log');
-        return;
-      }
-
       const urlTeam = searchParams.get('team') || searchParams.get('teamId');
       if (isCoreAdmin && urlTeam && urlTeam !== 'all' && TEAMS[urlTeam as TeamId]) {
         setTargetTeamId(urlTeam as TeamId);

@@ -12,7 +12,7 @@ export default function Navigation() {
   const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
   const { user, isAdmin, isCore, isLead, tier, logout } = useAuth();
-  const { isInstalled, installApp } = usePwaInstall();
+  const { isInstalled, isStandalone, installApp } = usePwaInstall();
   const currentTeam = user ? TEAMS[user.teamId] : null;
   const isPortalOnly = process.env.NEXT_PUBLIC_PORTAL_ONLY === 'true';
 
@@ -20,7 +20,7 @@ export default function Navigation() {
     setIsMounted(true);
   }, []);
 
-  const isPortalPage = isPortalOnly || pathname.startsWith('/log') || pathname.startsWith('/dashboard');
+  const isPortalPage = isPortalOnly || isStandalone || pathname.startsWith('/log') || pathname.startsWith('/dashboard');
 
   // Close mobile menu on route change
   const [prevPath, setPrevPath] = useState(pathname);
@@ -112,7 +112,7 @@ export default function Navigation() {
           {/* Brand Logo & Portal Tag */}
           <div className="flex items-center gap-3">
             <Link 
-              href="/" 
+              href={isStandalone || isPortalPage ? "/log" : "/"} 
               onClick={closeMenu}
               className="text-2xl font-black text-jet-black tracking-tighter hover:opacity-90 transition-opacity"
             >
@@ -121,7 +121,7 @@ export default function Navigation() {
             {isMounted && user && (
               <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-jet-black/15">
                 <span className="text-[10px] font-mono uppercase tracking-[0.2em] px-2 py-0.5 rounded bg-jet-black text-alice-blue font-bold">
-                  PORTAL
+                  {pathname.startsWith('/log') || isStandalone ? 'LOG SYSTEM' : 'PORTAL'}
                 </span>
                 <span className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-jet-black/10 text-grey font-bold">
                   TIER {tier}
@@ -137,50 +137,38 @@ export default function Navigation() {
             ) : isPortalPage && user ? (
               /* ================= Portal Dedicated View ================= */
               <>
+                {/* Build Log: Primary route accessible to all users */}
                 <Link
-                  href="/dashboard"
+                  href="/log"
                   className={`h-9 px-3.5 rounded-xl text-xs font-sans uppercase tracking-wider font-bold transition-all inline-flex items-center justify-center ${
-                    pathname === '/dashboard'
+                    pathname === '/log'
                       ? 'bg-jet-black text-alice-blue shadow-sm'
                       : 'text-jet-black hover:text-orange hover:bg-jet-black/5'
                   }`}
                 >
-                  Dashboard
+                  Build Log
                 </Link>
 
-                {/* Build Log: Exclusively visible to Tier 1 (Core) and Tier 2 (Leads) */}
+                {/* Dashboard: Visible to Core & Leads */}
                 {(isCore || isLead) && (
                   <Link
-                    href="/log"
+                    href="/dashboard"
                     className={`h-9 px-3.5 rounded-xl text-xs font-sans uppercase tracking-wider font-bold transition-all inline-flex items-center justify-center ${
-                      pathname === '/log'
+                      pathname === '/dashboard'
                         ? 'bg-jet-black text-alice-blue shadow-sm'
                         : 'text-jet-black hover:text-orange hover:bg-jet-black/5'
                     }`}
                   >
-                    Build Log
-                  </Link>
-                )}
-
-                {!isPortalOnly && (
-                  <Link
-                    href="/"
-                    target="_blank"
-                    className="h-9 px-3 rounded-xl text-grey hover:text-jet-black text-xs font-sans font-bold uppercase tracking-wider inline-flex items-center gap-1.5 transition-colors hover:bg-jet-black/5"
-                  >
-                    <span>Public Site</span>
-                    <svg className="w-3.5 h-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
+                    Dashboard
                   </Link>
                 )}
 
                 {/* Install Web App Button */}
-                {!isInstalled && (
+                {!isInstalled && !isStandalone && (
                   <button
                     type="button"
                     onClick={installApp}
-                    title="Install Web App on your phone or computer"
+                    title="Install SIEP Log System on your device"
                     className="h-9 px-3 rounded-xl border border-orange/40 bg-orange/10 hover:bg-orange text-jet-black hover:text-white transition-all text-xs font-sans font-bold uppercase tracking-wider inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
                   >
                     <span>📲</span>
@@ -334,8 +322,8 @@ export default function Navigation() {
         }`}
         aria-hidden={!isMobileMenuOpen}
       >
-        <div className="flex flex-col items-center space-y-5 text-2xl uppercase tracking-widest font-bold text-jet-black w-full px-8 py-20 max-w-sm">
-          {!isPortalOnly && (
+        <div className="flex flex-col items-center space-y-4 text-2xl uppercase tracking-widest font-bold text-jet-black w-full px-8 py-20 max-w-sm">
+          {!isPortalPage && !isStandalone && (
             <>
               <Link 
                 href="/" 
@@ -372,22 +360,27 @@ export default function Navigation() {
           {isMounted && (
             user ? (
               <>
+                {/* Build Log: Accessible to all members */}
                 <Link
-                  href="/dashboard"
+                  href="/log"
                   onClick={closeMenu}
-                  className="hover:text-orange text-orange transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center font-bold"
+                  className={`transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center font-bold ${
+                    pathname === '/log' ? 'text-orange font-bold' : 'hover:text-orange text-jet-black'
+                  }`}
                 >
-                  Dashboard
+                  Build Log
                 </Link>
 
-                {/* Build Log: Only for Core & Leads */}
+                {/* Dashboard: Visible to Core & Leads */}
                 {(isCore || isLead) && (
                   <Link
-                    href="/log"
+                    href="/dashboard"
                     onClick={closeMenu}
-                    className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center font-bold"
+                    className={`transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center font-bold ${
+                      pathname === '/dashboard' ? 'text-orange font-bold' : 'hover:text-orange text-jet-black'
+                    }`}
                   >
-                    Build Log
+                    Dashboard
                   </Link>
                 )}
 

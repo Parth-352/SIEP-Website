@@ -1,14 +1,14 @@
 {
-  "name": "SIEP Riders Bay",
-  "short_name": "SIEP",
-  "description": "Riders Bay SIEP Smart Scrambler E-Bike operations portal and engineering center by SNJB's KBJ College of Engineering.",
-  "id": "/dashboard",
-  "start_url": "/dashboard",
+  "name": "SIEP Log System",
+  "short_name": "SIEP Logs",
+  "description": "SIEP Smart Scrambler E-Bike Engineering Build Log & Workshop Operations System by SNJB's KBJ College of Engineering.",
+  "id": "/log",
+  "start_url": "/log",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
   "theme_color": "#0B0C10",
-  "background_color": "#F5F7FA",
+  "background_color": "#0B0C10",
   "lang": "en",
   "dir": "ltr",
   "categories": ["productivity", "utilities", "engineering"],
@@ -40,24 +40,17 @@
   ],
   "shortcuts": [
     {
-      "name": "Operations Dashboard",
-      "short_name": "Dashboard",
-      "description": "View live engineering deliverables and subsystem tasks",
-      "url": "/dashboard",
+      "name": "New Build Log Entry",
+      "short_name": "New Log",
+      "description": "Record a new workshop build log entry and upload work media",
+      "url": "/log?action=new",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Engineering Build Log",
-      "short_name": "Log Work",
-      "description": "Record workshop logs and attach Google Drive clips",
+      "name": "Workshop Build Logs",
+      "short_name": "Logs",
+      "description": "View and filter all engineering subsystem workshop logs",
       "url": "/log",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Bike 3D Explorer",
-      "short_name": "3D Bike",
-      "description": "Inspect the interactive scrambler e-bike in 3D",
-      "url": "/bike",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
   ]

@@ -458,6 +458,15 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isForgotOpen, setIsForgotOpen] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    const standalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
+      document.referrer.includes('android-app://');
+    setIsStandalone(Boolean(standalone));
+  }, []);
 
   // If already logged in, redirect immediately
   useEffect(() => {
@@ -465,7 +474,7 @@ function LoginForm() {
       if (fromUrl && !fromUrl.startsWith('/login')) {
         router.push(fromUrl);
       } else {
-        router.push('/dashboard');
+        router.push('/log');
       }
     }
   }, [user, fromUrl, router]);
@@ -515,7 +524,7 @@ function LoginForm() {
       if (fromUrl && !fromUrl.startsWith('/login')) {
         router.push(fromUrl);
       } else {
-        router.push('/dashboard');
+        router.push('/log');
       }
     } else {
       setError('PIN updated! Please click Sign In to continue.');
@@ -672,16 +681,18 @@ function LoginForm() {
             </button>
           </form>
 
-          {/* Return to Public Website */}
-          <div className="pt-3 text-center border-t border-jet-black/10">
-            <Link
-              href="/"
-              className="text-xs font-mono uppercase tracking-wider text-grey hover:text-jet-black transition-colors inline-flex items-center gap-1.5"
-            >
-              <span>←</span>
-              <span>Return to Public Website</span>
-            </Link>
-          </div>
+          {/* Return to Public Website (Hidden when inside standalone app mode) */}
+          {!isStandalone && (
+            <div className="pt-3 text-center border-t border-jet-black/10">
+              <Link
+                href="/"
+                className="text-xs font-mono uppercase tracking-wider text-grey hover:text-jet-black transition-colors inline-flex items-center gap-1.5"
+              >
+                <span>←</span>
+                <span>Return to Public Website</span>
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 

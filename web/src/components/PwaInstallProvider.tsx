@@ -6,6 +6,7 @@ import Image from 'next/image';
 interface PwaInstallContextType {
   isInstallable: boolean;
   isInstalled: boolean;
+  isStandalone: boolean;
   isIOS: boolean;
   installApp: () => Promise<void>;
   openInstallModal: () => void;
@@ -15,6 +16,7 @@ interface PwaInstallContextType {
 const PwaInstallContext = createContext<PwaInstallContextType>({
   isInstallable: false,
   isInstalled: false,
+  isStandalone: false,
   isIOS: false,
   installApp: async () => {},
   openInstallModal: () => {},
@@ -30,19 +32,26 @@ const DISMISS_KEY = 'siep_pwa_banner_dismissed_v1';
 export function PwaInstallProvider({ children }: { children: React.ReactNode }) {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [showBanner, setShowBanner] = useState(false);
 
   useEffect(() => {
     // 1. Check if already running in standalone PWA mode
-    const isStandalone =
+    const standalone =
       window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone === true ||
+      (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
       document.referrer.includes('android-app://');
 
-    if (isStandalone) {
+    if (standalone) {
       setIsInstalled(true);
+      setIsStandalone(true);
+      // If standalone app opens on a marketing/public route, redirect immediately to /log
+      const path = window.location.pathname;
+      if (path === '/' || path === '/about' || path === '/competition' || path === '/bike' || path === '/contact') {
+        window.location.replace('/log');
+      }
       return;
     }
 
@@ -128,6 +137,7 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
       value={{
         isInstallable,
         isInstalled,
+        isStandalone,
         isIOS,
         installApp,
         openInstallModal,
@@ -144,7 +154,7 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
               <div className="w-11 h-11 rounded-xl bg-orange/20 border border-orange/40 flex items-center justify-center shrink-0 overflow-hidden">
                 <Image
                   src="/icons/icon-192.png"
-                  alt="SIEP Web App"
+                  alt="SIEP Log System"
                   width={36}
                   height={36}
                   className="rounded-lg object-contain"
@@ -152,13 +162,13 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
               </div>
               <div className="space-y-0.5">
                 <h4 className="text-xs font-bold font-sans text-white flex items-center gap-1.5">
-                  <span>SIEP Riders Bay</span>
+                  <span>SIEP Log System</span>
                   <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-orange text-jet-black font-extrabold uppercase">
                     APP
                   </span>
                 </h4>
                 <p className="text-[11px] font-mono text-grey line-clamp-1">
-                  Install for 1-tap workshop access
+                  Install for offline logs & background uploads
                 </p>
               </div>
             </div>
@@ -203,10 +213,10 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-jet-black">
-                    Download SIEP Riders Bay
+                    Install SIEP Log System
                   </h3>
                   <span className="text-xs font-mono text-grey">
-                    Official Progressive Web App
+                    Official Workshop Engineering Logbook App
                   </span>
                 </div>
               </div>
