@@ -47,10 +47,10 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
     if (standalone) {
       setIsInstalled(true);
       setIsStandalone(true);
-      // If standalone app opens on a marketing/public route, redirect immediately to /log
+      // If standalone app opens on a marketing/public route, redirect immediately to /dashboard
       const path = window.location.pathname;
       if (path === '/' || path === '/about' || path === '/competition' || path === '/bike' || path === '/contact') {
-        window.location.replace('/log');
+        window.location.replace('/dashboard');
       }
       return;
     }

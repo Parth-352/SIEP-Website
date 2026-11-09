@@ -474,7 +474,7 @@ function LoginForm() {
       if (fromUrl && !fromUrl.startsWith('/login')) {
         router.push(fromUrl);
       } else {
-        router.push('/log');
+        router.push('/dashboard');
       }
     }
   }, [user, fromUrl, router]);
@@ -524,7 +524,7 @@ function LoginForm() {
       if (fromUrl && !fromUrl.startsWith('/login')) {
         router.push(fromUrl);
       } else {
-        router.push('/log');
+        router.push('/dashboard');
       }
     } else {
       setError('PIN updated! Please click Sign In to continue.');

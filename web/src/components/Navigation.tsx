@@ -137,29 +137,29 @@ export default function Navigation() {
             ) : isPortalPage && user ? (
               /* ================= Portal Dedicated View ================= */
               <>
-                {/* Build Log: Primary route accessible to all users */}
+                {/* Dashboard: Primary operational hub accessible to all team members */}
                 <Link
-                  href="/log"
+                  href="/dashboard"
                   className={`h-9 px-3.5 rounded-xl text-xs font-sans uppercase tracking-wider font-bold transition-all inline-flex items-center justify-center ${
-                    pathname === '/log'
+                    pathname === '/dashboard'
                       ? 'bg-jet-black text-alice-blue shadow-sm'
                       : 'text-jet-black hover:text-orange hover:bg-jet-black/5'
                   }`}
                 >
-                  Build Log
+                  Dashboard
                 </Link>
 
-                {/* Dashboard: Visible to Core & Leads */}
+                {/* Build Log: Exclusively restricted to Core Leadership & Domain Leads */}
                 {(isCore || isLead) && (
                   <Link
-                    href="/dashboard"
+                    href="/log"
                     className={`h-9 px-3.5 rounded-xl text-xs font-sans uppercase tracking-wider font-bold transition-all inline-flex items-center justify-center ${
-                      pathname === '/dashboard'
+                      pathname === '/log'
                         ? 'bg-jet-black text-alice-blue shadow-sm'
                         : 'text-jet-black hover:text-orange hover:bg-jet-black/5'
                     }`}
                   >
-                    Dashboard
+                    Build Log
                   </Link>
                 )}
 
@@ -360,27 +360,27 @@ export default function Navigation() {
           {isMounted && (
             user ? (
               <>
-                {/* Build Log: Accessible to all members */}
+                {/* Dashboard: Accessible to all authenticated members */}
                 <Link
-                  href="/log"
+                  href="/dashboard"
                   onClick={closeMenu}
                   className={`transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center font-bold ${
-                    pathname === '/log' ? 'text-orange font-bold' : 'hover:text-orange text-jet-black'
+                    pathname === '/dashboard' ? 'text-orange font-bold' : 'hover:text-orange text-jet-black'
                   }`}
                 >
-                  Build Log
+                  Dashboard
                 </Link>
 
-                {/* Dashboard: Visible to Core & Leads */}
+                {/* Build Log: Restricted strictly to Core Leadership & Domain Leads */}
                 {(isCore || isLead) && (
                   <Link
-                    href="/dashboard"
+                    href="/log"
                     onClick={closeMenu}
                     className={`transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center font-bold ${
-                      pathname === '/dashboard' ? 'text-orange font-bold' : 'hover:text-orange text-jet-black'
+                      pathname === '/log' ? 'text-orange font-bold' : 'hover:text-orange text-jet-black'
                     }`}
                   >
-                    Dashboard
+                    Build Log
                   </Link>
                 )}
 
