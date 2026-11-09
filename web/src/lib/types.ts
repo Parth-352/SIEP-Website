@@ -75,6 +75,34 @@ export interface WorkLog {
 export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
+export interface SubTask {
+  id: string;
+  text: string;
+  completed: boolean;
+  completedBy?: string;
+  completedAt?: number;
+}
+
+export interface TaskComment {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorTeam?: TeamId;
+  text: string;
+  createdAt: number;
+}
+
+export interface ActivityEvent {
+  id: string;
+  type: 'task_created' | 'task_status' | 'subtask_toggled' | 'comment_added' | 'log_submitted' | 'task_blocked' | 'hours_logged';
+  memberName: string;
+  teamId: TeamId;
+  title: string;
+  taskId?: string;
+  detail?: string;
+  timestamp: number;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -86,6 +114,13 @@ export interface Task {
   dueDate?: string;
   createdAt: number;
   updatedAt: number;
+  // Sprint Granularity extensions
+  subtasks?: SubTask[];
+  comments?: TaskComment[];
+  estimatedHours?: number;
+  actualHours?: number;
+  isBlocked?: boolean;
+  blockerReason?: string;
 }
 
 export interface DriveUploadResponse {

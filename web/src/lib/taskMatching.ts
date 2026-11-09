@@ -1,5 +1,78 @@
-import { Task, UserProfile } from './types';
+import { Task, UserProfile, SubTask, TaskComment } from './types';
 import { ROSTER_MEMBERS } from './members';
+
+/**
+ * Defensive normalizer ensuring any task object (from local JSON, API, or Firestore)
+ * always has guaranteed arrays and booleans for sprint subtasks, comments, and blockers.
+ */
+export function normalizeTask(raw: any): Task {
+  if (!raw || typeof raw !== 'object') {
+    return {
+      id: `task-${Date.now()}`,
+      title: 'Untitled Task',
+      description: '',
+      teamId: 'core',
+      assignedMembers: [],
+      status: 'todo',
+      priority: 'medium',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      subtasks: [],
+      comments: [],
+      estimatedHours: 0,
+      actualHours: 0,
+      isBlocked: false,
+      blockerReason: '',
+    };
+  }
+
+  const assignedMembers: string[] = Array.isArray(raw.assignedMembers)
+    ? raw.assignedMembers
+    : typeof raw.assignedMembers === 'string'
+    ? raw.assignedMembers.split(',').map((s: string) => s.trim()).filter(Boolean)
+    : [];
+
+  const subtasks: SubTask[] = Array.isArray(raw.subtasks)
+    ? raw.subtasks.map((st: any, idx: number) => ({
+        id: String(st.id || `st-${idx}-${Date.now()}`),
+        text: String(st.text || ''),
+        completed: Boolean(st.completed),
+        completedBy: st.completedBy ? String(st.completedBy) : undefined,
+        completedAt: st.completedAt ? Number(st.completedAt) : undefined,
+      }))
+    : [];
+
+  const comments: TaskComment[] = Array.isArray(raw.comments)
+    ? raw.comments.map((c: any, idx: number) => ({
+        id: String(c.id || `c-${idx}-${Date.now()}`),
+        authorId: String(c.authorId || ''),
+        authorName: String(c.authorName || 'Team Member'),
+        authorTeam: c.authorTeam || undefined,
+        text: String(c.text || ''),
+        createdAt: Number(c.createdAt || Date.now()),
+      }))
+    : [];
+
+  return {
+    ...raw,
+    id: String(raw.id || `task-${Date.now()}`),
+    title: String(raw.title || ''),
+    description: String(raw.description || ''),
+    teamId: raw.teamId || 'core',
+    assignedMembers,
+    status: raw.status || 'todo',
+    priority: raw.priority || 'medium',
+    dueDate: raw.dueDate || undefined,
+    createdAt: Number(raw.createdAt || Date.now()),
+    updatedAt: Number(raw.updatedAt || Date.now()),
+    subtasks,
+    comments,
+    estimatedHours: Number(raw.estimatedHours || 0),
+    actualHours: Number(raw.actualHours || 0),
+    isBlocked: Boolean(raw.isBlocked),
+    blockerReason: String(raw.blockerReason || ''),
+  };
+}
 
 /**
  * Universal, robust matcher to determine if a task deliverable is assigned to a member.

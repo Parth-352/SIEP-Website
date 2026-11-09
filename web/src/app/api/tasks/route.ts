@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTasks, createTask, updateTask, deleteTask, addNotification } from '@/lib/store';
+import { getTasks, createTask, updateTask, deleteTask, addNotification, recordActivity, getActivities } from '@/lib/store';
 import { 
   getFirestoreTasks, 
   saveFirestoreTask, 
   deleteFirestoreTask 
 } from '@/lib/firestoreService';
-import { TeamId, TaskStatus, TaskPriority, Task } from '@/lib/types';
+import { TeamId, TaskStatus, TaskPriority, Task, ActivityEvent } from '@/lib/types';
 import { SESSION_COOKIE_NAME, decodeSession } from '@/lib/session';
 import { getMemberByName } from '@/lib/members';
+import { normalizeTask } from '@/lib/taskMatching';
 
 function dispatchTaskNotifications(task: Task, assignedBy: string) {
   const gasUrl = process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL;
@@ -60,16 +61,19 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const teamId = searchParams.get('teamId') || undefined;
+    const activities = getActivities(40);
 
     // 1. Try Firestore cloud storage first
     const firestoreTasks = await getFirestoreTasks(teamId);
     if (firestoreTasks !== null) {
-      return NextResponse.json({ success: true, tasks: firestoreTasks, source: 'firestore' });
+      const normalized = firestoreTasks.map(normalizeTask);
+      return NextResponse.json({ success: true, tasks: normalized, activities, source: 'firestore' });
     }
 
     // 2. Fallback to local store
     const tasks = getTasks(teamId);
-    return NextResponse.json({ success: true, tasks, source: 'local' });
+    const normalized = tasks.map(normalizeTask);
+    return NextResponse.json({ success: true, tasks: normalized, activities, source: 'local' });
   } catch (error) {
     console.error('Error fetching tasks:', error);
     return NextResponse.json({ success: false, error: 'Failed to fetch tasks' }, { status: 500 });
@@ -119,7 +123,25 @@ export async function POST(request: NextRequest) {
       status: (status as TaskStatus) || 'todo',
       priority: (priority as TaskPriority) || 'medium',
       dueDate: dueDate || undefined,
+      subtasks: [],
+      comments: [],
+      estimatedHours: Number(body.estimatedHours || 0),
+      actualHours: 0,
+      isBlocked: false,
+      blockerReason: '',
     });
+
+    // Record creation in activity feed
+    try {
+      recordActivity({
+        type: 'task_created',
+        memberName: session.name || 'Leadership',
+        teamId: task.teamId,
+        title: task.title,
+        taskId: task.id,
+        detail: `New deliverable created [${task.priority.toUpperCase()}]`,
+      });
+    } catch {}
 
     // Sync to Firestore in Cloud
     await saveFirestoreTask(task).catch((err) => {
@@ -142,55 +164,40 @@ export async function PATCH(request: NextRequest) {
     const session = decodeSession(sessionCookie);
 
     const body = await request.json();
-    const { id, ...updates } = body;
+    const { id, action, ...updates } = body;
 
     if (!id) {
       return NextResponse.json({ success: false, error: 'Task id is required' }, { status: 400 });
     }
 
     const allTasks = getTasks();
-    const existing = allTasks.find((t) => t.id === id);
+    let existing = allTasks.find((t) => t.id === id);
+
+    if (!existing) {
+      const firestoreTasks = await getFirestoreTasks();
+      existing = firestoreTasks?.find((t) => t.id === id);
+    }
+
+    if (!existing) {
+      return NextResponse.json({ success: false, error: 'Task not found' }, { status: 404 });
+    }
+
     const isCoreAdmin = Boolean(
       !session || session.isCore || session.role === 'admin' || session.teamId === 'core'
     );
-
     const sessionName = (session?.name || '').toLowerCase().trim();
     const sessionEmail = (session?.email || '').toLowerCase().trim();
-
-    if (!existing) {
-      // Also try fetching from Firestore directly
-      const firestoreTasks = await getFirestoreTasks();
-      const fsExisting = firestoreTasks?.find((t) => t.id === id);
-      if (!fsExisting) {
-        return NextResponse.json({ success: false, error: 'Task not found' }, { status: 404 });
-      }
-
-      // Check authorization (Core leadership, squad members, or assigned members)
-      const isAssigned = fsExisting.assignedMembers?.some((m) => {
-        const norm = m.toLowerCase().trim();
-        return norm === sessionName || (sessionName && (norm.includes(sessionName) || sessionName.includes(norm))) || (sessionEmail && norm === sessionEmail);
-      });
-      if (!isCoreAdmin && session && fsExisting.teamId !== session.teamId && !isAssigned) {
-        return NextResponse.json(
-          { success: false, error: 'Forbidden: You cannot modify tasks outside your subsystem.' },
-          { status: 403 }
-        );
-      }
-
-      const updatedFs: Task = {
-        ...fsExisting,
-        ...updates,
-        updatedAt: Date.now(),
-      };
-      await saveFirestoreTask(updatedFs).catch(() => {});
-      return NextResponse.json({ success: true, task: updatedFs });
-    }
 
     // Check authorization (Core leadership, squad members, or assigned members)
     const isAssigned = existing.assignedMembers?.some((m) => {
       const norm = m.toLowerCase().trim();
-      return norm === sessionName || (sessionName && (norm.includes(sessionName) || sessionName.includes(norm))) || (sessionEmail && norm === sessionEmail);
+      return (
+        norm === sessionName ||
+        (sessionName && (norm.includes(sessionName) || sessionName.includes(norm))) ||
+        (sessionEmail && norm === sessionEmail)
+      );
     });
+
     if (!isCoreAdmin && session && existing.teamId !== session.teamId && !isAssigned) {
       return NextResponse.json(
         { success: false, error: 'Forbidden: You cannot modify tasks outside your subsystem.' },
@@ -198,14 +205,136 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const updated = updateTask(id, updates);
-    if (updated) {
-      await saveFirestoreTask(updated).catch((err) => {
-        console.warn('Firestore task update sync notice:', err);
-      });
+    const normalized = normalizeTask(existing);
+    const patchUpdates: Partial<Task> = { ...updates };
+    let activityToRecord: Omit<ActivityEvent, 'id' | 'timestamp'> | null = null;
+
+    // Handle Atomic Actions
+    if (action === 'TOGGLE_SUBTASK') {
+      const { subtaskId, completed } = body;
+      const subtasks = [...(normalized.subtasks || [])];
+      const targetIdx = subtasks.findIndex((st) => st.id === subtaskId);
+      if (targetIdx !== -1) {
+        subtasks[targetIdx] = {
+          ...subtasks[targetIdx],
+          completed: Boolean(completed),
+          completedBy: session?.name || 'Team Member',
+          completedAt: Date.now(),
+        };
+        patchUpdates.subtasks = subtasks;
+        activityToRecord = {
+          type: 'subtask_toggled',
+          memberName: session?.name || 'Team Member',
+          teamId: normalized.teamId,
+          title: normalized.title,
+          taskId: normalized.id,
+          detail: `${completed ? 'Completed' : 'Reopened'} "${subtasks[targetIdx].text}"`,
+        };
+      }
+    } else if (action === 'ADD_SUBTASK') {
+      const { text } = body;
+      if (text?.trim()) {
+        const subtasks = [...(normalized.subtasks || [])];
+        const newSt = {
+          id: `st-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          text: text.trim(),
+          completed: false,
+        };
+        subtasks.push(newSt);
+        patchUpdates.subtasks = subtasks;
+      }
+    } else if (action === 'DELETE_SUBTASK') {
+      const { subtaskId } = body;
+      patchUpdates.subtasks = (normalized.subtasks || []).filter((st) => st.id !== subtaskId);
+    } else if (action === 'ADD_COMMENT') {
+      const { text } = body;
+      if (text?.trim()) {
+        const comments = [...(normalized.comments || [])];
+        const newComment = {
+          id: `c-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          authorId: session?.memberId || session?.email || 'member',
+          authorName: session?.name || 'Team Member',
+          authorTeam: session?.teamId || normalized.teamId,
+          text: text.trim(),
+          createdAt: Date.now(),
+        };
+        comments.push(newComment);
+        patchUpdates.comments = comments;
+        activityToRecord = {
+          type: 'comment_added',
+          memberName: session?.name || 'Team Member',
+          teamId: normalized.teamId,
+          title: normalized.title,
+          taskId: normalized.id,
+          detail: text.trim().slice(0, 80),
+        };
+      }
+    } else if (action === 'SET_BLOCKER') {
+      const { isBlocked, blockerReason } = body;
+      patchUpdates.isBlocked = Boolean(isBlocked);
+      patchUpdates.blockerReason = blockerReason?.trim() || '';
+      activityToRecord = {
+        type: 'task_blocked',
+        memberName: session?.name || 'Team Member',
+        teamId: normalized.teamId,
+        title: normalized.title,
+        taskId: normalized.id,
+        detail: isBlocked ? (blockerReason?.trim() || 'Blocker flagged') : 'Blocker cleared',
+      };
+    } else if (action === 'LOG_HOURS') {
+      const { hours } = body;
+      const addHours = Number(hours) || 0;
+      if (addHours > 0) {
+        patchUpdates.actualHours = (normalized.actualHours || 0) + addHours;
+        activityToRecord = {
+          type: 'hours_logged',
+          memberName: session?.name || 'Team Member',
+          teamId: normalized.teamId,
+          title: normalized.title,
+          taskId: normalized.id,
+          detail: `Logged +${addHours}h deliverable time`,
+        };
+      }
+    } else if (updates.status && updates.status !== normalized.status) {
+      activityToRecord = {
+        type: 'task_status',
+        memberName: session?.name || 'Team Member',
+        teamId: normalized.teamId,
+        title: normalized.title,
+        taskId: normalized.id,
+        detail: `Moved to ${String(updates.status).toUpperCase()}`,
+      };
     }
 
-    return NextResponse.json({ success: true, task: updated });
+    // 1. Update in local store
+    let updated = updateTask(id, patchUpdates);
+
+    // If task was only in Firestore, construct merged task
+    if (!updated) {
+      updated = {
+        ...normalized,
+        ...patchUpdates,
+        updatedAt: Date.now(),
+      };
+    }
+
+    // 2. Persist to Firestore
+    await saveFirestoreTask(updated).catch((err) => {
+      console.warn('Firestore task update sync notice:', err);
+    });
+
+    // 3. Record Activity Event if triggered
+    if (activityToRecord) {
+      try {
+        recordActivity(activityToRecord);
+      } catch {}
+    }
+
+    return NextResponse.json({
+      success: true,
+      task: normalizeTask(updated),
+      activities: getActivities(40),
+    });
   } catch (error) {
     console.error('Error updating task:', error);
     return NextResponse.json({ success: false, error: 'Failed to update task' }, { status: 500 });

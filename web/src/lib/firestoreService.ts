@@ -29,6 +29,12 @@ export async function getFirestoreTasks(teamId?: TeamId | string): Promise<Task[
         dueDate: data.dueDate || undefined,
         createdAt: data.createdAt || Date.now(),
         updatedAt: data.updatedAt || Date.now(),
+        subtasks: Array.isArray(data.subtasks) ? data.subtasks : [],
+        comments: Array.isArray(data.comments) ? data.comments : [],
+        estimatedHours: Number(data.estimatedHours || 0),
+        actualHours: Number(data.actualHours || 0),
+        isBlocked: Boolean(data.isBlocked),
+        blockerReason: data.blockerReason || '',
       });
     });
 
@@ -58,7 +64,13 @@ export async function saveFirestoreTask(task: Task): Promise<boolean> {
       dueDate: task.dueDate || null,
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
-    });
+      subtasks: task.subtasks || [],
+      comments: task.comments || [],
+      estimatedHours: Number(task.estimatedHours || 0),
+      actualHours: Number(task.actualHours || 0),
+      isBlocked: Boolean(task.isBlocked),
+      blockerReason: task.blockerReason || '',
+    }, { merge: true });
     return true;
   } catch (err) {
     console.warn('Firestore saveTask error:', err);

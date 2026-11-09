@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { WorkLog, Task, TeamId, InAppNotification } from './types';
+import { WorkLog, Task, TeamId, InAppNotification, ActivityEvent } from './types';
 
 export interface PartnerInquiry {
   id: string;
@@ -15,6 +15,7 @@ export interface PartnerInquiry {
 interface StoreData {
   logs: WorkLog[];
   tasks: Task[];
+  activities?: ActivityEvent[];
   inquiries?: PartnerInquiry[];
   passwords?: Record<string, string>;
   memberPasswords?: Record<string, string>;
@@ -358,6 +359,33 @@ export function markNotificationRead(id: string): boolean {
   }
   return false;
 }
+
+// ======================== ACTIVITIES FEED ========================
+
+export function getActivities(limit = 40): ActivityEvent[] {
+  const store = readStore();
+  const acts = store.activities || [];
+  return acts.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit);
+}
+
+export function recordActivity(event: Omit<ActivityEvent, 'id' | 'timestamp'>): ActivityEvent {
+  const store = readStore();
+  if (!store.activities) {
+    store.activities = [];
+  }
+  const created: ActivityEvent = {
+    ...event,
+    id: `act-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    timestamp: Date.now(),
+  };
+  store.activities.unshift(created);
+  if (store.activities.length > 200) {
+    store.activities = store.activities.slice(0, 200);
+  }
+  writeStore(store);
+  return created;
+}
+
 
 
 
