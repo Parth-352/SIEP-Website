@@ -2,91 +2,321 @@ import { TeamId } from './types';
 
 export interface TeamMemberEntry {
   id: string;
-  name: string;
-  role: string;
+  name: string; // Clean First + Last Name
+  role: string; // Specific official title
   teamId: TeamId;
+  secondaryTeams?: TeamId[];
   isLead?: boolean;
+  isCore?: boolean; // Master administrative scope across all domains
+  email: string; // Personal Gmail
 }
 
 /**
- * Official Team Roster:
- * 23 Student Innovators across 8 specialized domains.
- * All artificial roles removed; strictly labeled Domain Lead or Team Member.
+ * 4 Core Leadership Members with Master Admin Access across the portal
  */
-export const ROSTER_MEMBERS: TeamMemberEntry[] = [
-  // 1. Software (Domain Lead: Parth Kshirsagar)
-  { id: 'soft-parth', name: 'Parth Prashant Kshirsagar', role: 'Domain Lead', teamId: 'software', isLead: true },
-  { id: 'soft-samiksha', name: 'Samiksha Vasant Patole', role: 'Team Member', teamId: 'software' },
-  { id: 'soft-shravani', name: 'Shravani Chaitanya Gadekar', role: 'Team Member', teamId: 'software' },
-  { id: 'soft-riddhi', name: 'Riddhi Niraj Munot', role: 'Team Member', teamId: 'software' },
-  { id: 'soft-nishant', name: 'Nishant Rajendra Shinde', role: 'Team Member', teamId: 'software' },
-
-  // 2. EnTC (Domain Lead: Tirthraj Pawale)
-  { id: 'entc-tirthraj', name: 'Tirthraj Pawale', role: 'Domain Lead', teamId: 'entc', isLead: true },
-  { id: 'entc-ankita', name: 'Bachhav Ankita Rakesh', role: 'Team Member', teamId: 'entc' },
-  { id: 'entc-pratik', name: 'Desarda Pratik Sachin', role: 'Team Member', teamId: 'entc' },
-  { id: 'entc-nayan', name: 'Nayan Punamchand Jain', role: 'Team Member', teamId: 'entc' },
-  { id: 'entc-snehal', name: 'Snehal Ravsaheb Shinde', role: 'Team Member', teamId: 'entc' },
-  { id: 'entc-prathamesh-d', name: 'Prathamesh Sanjay Deshmukh', role: 'Team Member', teamId: 'entc' },
-  { id: 'entc-prem', name: 'Prem Manohar Chaudhari', role: 'Team Member', teamId: 'entc' },
-  { id: 'entc-sharvari', name: 'Sharvari Prashant Bhambar', role: 'Team Member', teamId: 'entc' },
-  { id: 'entc-mohit', name: 'Pagar Mohit Yogesh', role: 'Team Member', teamId: 'entc' },
-
-  // 3. Mechanical (Domain Lead: Meet Samdadiya)
-  { id: 'mech-meet', name: 'Meet Nayan Samdadiya', role: 'Domain Lead', teamId: 'mechanical', isLead: true },
-  { id: 'mech-ganesh', name: 'Ganesh Santosh Sonawane', role: 'Team Member', teamId: 'mechanical' },
-  { id: 'mech-mohit', name: 'Pagar Mohit Yogesh', role: 'Team Member', teamId: 'mechanical' },
-  { id: 'mech-prathamesh-t', name: 'Prathamesh Vilas Tidake', role: 'Team Member', teamId: 'mechanical' },
-  { id: 'mech-siddhesh', name: 'Siddhesh Raskar', role: 'Team Member', teamId: 'mechanical' },
-  { id: 'mech-ajay', name: 'Ajay Dilip Kate', role: 'Team Member', teamId: 'mechanical' },
-  { id: 'mech-kiran', name: 'Nyaharkar Kiran Balasaheb', role: 'Team Member', teamId: 'mechanical' },
-
-  // 4. Design (Domain Lead: Meet Samdadiya)
-  { id: 'dsgn-meet', name: 'Meet Nayan Samdadiya', role: 'Domain Lead', teamId: 'design', isLead: true },
-  { id: 'dsgn-aditya', name: 'Aditya Namdeo Fuldeore', role: 'Team Member', teamId: 'design' },
-  { id: 'dsgn-prathamesh-t', name: 'Prathamesh Vilas Tidake', role: 'Team Member', teamId: 'design' },
-  { id: 'dsgn-prem', name: 'Prem Manohar Chaudhari', role: 'Team Member', teamId: 'design' },
-  { id: 'dsgn-siddhesh', name: 'Siddhesh Raskar', role: 'Team Member', teamId: 'design' },
-
-  // 5. Research (Domain Lead: Aditya Fuldeore)
-  { id: 'res-aditya', name: 'Aditya Namdeo Fuldeore', role: 'Domain Lead', teamId: 'research', isLead: true },
-  { id: 'res-omshri', name: 'Ahire Omshri Shrikant', role: 'Team Member', teamId: 'research' },
-  { id: 'res-ankita', name: 'Bachhav Ankita Rakesh', role: 'Team Member', teamId: 'research' },
-  { id: 'res-shravani', name: 'Shravani Chaitanya Gadekar', role: 'Team Member', teamId: 'research' },
-  { id: 'res-meet', name: 'Meet Nayan Samdadiya', role: 'Team Member', teamId: 'research' },
-  { id: 'res-tirthraj', name: 'Tirthraj Pawale', role: 'Team Member', teamId: 'research' },
-  { id: 'res-nayan', name: 'Nayan Punamchand Jain', role: 'Team Member', teamId: 'research' },
-
-  // 6. Sponsorship (Domain Lead: Shravani Gadekar)
-  { id: 'spon-shravani', name: 'Shravani Chaitanya Gadekar', role: 'Domain Lead', teamId: 'sponsorship', isLead: true },
-  { id: 'spon-pratik', name: 'Desarda Pratik Sachin', role: 'Team Member', teamId: 'sponsorship' },
-  { id: 'spon-nishant', name: 'Nishant Rajendra Shinde', role: 'Team Member', teamId: 'sponsorship' },
-  { id: 'spon-snehal', name: 'Snehal Ravsaheb Shinde', role: 'Team Member', teamId: 'sponsorship' },
-  { id: 'spon-meet', name: 'Meet Nayan Samdadiya', role: 'Team Member', teamId: 'sponsorship' },
-  { id: 'spon-parth', name: 'Parth Prashant Kshirsagar', role: 'Team Member', teamId: 'sponsorship' },
-  { id: 'spon-riddhi', name: 'Riddhi Niraj Munot', role: 'Team Member', teamId: 'sponsorship' },
-  { id: 'spon-omshri', name: 'Ahire Omshri Shrikant', role: 'Team Member', teamId: 'sponsorship' },
-
-  // 7. Social Media (Domain Lead: Nishant Shinde)
-  { id: 'socm-nishant', name: 'Nishant Rajendra Shinde', role: 'Domain Lead', teamId: 'socialmedia', isLead: true },
-  { id: 'socm-nikhil', name: 'Nikhil Prabhakar Patil', role: 'Team Member', teamId: 'socialmedia' },
-  { id: 'socm-tirthraj', name: 'Tirthraj Pawale', role: 'Team Member', teamId: 'socialmedia' },
-  { id: 'socm-ajay', name: 'Ajay Dilip Kate', role: 'Team Member', teamId: 'socialmedia' },
-  { id: 'socm-ankita', name: 'Bachhav Ankita Rakesh', role: 'Team Member', teamId: 'socialmedia' },
-
-  // 8. Documentation (Domain Lead: Pratik Desarda)
-  { id: 'docs-pratik', name: 'Desarda Pratik Sachin', role: 'Domain Lead', teamId: 'documentation', isLead: true },
-  { id: 'docs-nikhil', name: 'Nikhil Prabhakar Patil', role: 'Team Member', teamId: 'documentation' },
-  { id: 'docs-sharvari', name: 'Sharvari Prashant Bhambar', role: 'Team Member', teamId: 'documentation' },
-  { id: 'docs-snehal', name: 'Snehal Ravsaheb Shinde', role: 'Team Member', teamId: 'documentation' },
-  { id: 'docs-parth', name: 'Parth Prashant Kshirsagar', role: 'Team Member', teamId: 'documentation' },
-  { id: 'docs-riddhi', name: 'Riddhi Niraj Munot', role: 'Team Member', teamId: 'documentation' },
-  { id: 'docs-ajay', name: 'Ajay Dilip Kate', role: 'Team Member', teamId: 'documentation' },
+export const CORE_MEMBER_NAMES = [
+  'Tirthraj Pawale',
+  'Parth Kshirsagar',
+  'Riddhi Munot',
+  'Pratik Desarda',
 ];
 
-export const ALL_MEMBER_NAMES = Array.from(new Set(ROSTER_MEMBERS.map((m) => m.name)));
+export const CORE_MEMBER_EMAILS = [
+  'pawaletirthraj@gmail.com',
+  'parthkshirsagrr@gmail.com',
+  'riddhimunot7@gmail.com',
+  'desardapratik7@gmail.com',
+];
+
+/**
+ * Official 23-Member Directory
+ * Exactly 23 student innovators with clean First + Last names and personal Gmails.
+ */
+export const ROSTER_MEMBERS: TeamMemberEntry[] = [
+  // ================= TIER 1: CORE LEADERSHIP (4 MEMBERS) =================
+  {
+    id: 'core-tirthraj',
+    name: 'Tirthraj Pawale',
+    role: 'Core Lead & Captain',
+    teamId: 'core',
+    secondaryTeams: ['entc', 'research', 'socialmedia'],
+    isLead: true,
+    isCore: true,
+    email: 'pawaletirthraj@gmail.com',
+  },
+  {
+    id: 'soft-parth',
+    name: 'Parth Kshirsagar',
+    role: 'Software Lead',
+    teamId: 'software',
+    secondaryTeams: ['core', 'sponsorship', 'documentation'],
+    isLead: true,
+    isCore: true,
+    email: 'parthkshirsagrr@gmail.com',
+  },
+  {
+    id: 'soft-riddhi',
+    name: 'Riddhi Munot',
+    role: 'Core Member',
+    teamId: 'software',
+    secondaryTeams: ['core', 'sponsorship', 'documentation'],
+    isLead: false,
+    isCore: true,
+    email: 'riddhimunot7@gmail.com',
+  },
+  {
+    id: 'docs-pratik',
+    name: 'Pratik Desarda',
+    role: 'Documentation Lead',
+    teamId: 'documentation',
+    secondaryTeams: ['core', 'entc', 'sponsorship'],
+    isLead: true,
+    isCore: true,
+    email: 'desardapratik7@gmail.com',
+  },
+
+  // ================= TIER 2: DOMAIN LEADS (5 MEMBERS) =================
+  {
+    id: 'mech-meet',
+    name: 'Meet Samdadiya',
+    role: 'Mechanical Lead',
+    teamId: 'mechanical',
+    secondaryTeams: ['design', 'research', 'sponsorship'],
+    isLead: true,
+    isCore: false,
+    email: 'meetjain212@gmail.com',
+  },
+  {
+    id: 'dsgn-prem',
+    name: 'Prem Chaudhari',
+    role: 'Design Lead',
+    teamId: 'design',
+    secondaryTeams: ['entc'],
+    isLead: true,
+    isCore: false,
+    email: 'premchaudhari0955@gmail.com',
+  },
+  {
+    id: 'res-aditya',
+    name: 'Aditya Fuldeore',
+    role: 'Research Lead',
+    teamId: 'research',
+    secondaryTeams: ['design'],
+    isLead: true,
+    isCore: false,
+    email: 'adityafuldeore0700@gmail.com',
+  },
+  {
+    id: 'spon-shravani',
+    name: 'Shravani Gadekar',
+    role: 'Sponsorship Lead',
+    teamId: 'sponsorship',
+    secondaryTeams: ['software', 'research'],
+    isLead: true,
+    isCore: false,
+    email: 'shravani.cg17@gmail.com',
+  },
+  {
+    id: 'socm-nishant',
+    name: 'Nishant Shinde',
+    role: 'Social Media Lead',
+    teamId: 'socialmedia',
+    secondaryTeams: ['software', 'sponsorship'],
+    isLead: true,
+    isCore: false,
+    email: 'nishantshinde682@gmail.com',
+  },
+
+  // ================= TIER 3: TEAM MEMBERS (14 MEMBERS) =================
+  {
+    id: 'socm-nikhil',
+    name: 'Nikhil Patil',
+    role: 'Team Member',
+    teamId: 'socialmedia',
+    secondaryTeams: ['documentation'],
+    isLead: false,
+    isCore: false,
+    email: 'nikhilpatil93090@gmail.com',
+  },
+  {
+    id: 'entc-nayan',
+    name: 'Nayan Jain',
+    role: 'Team Member',
+    teamId: 'entc',
+    secondaryTeams: ['research'],
+    isLead: false,
+    isCore: false,
+    email: 'nayanjain5805@gmail.com',
+  },
+  {
+    id: 'entc-mohit',
+    name: 'Mohit Pagar',
+    role: 'Team Member',
+    teamId: 'entc',
+    secondaryTeams: ['mechanical'],
+    isLead: false,
+    isCore: false,
+    email: 'mohitpagar9801@gmail.com',
+  },
+  {
+    id: 'entc-sharvari',
+    name: 'Sharvari Bhambar',
+    role: 'Team Member',
+    teamId: 'entc',
+    secondaryTeams: ['documentation'],
+    isLead: false,
+    isCore: false,
+    email: 'sharvarybhambar@gmail.com',
+  },
+  {
+    id: 'res-omshri',
+    name: 'Omshri Ahire',
+    role: 'Team Member',
+    teamId: 'research',
+    secondaryTeams: ['sponsorship'],
+    isLead: false,
+    isCore: false,
+    email: 'omshriahire06@gmail.com',
+  },
+  {
+    id: 'entc-ankita',
+    name: 'Ankita Bachhav',
+    role: 'Team Member',
+    teamId: 'entc',
+    secondaryTeams: ['research', 'socialmedia'],
+    isLead: false,
+    isCore: false,
+    email: 'ankitabachhav14@gmail.com',
+  },
+  {
+    id: 'entc-snehal',
+    name: 'Snehal Shinde',
+    role: 'Team Member',
+    teamId: 'entc',
+    secondaryTeams: ['sponsorship', 'documentation'],
+    isLead: false,
+    isCore: false,
+    email: 'snehallshinde2005@gmail.com',
+  },
+  {
+    id: 'entc-prathamesh-d',
+    name: 'Prathamesh Deshmukh',
+    role: 'Team Member',
+    teamId: 'entc',
+    isLead: false,
+    isCore: false,
+    email: 'prathameshdeshmukh2007@gmail.com',
+  },
+  {
+    id: 'mech-ajay',
+    name: 'Ajay Kate',
+    role: 'Team Member',
+    teamId: 'mechanical',
+    secondaryTeams: ['socialmedia', 'documentation'],
+    isLead: false,
+    isCore: false,
+    email: 'ajaykate9922@gmail.com',
+  },
+  {
+    id: 'mech-ganesh',
+    name: 'Ganesh Sonawane',
+    role: 'Team Member',
+    teamId: 'mechanical',
+    isLead: false,
+    isCore: false,
+    email: 'ganeshsonawane8149@gmail.com',
+  },
+  {
+    id: 'soft-samiksha',
+    name: 'Samiksha Patole',
+    role: 'Team Member',
+    teamId: 'software',
+    isLead: false,
+    isCore: false,
+    email: 'samikshapatole63@gmail.com',
+  },
+  {
+    id: 'mech-siddhesh',
+    name: 'Siddhesh Raskar',
+    role: 'Team Member',
+    teamId: 'mechanical',
+    secondaryTeams: ['design'],
+    isLead: false,
+    isCore: false,
+    email: 'siddheshraskar72@gmail.com',
+  },
+  {
+    id: 'mech-kiran',
+    name: 'Kiran Nyaharkar',
+    role: 'Team Member',
+    teamId: 'mechanical',
+    isLead: false,
+    isCore: false,
+    email: 'nyaharkarkiran05@gmail.com',
+  },
+  {
+    id: 'mech-prathamesh-t',
+    name: 'Prathamesh Tidake',
+    role: 'Team Member',
+    teamId: 'mechanical',
+    secondaryTeams: ['design'],
+    isLead: false,
+    isCore: false,
+    email: 'prathameshvilastidake@gmail.com',
+  },
+];
+
+export const ALL_MEMBER_NAMES = ROSTER_MEMBERS.map((m) => m.name);
+
+export function getMemberByEmail(email: string): TeamMemberEntry | undefined {
+  if (!email) return undefined;
+  const clean = email.trim().toLowerCase();
+  return ROSTER_MEMBERS.find((m) => m.email.toLowerCase() === clean);
+}
+
+export function getMemberByName(name: string): TeamMemberEntry | undefined {
+  if (!name) return undefined;
+  const clean = name.trim().toLowerCase();
+  return ROSTER_MEMBERS.find(
+    (m) =>
+      m.name.toLowerCase() === clean ||
+      clean.includes(m.name.toLowerCase()) ||
+      m.name.toLowerCase().includes(clean)
+  );
+}
+
+export function isMemberCore(emailOrName: string): boolean {
+  if (!emailOrName) return false;
+  const clean = emailOrName.trim().toLowerCase();
+  const m = ROSTER_MEMBERS.find(
+    (mem) => mem.email.toLowerCase() === clean || mem.name.toLowerCase() === clean
+  );
+  if (m) return Boolean(m.isCore);
+  return (
+    CORE_MEMBER_EMAILS.some((e) => e.toLowerCase() === clean) ||
+    CORE_MEMBER_NAMES.some((n) => n.toLowerCase() === clean)
+  );
+}
+
+export function isMemberLead(emailOrName: string): boolean {
+  if (!emailOrName) return false;
+  const clean = emailOrName.trim().toLowerCase();
+  const m = ROSTER_MEMBERS.find(
+    (mem) => mem.email.toLowerCase() === clean || mem.name.toLowerCase() === clean
+  );
+  if (m) return Boolean(m.isLead || m.isCore);
+  return isMemberCore(emailOrName);
+}
+
+export function getMemberTier(emailOrName: string): 1 | 2 | 3 {
+  if (isMemberCore(emailOrName)) return 1;
+  if (isMemberLead(emailOrName)) return 2;
+  return 3;
+}
 
 export function getMembersForTeam(teamId?: TeamId): TeamMemberEntry[] {
   if (!teamId || teamId === 'core') return ROSTER_MEMBERS;
-  return ROSTER_MEMBERS.filter((m) => m.teamId === teamId);
+  return ROSTER_MEMBERS.filter(
+    (m) => m.teamId === teamId || m.secondaryTeams?.includes(teamId)
+  );
 }

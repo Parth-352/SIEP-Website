@@ -202,3 +202,43 @@ export async function saveFirestorePassword(teamId: string, password: string): P
     return false;
   }
 }
+
+// ======================== MEMBER PASSWORDS FIRESTORE ========================
+
+export async function getFirestoreMemberPasswords(): Promise<Record<string, string>> {
+  if (!isFirebaseConfigured() || !db) return {};
+  try {
+    const col = collection(db, 'member_passwords');
+    const snapshot = await getDocs(col);
+    const passwords: Record<string, string> = {};
+    snapshot.forEach((d) => {
+      const data = d.data();
+      if (data.email && data.password) {
+        passwords[data.email.toLowerCase()] = data.password;
+      }
+    });
+    return passwords;
+  } catch (err) {
+    console.warn('Firestore getMemberPasswords error:', err);
+    return {};
+  }
+}
+
+export async function saveFirestoreMemberPassword(email: string, password: string): Promise<boolean> {
+  if (!isFirebaseConfigured() || !db) return false;
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    const docId = cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
+    const docRef = doc(db, 'member_passwords', docId);
+    await setDoc(docRef, {
+      email: cleanEmail,
+      password: password.trim(),
+      updatedAt: Date.now(),
+    });
+    return true;
+  } catch (err) {
+    console.warn('Firestore saveMemberPassword error:', err);
+    return false;
+  }
+}
+

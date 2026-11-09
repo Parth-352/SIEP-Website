@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { WorkLog, Task, TeamId } from './types';
+import { WorkLog, Task, TeamId, InAppNotification } from './types';
 
 export interface PartnerInquiry {
   id: string;
@@ -17,6 +17,8 @@ interface StoreData {
   tasks: Task[];
   inquiries?: PartnerInquiry[];
   passwords?: Record<string, string>;
+  memberPasswords?: Record<string, string>;
+  notifications?: InAppNotification[];
 }
 
 const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
@@ -287,5 +289,75 @@ export function setTeamPassword(teamId: string, newPass: string): void {
   store.passwords[teamId] = newPass.trim();
   writeStore(store);
 }
+
+// ======================== MEMBER PASSWORDS API ========================
+
+export function getMemberPasswords(): Record<string, string> {
+  const store = readStore();
+  return store.memberPasswords || {};
+}
+
+export function getMemberPassword(email: string): string | undefined {
+  const store = readStore();
+  const cleanEmail = email.trim().toLowerCase();
+  return store.memberPasswords ? store.memberPasswords[cleanEmail] : undefined;
+}
+
+export function setMemberPassword(email: string, newPass: string): void {
+  const store = readStore();
+  if (!store.memberPasswords) {
+    store.memberPasswords = {};
+  }
+  const cleanEmail = email.trim().toLowerCase();
+  store.memberPasswords[cleanEmail] = newPass.trim();
+  writeStore(store);
+}
+
+// ======================== IN-APP NOTIFICATIONS API ========================
+
+export function getNotifications(email?: string): InAppNotification[] {
+  const store = readStore();
+  const list = store.notifications || [];
+  if (!email) return list.sort((a, b) => b.createdAt - a.createdAt);
+  const clean = email.trim().toLowerCase();
+  return list
+    .filter((n) => n.recipientEmail.toLowerCase() === clean)
+    .sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export function addNotification(
+  notif: Omit<InAppNotification, 'id' | 'createdAt' | 'read'>
+): InAppNotification {
+  const store = readStore();
+  if (!store.notifications) {
+    store.notifications = [];
+  }
+  const entry: InAppNotification = {
+    ...notif,
+    id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    createdAt: Date.now(),
+    read: false,
+  };
+  store.notifications.unshift(entry);
+  // Keep last 200 notifications
+  if (store.notifications.length > 200) {
+    store.notifications = store.notifications.slice(0, 200);
+  }
+  writeStore(store);
+  return entry;
+}
+
+export function markNotificationRead(id: string): boolean {
+  const store = readStore();
+  if (!store.notifications) return false;
+  const item = store.notifications.find((n) => n.id === id);
+  if (item) {
+    item.read = true;
+    writeStore(store);
+    return true;
+  }
+  return false;
+}
+
 
 

@@ -33,6 +33,21 @@ export interface UserProfile {
   role: UserRole;
   teamId: TeamId;
   teamName: string;
+  isCore?: boolean;
+  isLead?: boolean;
+  memberId?: string;
+  tier?: 1 | 2 | 3;
+}
+
+export interface InAppNotification {
+  id: string;
+  recipientEmail: string;
+  recipientName: string;
+  title: string;
+  message: string;
+  taskId?: string;
+  createdAt: number;
+  read: boolean;
 }
 
 export interface WorkLog {

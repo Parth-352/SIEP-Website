@@ -24,9 +24,12 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     let teamId = searchParams.get('teamId') || undefined;
 
+    const isCoreAdmin = Boolean(
+      session.isCore || session.role === 'admin' || session.teamId === 'core'
+    );
     // Strict role enforcement: ONLY Core Leadership can view logs across all teams.
     // Subsystem squads can ONLY view their own logs.
-    if (session.teamId !== 'core') {
+    if (!isCoreAdmin) {
       teamId = session.teamId;
     }
 
@@ -75,8 +78,12 @@ export async function POST(request: NextRequest) {
       videoSource,
     } = body;
 
+    const isCoreAdmin = Boolean(
+      session.isCore || session.role === 'admin' || session.teamId === 'core'
+    );
+
     // Subsystem squads can ONLY submit logs for their own team
-    if (session.teamId !== 'core') {
+    if (!isCoreAdmin) {
       teamId = session.teamId;
     }
 
@@ -132,6 +139,10 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    const isCoreAdmin = Boolean(
+      session.isCore || session.role === 'admin' || session.teamId === 'core'
+    );
+
     const body = await request.json();
     const { id, ...updates } = body;
 
@@ -147,7 +158,7 @@ export async function PATCH(request: NextRequest) {
       if (!fsExisting) {
         return NextResponse.json({ success: false, error: 'Log record not found.' }, { status: 404 });
       }
-      if (session.teamId !== 'core' && fsExisting.teamId !== session.teamId) {
+      if (!isCoreAdmin && fsExisting.teamId !== session.teamId) {
         return NextResponse.json(
           { success: false, error: 'Forbidden: You can only edit step logs created by your subsystem team.' },
           { status: 403 }
@@ -163,7 +174,6 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Role enforcement: ONLY Core Leadership can edit logs belonging to other teams
-    const isCoreAdmin = session.teamId === 'core';
     if (!isCoreAdmin) {
       if (existingLog.teamId !== session.teamId) {
         return NextResponse.json(
@@ -218,6 +228,10 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Log ID parameter is required.' }, { status: 400 });
     }
 
+    const isCoreAdmin = Boolean(
+      session.isCore || session.role === 'admin' || session.teamId === 'core'
+    );
+
     const existingLog = getLogById(id);
     if (!existingLog) {
       const fsLogs = await getFirestoreLogs();
@@ -225,7 +239,7 @@ export async function DELETE(request: NextRequest) {
       if (!fsExisting) {
         return NextResponse.json({ success: false, error: 'Log record not found.' }, { status: 404 });
       }
-      if (session.teamId !== 'core' && fsExisting.teamId !== session.teamId) {
+      if (!isCoreAdmin && fsExisting.teamId !== session.teamId) {
         return NextResponse.json(
           { success: false, error: 'Forbidden: You can only delete step logs created by your subsystem team.' },
           { status: 403 }
@@ -236,7 +250,6 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Role enforcement: ONLY Core Leadership can delete logs belonging to other teams
-    const isCoreAdmin = session.teamId === 'core';
     if (!isCoreAdmin && existingLog.teamId !== session.teamId) {
       return NextResponse.json(
         { success: false, error: 'Forbidden: You can only delete step logs created by your subsystem team.' },

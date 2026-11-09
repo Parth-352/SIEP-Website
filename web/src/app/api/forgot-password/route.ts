@@ -1,25 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TEAMS } from '@/lib/teams';
 import { TeamId } from '@/lib/types';
-import { getTeamPassword, setTeamPassword } from '@/lib/store';
-import { getFirestorePasswords, saveFirestorePassword } from '@/lib/firestoreService';
-
-// ============================================================================
-// FORGOT PASSWORD API — OTP-BASED PASSWORD RECOVERY & RESET
-// All OTPs go to a single admin email: snjbebikeclub@gmail.com
-// Includes rate limiting per team and globally to prevent spam.
-// ============================================================================
+import {
+  getTeamPassword,
+  setTeamPassword,
+  getMemberPassword,
+  setMemberPassword,
+} from '@/lib/store';
+import {
+  getFirestorePasswords,
+  saveFirestorePassword,
+  getFirestoreMemberPasswords,
+  saveFirestoreMemberPassword,
+} from '@/lib/firestoreService';
+import {
+  getMemberByEmail,
+  ROSTER_MEMBERS,
+} from '@/lib/members';
 
 const ADMIN_EMAIL = 'snjbebikeclub@gmail.com';
 const OTP_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
-const COOLDOWN_MS = 2 * 60 * 1000;   // 2 minutes between requests per team
-const MAX_VERIFY_ATTEMPTS = 5;        // Max wrong OTP attempts before lockout
+const COOLDOWN_MS = 60 * 1000; // 1 minute between requests
+const MAX_VERIFY_ATTEMPTS = 5;
 
 interface OTPRecord {
   otp: string;
-  teamId: TeamId;
-  teamName: string;
-  teamCode: string;
+  identifier: string; // email or teamId
+  isMember: boolean;
+  recipientEmail: string;
+  recipientName: string;
   createdAt: number;
   expiresAt: number;
   attempts: number;
@@ -29,87 +38,98 @@ interface OTPRecord {
   tokenExpiresAt?: number;
 }
 
-// In-memory OTP store (keyed by teamId)
+// In-memory OTP store (keyed by lowercase identifier)
 const otpStore = new Map<string, OTPRecord>();
 
-// Validate strict password requirements: 8+ chars, uppercase, lowercase, digit, and symbol
-function validatePasswordStrength(password: string): { valid: boolean; error?: string } {
-  const p = password.trim();
-  if (p.length < 8) {
-    return { valid: false, error: 'Password must be at least 8 characters long.' };
-  }
-  if (p.length > 40) {
-    return { valid: false, error: 'Password cannot exceed 40 characters.' };
-  }
-  if (!/[A-Z]/.test(p)) {
-    return { valid: false, error: 'Password must contain at least one uppercase letter (A-Z).' };
-  }
-  if (!/[a-z]/.test(p)) {
-    return { valid: false, error: 'Password must contain at least one lowercase letter (a-z).' };
-  }
-  if (!/[0-9]/.test(p)) {
-    return { valid: false, error: 'Password must contain at least one number (0-9).' };
-  }
-  if (!/[!@#$%^&*()_+\-=[\]{}|;:,.<>?/~`\\]/.test(p)) {
-    return { valid: false, error: 'Password must contain at least one special symbol (e.g. @, #, $, %, !).' };
-  }
-  return { valid: true };
-}
-
-// Generate a 6-digit numeric OTP
 function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// ======================== POST: Request OTP or Verify OTP ========================
+function maskEmail(email: string): string {
+  const [user, domain] = email.split('@');
+  if (!user || !domain) return email;
+  if (user.length <= 2) return `${user[0]}*@${domain}`;
+  return `${user.slice(0, 2)}${'*'.repeat(Math.min(user.length - 3, 5))}${user.slice(-1)}@${domain}`;
+}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action, teamId, otp } = body;
+    const { action, email, teamId, otp } = body;
+
+    const identifier = String(email || teamId || '').trim().toLowerCase();
 
     // ─── ACTION: REQUEST OTP ─────────────────────────────────────────────
     if (action === 'request') {
-      if (!teamId || !TEAMS[teamId as TeamId]) {
+      if (!identifier) {
         return NextResponse.json(
-          { success: false, error: 'Please select a valid team before requesting a password reset.' },
+          { success: false, error: 'Please enter your registered email address.' },
           { status: 400 }
         );
       }
 
-      const team = TEAMS[teamId as TeamId];
+      let recipientEmail = '';
+      let recipientName = '';
+      let roleDescription = '';
+      let isMember = false;
 
-      // Rate limit: check if there's a recent unexpired OTP for this team
-      const existing = otpStore.get(teamId);
-      if (existing && !existing.used && (Date.now() - existing.createdAt) < COOLDOWN_MS) {
+      // Check if it's a member email
+      const member = getMemberByEmail(identifier);
+      if (member) {
+        recipientEmail = member.email;
+        recipientName = member.name;
+        roleDescription = `${member.role} [${member.teamId.toUpperCase()}]`;
+        isMember = true;
+      } else {
+        // Check if legacy teamId
+        const team = TEAMS[identifier as TeamId];
+        if (team) {
+          recipientEmail = team.email;
+          recipientName = `Team ${team.name}`;
+          roleDescription = `[${team.code}] Squad`;
+          isMember = false;
+        } else {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Email address not found in the official SIEP roster. Please verify and try again.',
+            },
+            { status: 404 }
+          );
+        }
+      }
+
+      // Rate limit check
+      const existing = otpStore.get(identifier);
+      if (existing && !existing.used && Date.now() - existing.createdAt < COOLDOWN_MS) {
         const waitSec = Math.ceil((COOLDOWN_MS - (Date.now() - existing.createdAt)) / 1000);
         return NextResponse.json(
           {
             success: false,
-            error: `A reset OTP was already sent for [${team.code}] ${team.name}. Please wait ${waitSec}s before requesting again.`,
+            error: `An OTP was already dispatched. Please wait ${waitSec}s before requesting again.`,
           },
           { status: 429 }
         );
       }
 
-      // Generate new OTP
       const newOTP = generateOTP();
       const now = Date.now();
 
       const record: OTPRecord = {
         otp: newOTP,
-        teamId: teamId as TeamId,
-        teamName: team.name,
-        teamCode: team.code,
+        identifier,
+        isMember,
+        recipientEmail,
+        recipientName,
         createdAt: now,
         expiresAt: now + OTP_EXPIRY_MS,
         attempts: 0,
         used: false,
       };
 
-      otpStore.set(teamId, record);
+      otpStore.set(identifier, record);
 
-      // Send OTP email via Google Apps Script
+      // Send OTP via Google Apps Script directly to member's personal Gmail
       const gasUrl = process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL;
       let mailSent = false;
       let failureReason = '';
@@ -125,14 +145,14 @@ export async function POST(request: NextRequest) {
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({
               action: 'sendForgotPasswordOTP',
-              to: ADMIN_EMAIL,
+              to: recipientEmail,
+              cc: ADMIN_EMAIL, // Admin receives audit copy
               otp: newOTP,
-              teamId: teamId,
-              teamCode: team.code,
-              teamName: team.name,
-              teamEmail: team.email,
-              teamLead: team.lead || 'Unknown',
-              timestamp: timestamp,
+              recipientName,
+              role: roleDescription,
+              teamEmail: recipientEmail,
+              teamLead: recipientName,
+              timestamp,
               expiryMinutes: 5,
             }),
           });
@@ -142,27 +162,24 @@ export async function POST(request: NextRequest) {
             if (gasData && gasData.success === true) {
               mailSent = true;
             } else {
-              failureReason = gasData?.error || 'Google Apps Script returned an unhandled error.';
-              console.warn('Google Apps Script returned failure for OTP mail:', gasData);
+              failureReason = gasData?.error || 'Google Apps Script response indicated an issue.';
             }
           } else {
             failureReason = `Google Apps Script returned HTTP ${gasRes.status}.`;
           }
         } catch (gasErr) {
-          failureReason = gasErr instanceof Error ? gasErr.message : 'Network error reaching Google Apps Script';
-          console.error('Failed to send OTP via Google Apps Script:', gasErr);
+          failureReason = gasErr instanceof Error ? gasErr.message : 'Network error reaching mail relay';
+          console.error('Failed to send OTP email:', gasErr);
         }
       }
 
       if (!mailSent) {
-        // Clear the OTP if mail couldn't be sent
-        otpStore.delete(teamId);
+        // If external mail relay failed, still allow dev/emergency OTP logging
+        console.warn(`[DEV/RECOVERY OTP] For ${recipientEmail}: ${newOTP}`);
         return NextResponse.json(
           {
             success: false,
-            error: failureReason
-              ? `Failed to send OTP email (${failureReason}). Please update the Google Apps Script deployment.`
-              : 'Failed to send OTP email. Please try again later or contact administration.',
+            error: `Could not deliver OTP email (${failureReason}). Please check your internet connection or ask Core Leadership.`,
           },
           { status: 500 }
         );
@@ -170,54 +187,58 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: `A 6-digit OTP has been sent to the admin inbox for [${team.code}] ${team.name}. It expires in 5 minutes.`,
+        message: `A 6-digit OTP has been sent directly to ${maskEmail(recipientEmail)}. It expires in 5 minutes.`,
+        maskedEmail: maskEmail(recipientEmail),
+        recipientName,
         expiresAt: record.expiresAt,
       });
     }
 
     // ─── ACTION: VERIFY OTP ──────────────────────────────────────────────
     if (action === 'verify') {
-      if (!teamId || !otp) {
+      if (!identifier || !otp) {
         return NextResponse.json(
-          { success: false, error: 'Team and OTP are required for verification.' },
+          { success: false, error: 'Email and OTP are required for verification.' },
           { status: 400 }
         );
       }
 
-      const record = otpStore.get(teamId);
+      const record = otpStore.get(identifier);
 
       if (!record) {
         return NextResponse.json(
-          { success: false, error: 'No OTP was requested for this team. Please request a new one.' },
+          { success: false, error: 'No active OTP request found. Please request a new code.' },
           { status: 400 }
         );
       }
 
       if (record.used) {
         return NextResponse.json(
-          { success: false, error: 'This OTP has already been used. Please request a new one.' },
+          { success: false, error: 'This OTP has already been used. Please request a new code.' },
           { status: 400 }
         );
       }
 
       if (Date.now() > record.expiresAt) {
-        otpStore.delete(teamId);
+        otpStore.delete(identifier);
         return NextResponse.json(
-          { success: false, error: 'OTP has expired. Please request a new one.', expired: true },
+          { success: false, error: 'OTP has expired. Please request a new code.', expired: true },
           { status: 400 }
         );
       }
 
       if (record.attempts >= MAX_VERIFY_ATTEMPTS) {
-        otpStore.delete(teamId);
+        otpStore.delete(identifier);
         return NextResponse.json(
-          { success: false, error: 'Too many incorrect attempts. This OTP has been invalidated. Please request a new one.' },
+          {
+            success: false,
+            error: 'Too many incorrect attempts. Please request a new code.',
+          },
           { status: 429 }
         );
       }
 
-      // Verify the OTP
-      if (otp.trim() !== record.otp) {
+      if (String(otp).trim() !== record.otp) {
         record.attempts += 1;
         const remaining = MAX_VERIFY_ATTEMPTS - record.attempts;
         return NextResponse.json(
@@ -229,113 +250,83 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // OTP is correct — grant reset session
-      const team = TEAMS[teamId as TeamId];
-      if (!team) {
-        return NextResponse.json(
-          { success: false, error: 'Team configuration not found.' },
-          { status: 500 }
-        );
-      }
-
-      // Mark OTP as used and generate a secure 10-minute reset token
+      // OTP correct: grant 10-minute reset session
       record.used = true;
       record.verified = true;
       const resetToken = crypto.randomUUID();
       record.resetToken = resetToken;
       record.tokenExpiresAt = Date.now() + 10 * 60 * 1000;
 
-      const fsPasswords = await getFirestorePasswords();
-      const activePassword = fsPasswords[teamId] || getTeamPassword(teamId) || team.defaultPass;
-
       return NextResponse.json({
         success: true,
-        message: `OTP verified for [${team.code}] ${team.name}. You can now set a new password or continue.`,
-        teamCode: team.code,
-        teamName: team.name,
-        resetToken: resetToken,
-        currentPassword: activePassword,
+        message: 'OTP verified successfully. You may now create your new 6-digit PIN.',
+        resetToken,
+        recipientName: record.recipientName,
+        email: record.recipientEmail,
       });
     }
 
     // ─── ACTION: RESET PASSWORD ──────────────────────────────────────────
     if (action === 'reset') {
-      const { teamId, resetToken, newPassword } = body;
+      const { resetToken, newPassword } = body;
 
-      if (!teamId || !resetToken || !newPassword) {
+      if (!identifier || !resetToken || !newPassword) {
         return NextResponse.json(
-          { success: false, error: 'Team, reset token, and new password are required.' },
+          { success: false, error: 'Email, reset token, and new password are required.' },
           { status: 400 }
         );
       }
 
-      const team = TEAMS[teamId as TeamId];
-      if (!team) {
-        return NextResponse.json(
-          { success: false, error: 'Team configuration not found.' },
-          { status: 404 }
-        );
-      }
-
-      const record = otpStore.get(teamId);
+      const record = otpStore.get(identifier);
       if (!record || record.resetToken !== resetToken || !record.verified) {
         return NextResponse.json(
-          { success: false, error: 'Password reset session is invalid. Please request a new OTP.' },
+          { success: false, error: 'Reset session is invalid. Please request a new OTP.' },
           { status: 401 }
         );
       }
 
       if (record.tokenExpiresAt && Date.now() > record.tokenExpiresAt) {
-        otpStore.delete(teamId);
+        otpStore.delete(identifier);
         return NextResponse.json(
-          { success: false, error: 'Password reset session has expired. Please request a new OTP.' },
+          { success: false, error: 'Reset session has expired. Please request a new OTP.' },
           { status: 401 }
         );
       }
 
       const cleanNewPass = String(newPassword).trim();
-      const validation = validatePasswordStrength(cleanNewPass);
-      if (!validation.valid) {
+
+      // Check for 6-digit numeric PIN requirement
+      if (!/^\d{6}$/.test(cleanNewPass)) {
         return NextResponse.json(
-          { success: false, error: validation.error || 'Password does not meet security requirements.' },
+          {
+            success: false,
+            error: 'PIN must be exactly 6 digits (numbers only, e.g. 935200).',
+          },
           { status: 400 }
         );
       }
 
-      // 1. Save new password to the server store & Google Cloud Firestore
-      setTeamPassword(teamId, cleanNewPass);
-      await saveFirestorePassword(teamId, cleanNewPass).catch((fsErr) => {
-        console.warn('Firestore password save notice:', fsErr);
-      });
-
-      // Invalidate the reset token
-      otpStore.delete(teamId);
-
-      // 2. Dispatch update to Google Apps Script cloud & notify admin email in background
-      const gasUrl = process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL;
-      if (gasUrl) {
-        const timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-        fetch(gasUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-            action: 'updateTeamPassword',
-            teamId: teamId,
-            teamCode: team.code,
-            teamName: team.name,
-            newPassword: cleanNewPass,
-            timestamp: timestamp,
-          }),
-        }).catch((gasErr) => {
-          console.warn('Background Google Apps Script password sync notice:', gasErr);
+      if (record.isMember) {
+        // Save to member password stores (Firestore + local store)
+        setMemberPassword(record.recipientEmail, cleanNewPass);
+        await saveFirestoreMemberPassword(record.recipientEmail, cleanNewPass).catch((err) => {
+          console.warn('Firestore member password save notice:', err);
+        });
+      } else {
+        // Legacy team password
+        setTeamPassword(identifier, cleanNewPass);
+        await saveFirestorePassword(identifier, cleanNewPass).catch((err) => {
+          console.warn('Firestore team password save notice:', err);
         });
       }
 
+      // Invalidate the reset token
+      otpStore.delete(identifier);
+
       return NextResponse.json({
         success: true,
-        message: `Password for [${team.code}] ${team.name} has been updated successfully!`,
-        teamCode: team.code,
-        teamName: team.name,
+        message: 'Your 6-digit PIN has been updated successfully! You can now sign in.',
+        email: record.recipientEmail,
         newPassword: cleanNewPass,
       });
     }

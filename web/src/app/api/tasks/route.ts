@@ -1,12 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTasks, createTask, updateTask, deleteTask } from '@/lib/store';
+import { getTasks, createTask, updateTask, deleteTask, addNotification } from '@/lib/store';
 import { 
   getFirestoreTasks, 
   saveFirestoreTask, 
   deleteFirestoreTask 
 } from '@/lib/firestoreService';
-import { TeamId, TaskStatus, TaskPriority } from '@/lib/types';
+import { TeamId, TaskStatus, TaskPriority, Task } from '@/lib/types';
 import { SESSION_COOKIE_NAME, decodeSession } from '@/lib/session';
+import { getMemberByName } from '@/lib/members';
+
+function dispatchTaskNotifications(task: Task, assignedBy: string) {
+  const gasUrl = process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL;
+  if (!Array.isArray(task.assignedMembers) || task.assignedMembers.length === 0) return;
+
+  const timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+  task.assignedMembers.forEach((name) => {
+    const member = getMemberByName(name);
+    if (!member) return;
+
+    // 1. Record In-App notification
+    try {
+      addNotification({
+        recipientEmail: member.email,
+        recipientName: member.name,
+        title: `Task Assigned: ${task.title}`,
+        message: `Assigned by ${assignedBy}. Priority: ${task.priority.toUpperCase()}. Due: ${task.dueDate || 'No due date'}`,
+        taskId: task.id,
+      });
+    } catch (e) {
+      console.warn('In-app notification notice:', e);
+    }
+
+    // 2. Dispatch personal Gmail notification via Google Apps Script
+    if (gasUrl) {
+      fetch(gasUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'sendTaskAssignmentNotification',
+          to: member.email,
+          recipientName: member.name,
+          taskTitle: task.title,
+          taskDescription: task.description || '',
+          teamId: task.teamId,
+          priority: task.priority,
+          dueDate: task.dueDate || 'Unscheduled',
+          assignedBy,
+          timestamp,
+        }),
+      }).catch((err) => {
+        console.warn(`Task notification dispatch notice for ${member.email}:`, err);
+      });
+    }
+  });
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -60,8 +108,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Role guard: Only Core Leadership can assign to any team; subsystem squads can create tasks for their own squad
-    if (session.teamId !== 'core' && teamId !== session.teamId) {
+    const isCoreAdmin = Boolean(
+      session.isCore || session.role === 'admin' || session.teamId === 'core'
+    );
+    const isDomainLead = Boolean(session.isLead || session.teamId === teamId);
+
+    // Role guard: Core can assign anywhere; Leads can create within their squad; Members can create for their squad
+    if (!isCoreAdmin && !isDomainLead && session.teamId !== teamId) {
       return NextResponse.json(
         { success: false, error: 'Forbidden: You can only assign tasks for your own subsystem team.' },
         { status: 403 }
@@ -82,6 +135,9 @@ export async function POST(request: NextRequest) {
     await saveFirestoreTask(task).catch((err) => {
       console.warn('Firestore task sync notice:', err);
     });
+
+    // Dispatch assignment email notifications to personal Gmails
+    dispatchTaskNotifications(task, session.name || 'Leadership');
 
     return NextResponse.json({ success: true, task }, { status: 201 });
   } catch (error) {
@@ -111,6 +167,10 @@ export async function PATCH(request: NextRequest) {
 
     const allTasks = getTasks();
     const existing = allTasks.find((t) => t.id === id);
+    const isCoreAdmin = Boolean(
+      session.isCore || session.role === 'admin' || session.teamId === 'core'
+    );
+
     if (!existing) {
       // Also try fetching from Firestore directly
       const firestoreTasks = await getFirestoreTasks();
@@ -118,13 +178,19 @@ export async function PATCH(request: NextRequest) {
       if (!fsExisting) {
         return NextResponse.json({ success: false, error: 'Task not found' }, { status: 404 });
       }
-      if (session.teamId !== 'core' && fsExisting.teamId !== session.teamId) {
+
+      // Check authorization
+      const isAssigned = fsExisting.assignedMembers?.some(
+        (m) => m.toLowerCase() === session.name.toLowerCase()
+      );
+      if (!isCoreAdmin && fsExisting.teamId !== session.teamId && !isAssigned) {
         return NextResponse.json(
-          { success: false, error: 'Forbidden: You can only modify tasks belonging to your subsystem team.' },
+          { success: false, error: 'Forbidden: You cannot modify tasks outside your subsystem.' },
           { status: 403 }
         );
       }
-      const updatedFs = {
+
+      const updatedFs: Task = {
         ...fsExisting,
         ...updates,
         updatedAt: Date.now(),
@@ -133,10 +199,13 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: true, task: updatedFs });
     }
 
-    // Role guard: Only Core Leadership can modify any task; subsystem squads can modify their own team's tasks
-    if (session.teamId !== 'core' && existing.teamId !== session.teamId) {
+    // Check authorization
+    const isAssigned = existing.assignedMembers?.some(
+      (m) => m.toLowerCase() === session.name.toLowerCase()
+    );
+    if (!isCoreAdmin && existing.teamId !== session.teamId && !isAssigned) {
       return NextResponse.json(
-        { success: false, error: 'Forbidden: You can only modify tasks belonging to your subsystem team.' },
+        { success: false, error: 'Forbidden: You cannot modify tasks outside your subsystem.' },
         { status: 403 }
       );
     }
@@ -174,16 +243,19 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Task id is required' }, { status: 400 });
     }
 
+    const isCoreAdmin = Boolean(
+      session.isCore || session.role === 'admin' || session.teamId === 'core'
+    );
     const allTasks = getTasks();
     const existing = allTasks.find((t) => t.id === id);
+
     if (!existing) {
-      // Check firestore too
       const firestoreTasks = await getFirestoreTasks();
       const fsExisting = firestoreTasks?.find((t) => t.id === id);
       if (!fsExisting) {
         return NextResponse.json({ success: false, error: 'Task not found' }, { status: 404 });
       }
-      if (session.teamId !== 'core' && fsExisting.teamId !== session.teamId) {
+      if (!isCoreAdmin && fsExisting.teamId !== session.teamId) {
         return NextResponse.json(
           { success: false, error: 'Forbidden: You can only delete tasks belonging to your subsystem team.' },
           { status: 403 }
@@ -193,8 +265,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
-    // Role guard: Only Core Leadership can delete any task; subsystem squads can delete their own team's tasks
-    if (session.teamId !== 'core' && existing.teamId !== session.teamId) {
+    if (!isCoreAdmin && existing.teamId !== session.teamId) {
       return NextResponse.json(
         { success: false, error: 'Forbidden: You can only delete tasks belonging to your subsystem team.' },
         { status: 403 }

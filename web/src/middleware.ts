@@ -47,7 +47,21 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Authenticated sessions have access to internal portal routes (/dashboard, /log)
+  // 2. Strict Role Enforcement for Engineering Log System (/log):
+  // Exclusively accessible to Tier 1 (Core Leadership) and Tier 2 (Domain Leads).
+  // Blocked for Tier 3 (Team Members) — redirected to /dashboard.
+  if (isLogRoute) {
+    const isPrivileged = Boolean(
+      session.isCore || session.isLead || session.role === 'admin' || session.teamId === 'core'
+    );
+    if (!isPrivileged) {
+      const dashUrl = new URL('/dashboard', request.url);
+      dashUrl.searchParams.set('restricted', 'log');
+      return NextResponse.redirect(dashUrl);
+    }
+  }
+
+  // Authenticated sessions have access to internal portal routes
   return NextResponse.next();
 }
 

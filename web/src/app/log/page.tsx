@@ -22,10 +22,9 @@ function LogLoadingSkeleton() {
 function LogPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, loading: authLoading } = useAuth();
-  // ONLY Core Leadership has master administrative access across all teams.
-  // All other engineering squads (Mechanical, Software, EnTC, etc.) are team-scoped.
-  const isCoreAdmin = Boolean(user && user.teamId === 'core');
+  const { user, loading: authLoading, isCore, isLead } = useAuth();
+  // Master administrative access for Core Leadership (Tier 1)
+  const isCoreAdmin = Boolean(isCore || (user && user.teamId === 'core'));
 
   const [isMounted, setIsMounted] = useState(false);
   const [logs, setLogs] = useState<WorkLog[]>([]);
@@ -101,13 +100,22 @@ function LogPageContent() {
     }
   }, [searchParams]);
 
-  // Auth redirect guard & initial state
+  // Auth redirect guard & tier access check
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login?from=/log');
-    } else if (user) {
+      return;
+    }
+
+    if (!authLoading && user) {
+      // Tier 3 Team Members are blocked from /log and redirected to /dashboard
+      if (!isCore && !isLead && user.teamId !== 'core') {
+        router.push('/dashboard?restricted=log');
+        return;
+      }
+
       const urlTeam = searchParams.get('team') || searchParams.get('teamId');
-      if (user.teamId === 'core' && urlTeam && urlTeam !== 'all' && TEAMS[urlTeam as TeamId]) {
+      if (isCoreAdmin && urlTeam && urlTeam !== 'all' && TEAMS[urlTeam as TeamId]) {
         setTargetTeamId(urlTeam as TeamId);
       } else {
         setTargetTeamId(user.teamId);
@@ -119,7 +127,7 @@ function LogPageContent() {
       const mins = String(now.getMinutes()).padStart(2, '0');
       setWorkTime(`${hours}:${mins}`);
     }
-  }, [user, authLoading, router, searchParams]);
+  }, [user, authLoading, isCore, isLead, isCoreAdmin, router, searchParams]);
 
   useEffect(() => {
     setIsMounted(true);

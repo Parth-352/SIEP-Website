@@ -34,7 +34,7 @@ export default function MemberSelect({
 
   // Filter roster
   const availableMembers = ROSTER_MEMBERS.filter((m) => {
-    const matchesTeam = showAllTeams || !teamId || teamId === 'core' || m.teamId === teamId;
+    const matchesTeam = showAllTeams || !teamId || teamId === 'core' || m.teamId === teamId || m.secondaryTeams?.includes(teamId);
     const matchesSearch = m.name.toLowerCase().includes(search.toLowerCase()) ||
       m.role.toLowerCase().includes(search.toLowerCase());
     return matchesTeam && matchesSearch;

@@ -55,7 +55,7 @@ export const TEAMS: Record<TeamId, TeamConfig> = {
     badgeBg: 'bg-pink-500/10 text-pink-400 border-pink-500/30',
     badgeText: 'text-pink-400',
     description: 'CAD 3D modeling, fairing aerodynamic styling, rider ergonomics, and aesthetic engineering',
-    lead: 'Meet Samdadiya',
+    lead: 'Prem Chaudhari',
   },
   research: {
     id: 'research',
@@ -125,7 +125,7 @@ export const TEAMS: Record<TeamId, TeamConfig> = {
     badgeBg: 'bg-orange/10 text-orange border-orange/30',
     badgeText: 'text-orange',
     description: 'Project head, captaincy, overall vehicle integration, and administrative decisions',
-    lead: 'Meet Samdadiya',
+    lead: 'Tirthraj Pawale',
   },
 };
 
