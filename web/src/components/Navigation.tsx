@@ -100,6 +100,10 @@ export default function Navigation() {
     );
   };
 
+  if (pathname === '/login') {
+    return null;
+  }
+
   return (
     <>
       {/* Top Nav Bar — always visible */}

@@ -433,7 +433,7 @@ export const NINE_MOBILE_TEAMS: MobileTeamGroup[] = [
   },
   {
     id: 'entc',
-    name: 'EnTC Team',
+    name: 'Electrical & Electronics Team',
     subtitle: 'Powertrain, Wiring Harness & Power Distribution',
     memberIds: [
       { id: 'tirthraj', role: 'Domain Lead', isLead: true },

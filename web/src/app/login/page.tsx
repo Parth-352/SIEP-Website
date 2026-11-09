@@ -524,57 +524,78 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-alice-blue flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 py-12 relative overflow-hidden">
+    <div className="min-h-screen bg-alice-blue flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 py-10 relative overflow-hidden">
       {/* Subtle Background Glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-orange/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-orange/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Main Container */}
       <div className="w-full max-w-md relative z-10">
         {/* Brand & Portal Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
+          <div className="flex justify-center mb-3">
+            <Link href="/" className="inline-block group">
+              <div className="relative">
+                <div className="absolute -inset-1 bg-gradient-to-r from-orange/40 to-amber-500/40 rounded-2xl blur-md opacity-60 group-hover:opacity-100 transition duration-300" />
+                <div className="relative w-14 h-14 rounded-2xl bg-jet-black border border-white/10 shadow-xl overflow-hidden flex items-center justify-center p-0.5">
+                  <img src="/icons/icon-192.png" alt="Riders Bay" className="w-full h-full object-contain rounded-xl" />
+                </div>
+              </div>
+            </Link>
+          </div>
+
           <Link
             href="/"
-            className="inline-block text-3xl font-black text-jet-black tracking-tighter hover:opacity-90 transition-opacity"
+            className="inline-block text-2xl sm:text-3xl font-black text-jet-black tracking-tight hover:opacity-90 transition-opacity"
           >
             Riders Bay<span className="text-orange">.</span>
           </Link>
-          <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-jet-black text-alice-blue text-[10px] font-mono uppercase tracking-[0.2em] font-bold">
-            SIEP OPERATING PORTAL
+          <div className="mt-2 flex items-center justify-center">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-jet-black text-alice-blue text-[10px] font-mono uppercase tracking-[0.2em] font-bold shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange animate-pulse" />
+              SIEP OPERATIONS PORTAL
+            </span>
           </div>
-          <p className="mt-3 text-xs font-sans text-grey">
+          <p className="mt-2 text-xs font-sans text-grey">
             Sign in with your registered email and 6-digit PIN
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white rounded-3xl border border-jet-black/10 shadow-xl p-8 space-y-6">
+        <div className="bg-white rounded-3xl border border-jet-black/10 shadow-[0_20px_50px_rgba(0,0,0,0.06)] p-6 sm:p-8 space-y-5">
           {error && (
-            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-mono flex items-start gap-3">
-              <span className="text-base leading-none">⚠️</span>
+            <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-mono flex items-start gap-2.5">
+              <span className="text-sm leading-none mt-0.5">⚠️</span>
               <span className="flex-1 leading-relaxed">{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Registered Email Input */}
             <div>
-              <label className="block text-[11px] font-mono uppercase tracking-wider text-jet-black font-bold mb-2">
+              <label className="block text-[11px] font-mono uppercase tracking-wider text-jet-black font-bold mb-1.5">
                 Registered Gmail Address
               </label>
-              <input
-                type="email"
-                required
-                autoFocus
-                placeholder="you@gmail.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3.5 bg-alice-blue border border-jet-black/15 rounded-2xl text-sm font-sans text-jet-black placeholder:text-grey/60 focus:outline-none focus:border-orange focus:ring-2 focus:ring-orange/20 transition-all"
-              />
+              <div className="relative">
+                <input
+                  type="email"
+                  required
+                  autoFocus
+                  placeholder="name@gmail.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-alice-blue/60 border border-jet-black/15 rounded-xl text-sm font-sans text-jet-black placeholder:text-grey/40 focus:outline-none focus:bg-white focus:border-orange focus:ring-4 focus:ring-orange/15 transition-all"
+                />
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-grey/60 pointer-events-none">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                  </svg>
+                </div>
+              </div>
             </div>
 
             {/* 6-Digit PIN Input */}
             <div>
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-[11px] font-mono uppercase tracking-wider text-jet-black font-bold">
                   6-Digit PIN
                 </label>
@@ -595,20 +616,39 @@ function LoginForm() {
                   placeholder="••••••"
                   value={pin}
                   onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  className="w-full px-4 py-3.5 bg-alice-blue border border-jet-black/15 rounded-2xl text-base font-mono font-bold tracking-widest text-jet-black placeholder:text-grey/40 focus:outline-none focus:border-orange focus:ring-2 focus:ring-orange/20 transition-all"
+                  className="w-full pl-10 pr-10 py-3 bg-alice-blue/60 border border-jet-black/15 rounded-xl text-base font-mono font-bold tracking-[0.3em] text-jet-black placeholder:text-grey/40 focus:outline-none focus:bg-white focus:border-orange focus:ring-4 focus:ring-orange/15 transition-all"
                 />
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-grey/60 pointer-events-none">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
                 <button
                   type="button"
                   onClick={() => setShowPin(!showPin)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-grey hover:text-jet-black text-sm cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-grey hover:text-jet-black transition-colors cursor-pointer"
                   title={showPin ? 'Hide PIN' : 'Show PIN'}
                 >
-                  {showPin ? '🙈' : '👁️'}
+                  {showPin ? (
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
                 </button>
               </div>
-              <div className="mt-2 flex items-center justify-between text-[10px] font-mono text-grey">
-                <span>Default PIN: <strong className="font-bold text-jet-black">935200</strong></span>
-                <span>6 digits numeric</span>
+
+              {/* Default PIN info chip */}
+              <div className="mt-2.5 px-3 py-2 rounded-xl bg-alice-blue border border-jet-black/10 flex items-center justify-between text-[11px] font-mono">
+                <span className="text-jet-black/80 flex items-center gap-1.5">
+                  <span className="text-grey">Default PIN:</span>
+                  <span className="px-1.5 py-0.5 rounded bg-orange/15 text-orange font-bold font-mono">935200</span>
+                </span>
+                <span className="text-grey/70 text-[10px]">Changeable inside</span>
               </div>
             </div>
 
@@ -616,7 +656,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-4 rounded-2xl bg-jet-black text-alice-blue hover:bg-orange font-bold text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 group disabled:opacity-50"
+              className="w-full py-3.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange hover:text-jet-black font-bold text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 group disabled:opacity-50 mt-1"
             >
               {isSubmitting ? (
                 <>
@@ -626,19 +666,20 @@ function LoginForm() {
               ) : (
                 <>
                   <span>Sign In to Portal</span>
-                  <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+                  <span className="group-hover:translate-x-1 transition-transform">→</span>
                 </>
               )}
             </button>
           </form>
 
           {/* Return to Public Website */}
-          <div className="pt-2 text-center border-t border-jet-black/10">
+          <div className="pt-3 text-center border-t border-jet-black/10">
             <Link
               href="/"
               className="text-xs font-mono uppercase tracking-wider text-grey hover:text-jet-black transition-colors inline-flex items-center gap-1.5"
             >
-              <span>← Return to Public Website</span>
+              <span>←</span>
+              <span>Return to Public Website</span>
             </Link>
           </div>
         </div>
