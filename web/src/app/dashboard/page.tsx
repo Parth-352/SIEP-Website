@@ -3295,13 +3295,12 @@ function DashboardContent() {
           INSTAGRAM-STYLE BOTTOM NAVIGATION DOCK
           Visible across all devices: flush at bottom on mobile, floating dock on desktop.
          ========================================================================= */}
-      {user && (
-        <nav
-          aria-label="Instagram Bottom Navigation"
-          className={`fixed z-50 transition-all duration-300 ${
-            isInputFocused ? 'translate-y-32 pointer-events-none opacity-0' : 'translate-y-0 opacity-100'
-          } bottom-0 left-0 right-0 sm:bottom-5 sm:left-1/2 sm:-translate-x-1/2 sm:w-[94%] sm:max-w-md sm:rounded-2xl sm:shadow-[0_12px_45px_rgba(0,0,0,0.18)] sm:border sm:border-jet-black/15 bg-white/95 backdrop-blur-xl border-t border-jet-black/10 px-3 pt-2 sm:py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]`}
-        >
+      <nav
+        aria-label="Instagram Bottom Navigation"
+        className={`fixed z-50 transition-all duration-300 ${
+          isInputFocused ? 'translate-y-32 pointer-events-none opacity-0' : 'translate-y-0 opacity-100'
+        } bottom-0 left-0 right-0 sm:bottom-5 sm:left-1/2 sm:-translate-x-1/2 sm:w-[94%] sm:max-w-md sm:rounded-2xl sm:shadow-[0_12px_45px_rgba(0,0,0,0.18)] sm:border sm:border-jet-black/15 bg-white/95 backdrop-blur-xl border-t border-jet-black/10 px-3 pt-2 sm:py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]`}
+      >
           <div className="flex items-center justify-between max-w-md mx-auto px-1 sm:px-2">
             
             {/* 1. Home / Task Board */}
@@ -3474,13 +3473,12 @@ function DashboardContent() {
 
           </div>
         </nav>
-      )}
 
       {/* =========================================================================
           OPERATIONS HUB & CREATE SHEET (Instagram Style)
           Slides up on mobile, centered modal dock on desktop.
          ========================================================================= */}
-      {isMobileQuickMenuOpen && user && (
+      {isMobileQuickMenuOpen && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end sm:items-center sm:justify-center p-0 sm:p-4">
           {/* Backdrop */}
           <div
