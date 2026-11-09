@@ -17,9 +17,9 @@ export const TEAMS: Record<TeamId, TeamConfig> = {
   },
   entc: {
     id: 'entc',
-    name: 'Electronics & Telecommunication',
-    shortName: 'EnTC',
-    code: 'ENTC',
+    name: 'Electrical & Electronics',
+    shortName: 'Electrical',
+    code: 'E&E',
     email: 'entc@ridersbay.com',
     defaultPass: 'EnTC@9352',
     role: 'team',
@@ -31,7 +31,7 @@ export const TEAMS: Record<TeamId, TeamConfig> = {
   },
   mechanical: {
     id: 'mechanical',
-    name: 'Mechanical & Chassis',
+    name: 'Mechanical',
     shortName: 'Mechanical',
     code: 'MECH',
     email: 'mechanical@ridersbay.com',
@@ -45,7 +45,7 @@ export const TEAMS: Record<TeamId, TeamConfig> = {
   },
   design: {
     id: 'design',
-    name: 'Design & Ergonomics',
+    name: 'Design',
     shortName: 'Design',
     code: 'DSGN',
     email: 'design@ridersbay.com',
@@ -59,7 +59,7 @@ export const TEAMS: Record<TeamId, TeamConfig> = {
   },
   research: {
     id: 'research',
-    name: 'Research & Simulation',
+    name: 'Research',
     shortName: 'Research',
     code: 'R&D',
     email: 'research@ridersbay.com',
@@ -73,7 +73,7 @@ export const TEAMS: Record<TeamId, TeamConfig> = {
   },
   sponsorship: {
     id: 'sponsorship',
-    name: 'Sponsorship & Outreach',
+    name: 'Sponsorship',
     shortName: 'Sponsorship',
     code: 'SPON',
     email: 'sponsorship@ridersbay.com',
@@ -87,7 +87,7 @@ export const TEAMS: Record<TeamId, TeamConfig> = {
   },
   socialmedia: {
     id: 'socialmedia',
-    name: 'Social Media & Media',
+    name: 'Social Media',
     shortName: 'Social Media',
     code: 'SOCM',
     email: 'socialmedia@ridersbay.com',
@@ -101,7 +101,7 @@ export const TEAMS: Record<TeamId, TeamConfig> = {
   },
   documentation: {
     id: 'documentation',
-    name: 'Documentation & Compliance',
+    name: 'Documentation',
     shortName: 'Documentation',
     code: 'DOCS',
     email: 'documentation@ridersbay.com',

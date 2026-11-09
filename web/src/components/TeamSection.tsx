@@ -26,7 +26,7 @@ export interface TeamMember {
 
 export const DOMAIN_LABELS: Record<DomainId, string> = {
   software: 'Software',
-  entc: 'EnTC',
+  entc: 'Electrical & Electronics',
   mechanical: 'Mechanical',
   design: 'Design',
   research: 'Research',
@@ -38,7 +38,7 @@ export const DOMAIN_LABELS: Record<DomainId, string> = {
 export const DOMAIN_FILTER_TABS: { id: string; label: string }[] = [
   { id: 'all', label: 'All Crew' },
   { id: 'software', label: 'Software' },
-  { id: 'entc', label: 'EnTC' },
+  { id: 'entc', label: 'Electrical & Electronics' },
   { id: 'mechanical', label: 'Mechanical' },
   { id: 'design', label: 'Design' },
   { id: 'research', label: 'Research' },
@@ -86,7 +86,7 @@ const TEAM_MEMBERS_DATA: TeamMember[] = [
   {
     id: 'tirthraj',
     name: 'Tirthraj Pawale',
-    department: 'Electronics & Telecommunication',
+    department: 'Electrical & Electronics',
     domains: ['entc', 'research', 'socialmedia'],
     leadDomains: ['entc'],
     image: '/team/tirthraj_pawale.jpg',
@@ -96,7 +96,7 @@ const TEAM_MEMBERS_DATA: TeamMember[] = [
   {
     id: 'pratik',
     name: 'Pratik Desarda',
-    department: 'Electronics & Telecommunication',
+    department: 'Electrical & Electronics',
     domains: ['documentation', 'entc', 'sponsorship'],
     leadDomains: ['documentation'],
     image: '/team/pratik_desarda.jpg',
@@ -160,7 +160,7 @@ const TEAM_MEMBERS_DATA: TeamMember[] = [
   {
     id: 'ankita',
     name: 'Ankita Bachhav',
-    department: 'Electronics & Telecommunication',
+    department: 'Electrical & Electronics',
     domains: ['entc', 'research', 'socialmedia'],
     leadDomains: [],
   },
@@ -169,7 +169,7 @@ const TEAM_MEMBERS_DATA: TeamMember[] = [
   {
     id: 'nayan',
     name: 'Nayan Jain',
-    department: 'Electronics & Telecommunication',
+    department: 'Electrical & Electronics',
     domains: ['entc', 'research'],
     leadDomains: [],
   },
@@ -178,7 +178,7 @@ const TEAM_MEMBERS_DATA: TeamMember[] = [
   {
     id: 'snehal',
     name: 'Snehal Shinde',
-    department: 'Electronics & Telecommunication',
+    department: 'Electrical & Electronics',
     domains: ['entc', 'sponsorship', 'documentation'],
     leadDomains: [],
   },
@@ -187,7 +187,7 @@ const TEAM_MEMBERS_DATA: TeamMember[] = [
   {
     id: 'prathamesh-d',
     name: 'Prathamesh Deshmukh',
-    department: 'Electronics & Telecommunication',
+    department: 'Electrical & Electronics',
     domains: ['entc'],
     leadDomains: [],
   },
@@ -196,7 +196,7 @@ const TEAM_MEMBERS_DATA: TeamMember[] = [
   {
     id: 'prem',
     name: 'Prem Chaudhari',
-    department: 'Electronics & Telecommunication',
+    department: 'Electrical & Electronics',
     domains: ['entc', 'design'],
     leadDomains: [],
   },
@@ -205,7 +205,7 @@ const TEAM_MEMBERS_DATA: TeamMember[] = [
   {
     id: 'sharvari',
     name: 'Sharvari Bhambar',
-    department: 'Electronics & Telecommunication',
+    department: 'Electrical & Electronics',
     domains: ['entc', 'documentation'],
     leadDomains: [],
   },

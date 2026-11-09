@@ -959,24 +959,23 @@ function DashboardContent() {
               return (
                 <div
                   key={team.id}
-                  className="bg-white border border-jet-black/10 rounded-2xl p-6 shadow-sm hover:border-orange/50 transition-all flex flex-col justify-between space-y-5"
+                  className="bg-white border border-jet-black/10 rounded-2xl p-6 shadow-sm hover:border-orange/50 transition-all flex flex-col justify-between h-full"
                 >
-                  <div className="space-y-4">
-                    {/* Header */}
-                    <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-4 flex-1 flex flex-col">
+                    {/* Header — uniform height */}
+                    <div className="flex items-start justify-between gap-3 min-h-[52px]">
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-[11px] font-mono uppercase px-2 py-0.5 rounded bg-jet-black/5 text-jet-black font-bold">
                             [{team.code}]
                           </span>
-                          <h4 className="text-base font-bold text-jet-black">{team.name}</h4>
+                          <h4 className="text-base font-bold text-jet-black leading-tight">{team.name}</h4>
                         </div>
                         {team.lead && (
                           <span className="text-xs font-mono text-orange block mt-1 font-semibold">
                             Lead: {team.lead}
                           </span>
                         )}
-                        <span className="text-xs font-mono text-grey block mt-0.5">{team.email}</span>
                       </div>
                       <span className={`px-2.5 py-0.5 rounded text-[10px] font-mono uppercase font-bold shrink-0 ${
                         team.role === 'admin' ? 'bg-orange/20 text-orange' : 'bg-jet-black/5 text-jet-black'
@@ -1000,7 +999,7 @@ function DashboardContent() {
                     </div>
 
                     {/* Stats bar */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 bg-alice-blue/60 rounded-xl text-center font-mono text-xs border border-jet-black/5">
+                    <div className="grid grid-cols-4 gap-2 p-3 bg-alice-blue/60 rounded-xl text-center font-mono text-xs border border-jet-black/5">
                       <div>
                         <div className="font-black text-jet-black text-sm">{teamTasks.length}</div>
                         <div className="text-[9px] text-grey uppercase tracking-wider">Total</div>
@@ -1019,13 +1018,13 @@ function DashboardContent() {
                       </div>
                     </div>
 
-                    {/* Recent task preview */}
-                    {teamTasks.length > 0 && (
-                      <div className="space-y-1.5 pt-1">
-                        <span className="text-[10px] font-mono uppercase tracking-widest text-grey block">
-                          Assigned Deliverables:
-                        </span>
-                        <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
+                    {/* Assigned Deliverables Section — uniform height across all cards */}
+                    <div className="space-y-1.5 pt-1">
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-grey block">
+                        Assigned Deliverables:
+                      </span>
+                      {teamTasks.length > 0 ? (
+                        <div className="space-y-1.5 h-[68px] overflow-y-auto pr-1">
                           {teamTasks.slice(0, 2).map((t) => (
                             <button
                               key={t.id}
@@ -1034,18 +1033,22 @@ function DashboardContent() {
                               className="w-full text-left p-2 rounded-lg bg-alice-blue/30 hover:bg-alice-blue border border-jet-black/5 text-xs font-mono text-jet-black truncate flex items-center justify-between cursor-pointer"
                             >
                               <span className="truncate">{t.title}</span>
-                              <span className="text-[9px] uppercase px-1.5 py-0.5 rounded font-bold ml-1 bg-white border border-jet-black/10">
+                              <span className="text-[9px] uppercase px-1.5 py-0.5 rounded font-bold ml-1.5 shrink-0 bg-white border border-jet-black/10">
                                 {t.status}
                               </span>
                             </button>
                           ))}
                         </div>
-                      </div>
-                    )}
+                      ) : (
+                        <div className="text-xs text-grey/60 italic font-mono p-2 bg-alice-blue/20 rounded-xl border border-dashed border-jet-black/10 text-center h-[68px] flex items-center justify-center">
+                          No active deliverables
+                        </div>
+                      )}
+                    </div>
 
-                    {/* Latest Move Card */}
+                    {/* Latest Move Card — uniform height across all cards */}
                     {latestLog ? (
-                      <div className="p-3 bg-alice-blue/30 rounded-xl border border-jet-black/5 text-xs space-y-1">
+                      <div className="p-3 bg-alice-blue/30 rounded-xl border border-jet-black/5 text-xs space-y-1 h-[58px] flex flex-col justify-center">
                         <span className="text-[10px] font-mono uppercase tracking-widest text-grey block">
                           Latest Move ({latestLog.date}):
                         </span>
@@ -1054,13 +1057,14 @@ function DashboardContent() {
                         </span>
                       </div>
                     ) : (
-                      <div className="text-xs text-grey/60 italic font-mono p-2.5 bg-alice-blue/20 rounded-xl border border-dashed border-jet-black/10 text-center">
+                      <div className="text-xs text-grey/60 italic font-mono p-3 bg-alice-blue/20 rounded-xl border border-dashed border-jet-black/10 text-center h-[58px] flex items-center justify-center">
                         No log entries recorded yet
                       </div>
                     )}
                   </div>
 
-                  <div className="pt-4 border-t border-jet-black/5 flex items-center justify-between">
+                  {/* Card Bottom Actions */}
+                  <div className="pt-4 border-t border-jet-black/5 flex items-center justify-between mt-4">
                     <button
                       type="button"
                       onClick={() => handleViewTeamTasksInKanban(team.id)}
@@ -1070,13 +1074,19 @@ function DashboardContent() {
                       <span>→</span>
                     </button>
 
-                    <Link
-                      href={`/log?team=${team.id}`}
-                      className="text-xs font-mono text-orange hover:text-jet-black font-bold transition-colors inline-flex items-center gap-1"
-                    >
-                      <span>Build Log</span>
-                      <span>↗</span>
-                    </Link>
+                    {(isCore || isLead) ? (
+                      <Link
+                        href={`/log?team=${team.id}`}
+                        className="text-xs font-mono text-orange hover:text-jet-black font-bold transition-colors inline-flex items-center gap-1"
+                      >
+                        <span>Build Log</span>
+                        <span>↗</span>
+                      </Link>
+                    ) : (
+                      <span className="text-[10px] font-mono uppercase text-grey">
+                        Squad View
+                      </span>
+                    )}
                   </div>
                 </div>
               );
