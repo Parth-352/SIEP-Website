@@ -17,15 +17,27 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   viewportFit: "cover",
+  themeColor: "#FF6B00",
 };
 
 export const metadata: Metadata = {
   title: "SIEP E-Bike | Riders Bay",
   description: "Smart Scrambler E-Bike by SNJB's KBJ College of Engineering. Engineering the next ride.",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/icons/icon-192.png",
+    apple: "/icons/apple-touch-icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "SIEP Riders Bay",
+  },
 };
 
 import Navigation from "@/components/Navigation";
 import { AuthProvider } from "@/context/AuthContext";
+import { PwaInstallProvider } from "@/components/PwaInstallProvider";
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
@@ -35,8 +47,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col bg-alice-blue text-jet-black">
         <AuthProvider>
-          <Navigation />
-          {children}
+          <PwaInstallProvider>
+            <Navigation />
+            {children}
+          </PwaInstallProvider>
         </AuthProvider>
       </body>
     </html>

@@ -11,6 +11,7 @@ import { getEmbeddableVideoUrl } from '@/lib/driveUpload';
 import MemberSelect from '@/components/MemberSelect';
 import TaskDetailModal from '@/components/TaskDetailModal';
 import TaskCompleteModal from '@/components/TaskCompleteModal';
+import { usePwaInstall } from '@/components/PwaInstallProvider';
 
 const STATUS_COLUMNS: { id: TaskStatus; label: string; color: string; dotColor: string }[] = [
   { id: 'todo', label: 'To Do', color: 'bg-zinc-100 text-zinc-700', dotColor: 'bg-zinc-400' },
@@ -34,6 +35,7 @@ function DashboardContent() {
   const restrictedNotice = searchParams.get('restricted') === 'log';
 
   const { user, loading: authLoading, isAdmin, isCore, isLead, tier } = useAuth();
+  const { isInstalled, installApp } = usePwaInstall();
   const isCoreAdmin = Boolean(isCore || isAdmin || (user && user.teamId === 'core'));
 
   const [isMounted, setIsMounted] = useState(false);
@@ -515,6 +517,17 @@ function DashboardContent() {
                   title="Database Backup & Sync"
                 >
                   <span>💾 Backup / Sync</span>
+                </button>
+              )}
+
+              {!isInstalled && (
+                <button
+                  type="button"
+                  onClick={installApp}
+                  className="px-3.5 py-2.5 rounded-xl border border-orange/40 bg-orange/10 hover:bg-orange text-jet-black hover:text-white text-xs font-mono font-bold uppercase transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
+                  title="Install Web App on your phone or computer"
+                >
+                  <span>📲 Download App</span>
                 </button>
               )}
 

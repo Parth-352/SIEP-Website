@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { usePwaInstall } from '@/components/PwaInstallProvider';
 import { TEAMS } from '@/lib/teams';
 
 export default function Navigation() {
@@ -11,6 +12,7 @@ export default function Navigation() {
   const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
   const { user, isAdmin, isCore, isLead, tier, logout } = useAuth();
+  const { isInstalled, installApp } = usePwaInstall();
   const currentTeam = user ? TEAMS[user.teamId] : null;
   const isPortalOnly = process.env.NEXT_PUBLIC_PORTAL_ONLY === 'true';
 
@@ -169,6 +171,19 @@ export default function Navigation() {
                   </Link>
                 )}
 
+                {/* Install Web App Button */}
+                {!isInstalled && (
+                  <button
+                    type="button"
+                    onClick={installApp}
+                    title="Install Web App on your phone or computer"
+                    className="h-9 px-3 rounded-xl border border-orange/40 bg-orange/10 hover:bg-orange text-jet-black hover:text-white transition-all text-xs font-sans font-bold uppercase tracking-wider inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  >
+                    <span>📲</span>
+                    <span className="hidden xl:inline">Install App</span>
+                  </button>
+                )}
+
                 {/* User Pill + Logout */}
                 <div className="flex items-center gap-2.5 pl-3 border-l border-jet-black/15">
                   {renderUserBadge()}
@@ -264,6 +279,18 @@ export default function Navigation() {
                   >
                     Partner With Us
                   </Link>
+
+                  {!isInstalled && (
+                    <button
+                      type="button"
+                      onClick={installApp}
+                      title="Install Web App on your phone or computer"
+                      className="h-9 px-3 rounded-xl border border-orange/40 bg-orange/10 hover:bg-orange text-jet-black hover:text-white transition-all text-xs font-sans font-bold uppercase tracking-wider inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                    >
+                      <span>📲</span>
+                      <span className="hidden xl:inline">Install App</span>
+                    </button>
+                  )}
                 </div>
               </>
             )}
@@ -388,6 +415,20 @@ export default function Navigation() {
             )
           )}
           
+          {!isInstalled && (
+            <button
+              type="button"
+              onClick={() => {
+                installApp();
+                closeMenu();
+              }}
+              className="w-full text-center py-3.5 min-h-[48px] flex items-center justify-center gap-2 font-sans font-bold text-sm uppercase tracking-wider text-orange hover:text-jet-black border-b border-jet-black/10 cursor-pointer"
+            >
+              <span>📲</span>
+              <span>Install Web App</span>
+            </button>
+          )}
+
           {!isPortalOnly && (
             <Link 
               href="/contact" 
