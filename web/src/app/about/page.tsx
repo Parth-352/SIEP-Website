@@ -174,7 +174,7 @@ export default function AboutPage() {
           <h2 className="text-4xl font-bold tracking-tight mb-8">Support the Vision.</h2>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link href="/contact" className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center px-8 py-4 bg-jet-black text-alice-blue text-sm uppercase tracking-widest font-bold hover:bg-orange transition-colors text-center">
-              Partner With Us
+              Contact Us
             </Link>
             <Link href="/bike" className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center px-8 py-4 border border-jet-black text-jet-black text-sm uppercase tracking-widest font-bold hover:bg-jet-black hover:text-alice-blue transition-colors text-center">
               Explore The Bike

@@ -876,7 +876,7 @@ export default function TeamSection() {
           href="/contact"
           className="min-h-[44px] inline-flex items-center justify-center px-6 py-3.5 bg-orange text-jet-black font-bold uppercase tracking-widest text-xs rounded-lg hover:bg-white transition-all shadow-md shrink-0 text-center w-full sm:w-auto"
         >
-          Partner With The Team →
+          Contact The Team →
         </Link>
       </div>
 

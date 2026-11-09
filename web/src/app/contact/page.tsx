@@ -116,7 +116,7 @@ export default function ContactPage() {
           </div>
 
           <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-jet-black tracking-tighter leading-[0.9] mb-6 uppercase">
-            Partner With<br /><span className="text-orange">Riders Bay.</span>
+            Contact<br /><span className="text-orange">Riders Bay.</span>
           </h1>
 
           <p className="text-lg md:text-xl text-grey font-light leading-relaxed max-w-2xl">

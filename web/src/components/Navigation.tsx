@@ -228,6 +228,14 @@ export default function Navigation() {
                 >
                   The Bike
                 </Link>
+                <Link 
+                  href="/contact" 
+                  className={`uppercase tracking-wider text-xs transition-colors ${
+                    pathname === '/contact' ? 'text-orange font-bold' : 'text-jet-black/80 font-semibold hover:text-orange'
+                  }`}
+                >
+                  Contact
+                </Link>
 
                 {/* Action Buttons Section */}
                 <div className="flex items-center gap-3 pl-3 border-l border-jet-black/15">
@@ -264,13 +272,6 @@ export default function Navigation() {
                       </svg>
                     </Link>
                   )}
-
-                  <Link 
-                    href="/contact" 
-                    className="h-9 px-4 bg-jet-black text-alice-blue hover:bg-orange transition-all rounded-xl font-bold shadow-sm text-xs font-sans uppercase tracking-wider inline-flex items-center justify-center"
-                  >
-                    Partner With Us
-                  </Link>
 
                   {!isInstalled && (
                     <button
@@ -353,6 +354,13 @@ export default function Navigation() {
               >
                 The Bike
               </Link>
+              <Link 
+                href="/contact" 
+                onClick={closeMenu} 
+                className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center"
+              >
+                Contact
+              </Link>
             </>
           )}
 
@@ -424,16 +432,6 @@ export default function Navigation() {
               <span>📲</span>
               <span>Install Web App</span>
             </button>
-          )}
-
-          {!isPortalOnly && (
-            <Link 
-              href="/contact" 
-              onClick={closeMenu} 
-              className="w-full text-center px-6 py-4 bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold mt-2 rounded-xl min-h-[48px] flex items-center justify-center text-sm tracking-widest uppercase shadow-md"
-            >
-              Partner With Us
-            </Link>
           )}
         </div>
       </div>
