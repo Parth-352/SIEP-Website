@@ -199,6 +199,15 @@ export function BackgroundSyncProvider({ children }: { children: React.ReactNode
           }),
         });
         window.dispatchEvent(new CustomEvent('siep_task_synced', { detail: { taskId: item.payload.taskId } }));
+      } else if (item.type === 'TASK_ACTION') {
+        const res = await fetch('/api/tasks', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(item.payload),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Failed to sync task action');
+        window.dispatchEvent(new CustomEvent('siep_task_synced', { detail: { taskId: item.payload.id } }));
       }
 
       // Step C: Cleanup completed item

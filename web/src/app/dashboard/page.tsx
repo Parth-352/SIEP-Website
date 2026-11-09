@@ -6,14 +6,14 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { TEAMS_LIST, TEAMS, ALL_TEAMS } from '@/lib/teams';
 import { ROSTER_MEMBERS } from '@/lib/members';
-import { Task, WorkLog, TeamId, TaskStatus, TaskPriority } from '@/lib/types';
+import { Task, WorkLog, TeamId, TaskStatus, TaskPriority, ActivityEvent } from '@/lib/types';
 import { getEmbeddableVideoUrl } from '@/lib/driveUpload';
 import MemberSelect from '@/components/MemberSelect';
 import TaskDetailModal from '@/components/TaskDetailModal';
 import TaskCompleteModal from '@/components/TaskCompleteModal';
 import { usePwaInstall } from '@/components/PwaInstallProvider';
 import { useBackgroundSync } from '@/components/BackgroundSyncProvider';
-import { getOfflineCachedTasks, cacheOfflineTasks, getOfflineCachedLogs, cacheOfflineLogs } from '@/lib/offlineDb';
+import { getOfflineCachedTasks, cacheOfflineTasks, getOfflineCachedLogs, cacheOfflineLogs, getOutboxItems } from '@/lib/offlineDb';
 import { isTaskAssignedToUser } from '@/lib/taskMatching';
 
 const STATUS_COLUMNS: { id: TaskStatus; label: string; color: string; dotColor: string }[] = [
@@ -51,6 +51,13 @@ function DashboardContent() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [logs, setLogs] = useState<WorkLog[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+
+  // Live Activity & Outbox State
+  const [activities, setActivities] = useState<ActivityEvent[]>([]);
+  const [isActivityDrawerOpen, setIsActivityDrawerOpen] = useState(false);
+  const [activitySubsystemFilter, setActivitySubsystemFilter] = useState<string>('all');
+  const [lastReadActivityTimestamp, setLastReadActivityTimestamp] = useState<number>(0);
+  const [pendingQueueCount, setPendingQueueCount] = useState<number>(0);
 
   // Task Board filters & search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -193,6 +200,9 @@ function DashboardContent() {
         persistTasksLocal(tasksData.tasks);
         cacheOfflineTasks(tasksData.tasks);
       }
+      if (tasksData.activities && Array.isArray(tasksData.activities)) {
+        setActivities(tasksData.activities);
+      }
       if (logsData.success && Array.isArray(logsData.logs)) {
         setLogs(logsData.logs);
         cacheOfflineLogs(logsData.logs);
@@ -222,6 +232,67 @@ function DashboardContent() {
       loadDashboardData();
     }
   }, [user, loadDashboardData]);
+
+  // Initialize last read activity timestamp from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('siep_last_read_activity');
+      if (stored) {
+        setLastReadActivityTimestamp(Number(stored));
+      }
+    } catch {}
+  }, []);
+
+  // Real-Time 10s Live Sync Engine + Outbox Queue Monitoring
+  useEffect(() => {
+    const checkQueue = async () => {
+      try {
+        const items = await getOutboxItems();
+        setPendingQueueCount(items.filter((it) => it.status === 'queued').length);
+      } catch {}
+    };
+
+    checkQueue();
+
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible' && navigator.onLine) {
+        fetch('/api/tasks')
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success && Array.isArray(data.tasks)) {
+              setTasks(data.tasks);
+              cacheOfflineTasks(data.tasks);
+            }
+            if (data.activities && Array.isArray(data.activities)) {
+              setActivities(data.activities);
+            }
+          })
+          .catch(() => {});
+        checkQueue();
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const unreadActivitiesCount = useMemo(() => {
+    if (!lastReadActivityTimestamp) return activities.length;
+    return activities.filter((a) => a.timestamp > lastReadActivityTimestamp).length;
+  }, [activities, lastReadActivityTimestamp]);
+
+  const filteredActivities = useMemo(() => {
+    if (activitySubsystemFilter === 'all') return activities;
+    return activities.filter((a) => a.teamId === activitySubsystemFilter);
+  }, [activities, activitySubsystemFilter]);
+
+  const handleOpenActivityDrawer = () => {
+    setIsActivityDrawerOpen(true);
+    const now = Date.now();
+    setLastReadActivityTimestamp(now);
+    try {
+      localStorage.setItem('siep_last_read_activity', String(now));
+    } catch {}
+  };
 
   // Handle default new task team selection based on user
   useEffect(() => {
@@ -543,11 +614,24 @@ function DashboardContent() {
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-orange animate-pulse"></span>
                 <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-grey font-bold">
                   {isCore ? 'Operations Center • Central Leadership Privileges' : `Squad Console • ${TEAMS[user.teamId]?.name || user.teamName}`}
                 </span>
+
+                {/* Real-time Network & Sync Status Pill */}
+                {isOnline ? (
+                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 font-mono text-[9px] font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>LIVE SYNC</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-800 font-mono text-[9px] font-bold">
+                    <span>📡</span>
+                    <span>OFFLINE ({pendingQueueCount} QUEUED)</span>
+                  </div>
+                )}
               </div>
               <h1 className="text-2xl sm:text-4xl font-black text-jet-black tracking-tight">
                 Project Operations Dashboard<span className="text-orange">.</span>
@@ -559,6 +643,21 @@ function DashboardContent() {
 
             {/* Quick Header Actions */}
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+              {/* Squad Moves Activity Button */}
+              <button
+                type="button"
+                onClick={handleOpenActivityDrawer}
+                className="px-3.5 py-2.5 rounded-xl border border-jet-black/15 bg-white hover:bg-alice-blue text-jet-black hover:border-orange hover:text-orange text-xs font-mono font-bold uppercase transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1.5 relative"
+                title="View recent squad moves & activity feed"
+              >
+                <span>⚡ Squad Moves</span>
+                {unreadActivitiesCount > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-orange text-white text-[9px] font-bold animate-pulse">
+                    {unreadActivitiesCount}
+                  </span>
+                )}
+              </button>
+
               {(isCore || isLead) && (
                 <Link
                   href="/log"
@@ -2493,6 +2592,160 @@ function DashboardContent() {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          SLIDE-OVER TEAM ACTIVITY DRAWER
+          Real-time chronological audit trail of all squad moves
+         ========================================================================= */}
+      {isActivityDrawerOpen && (
+        <div className="fixed inset-0 z-[250] flex justify-end">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-jet-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+            onClick={() => setIsActivityDrawerOpen(false)}
+          />
+
+          {/* Drawer Panel */}
+          <div className="relative w-full max-w-md h-full bg-white border-l-2 border-jet-black/15 shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-300">
+            {/* Drawer Header */}
+            <div className="p-5 border-b border-jet-black/10 bg-alice-blue/60 flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-orange animate-pulse"></span>
+                  <h3 className="text-base font-black text-jet-black tracking-tight">
+                    Squad Moves &amp; Live Activity
+                  </h3>
+                </div>
+                <p className="text-[11px] font-mono text-grey mt-0.5">
+                  Real-time audit log across all 8 squads + Core
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsActivityDrawerOpen(false)}
+                className="p-2 rounded-xl text-grey hover:text-jet-black hover:bg-jet-black/5 text-sm cursor-pointer"
+                aria-label="Close activity feed"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Subsystem Filter Pills */}
+            <div className="p-3 border-b border-jet-black/5 bg-white flex items-center gap-1.5 overflow-x-auto text-xs font-mono">
+              <button
+                type="button"
+                onClick={() => setActivitySubsystemFilter('all')}
+                className={`px-2.5 py-1 rounded-lg font-bold text-[10px] uppercase transition-all cursor-pointer shrink-0 ${
+                  activitySubsystemFilter === 'all'
+                    ? 'bg-jet-black text-white'
+                    : 'bg-alice-blue/60 text-grey hover:text-jet-black'
+                }`}
+              >
+                All Squads
+              </button>
+              {TEAMS_LIST.map((team) => (
+                <button
+                  key={team.id}
+                  type="button"
+                  onClick={() => setActivitySubsystemFilter(team.id)}
+                  className={`px-2 py-1 rounded-lg font-bold text-[10px] uppercase transition-all cursor-pointer shrink-0 ${
+                    activitySubsystemFilter === team.id
+                      ? 'bg-orange text-white'
+                      : 'bg-alice-blue/60 text-grey hover:text-jet-black'
+                  }`}
+                >
+                  [{team.code}]
+                </button>
+              ))}
+            </div>
+
+            {/* Activity Events List */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {filteredActivities.length === 0 ? (
+                <div className="text-center py-16 text-grey text-xs font-mono space-y-2">
+                  <span className="text-2xl block">📡</span>
+                  <p className="font-semibold text-jet-black">No recent moves found</p>
+                  <p className="text-[11px] text-grey/70">
+                    Activity events automatically stream in as members check off deliverables and log work.
+                  </p>
+                </div>
+              ) : (
+                filteredActivities.map((act) => {
+                  const actTeam = TEAMS[act.teamId];
+                  const iconMap: Record<string, string> = {
+                    subtask_toggled: '☑️',
+                    comment_added: '💬',
+                    task_blocked: '⚠️',
+                    task_status: '🔄',
+                    task_created: '➕',
+                    hours_logged: '⏱️',
+                    log_submitted: '📝',
+                  };
+                  const icon = iconMap[act.type] || '⚡';
+
+                  return (
+                    <div
+                      key={act.id}
+                      onClick={() => {
+                        if (act.taskId) {
+                          const target = tasks.find((t) => t.id === act.taskId);
+                          if (target) {
+                            setIsActivityDrawerOpen(false);
+                            handleOpenTaskDetail(target);
+                          }
+                        }
+                      }}
+                      className={`p-3.5 rounded-xl border transition-all text-xs font-mono space-y-1.5 ${
+                        act.taskId
+                          ? 'bg-alice-blue/30 border-jet-black/5 hover:border-orange/50 hover:bg-white cursor-pointer shadow-2xs'
+                          : 'bg-white border-jet-black/5'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="font-bold flex items-center gap-1.5">
+                          <span className="text-xs">{icon}</span>
+                          <span className="text-orange">[{actTeam?.code || act.teamId.toUpperCase()}]</span>
+                          <span className="text-jet-black">{act.memberName}</span>
+                        </span>
+                        <span className="text-grey/70">
+                          {new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+
+                      <div className="pl-5 text-jet-black/90 font-medium">
+                        {act.detail || act.title}
+                      </div>
+
+                      {act.title && act.detail !== act.title && (
+                        <div className="pl-5 text-[10px] text-grey truncate">
+                          Task: <strong>{act.title}</strong>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Drawer Footer */}
+            <div className="p-4 border-t border-jet-black/10 bg-alice-blue/30 flex items-center justify-between text-[11px] font-mono text-grey">
+              <span>{filteredActivities.length} recent moves</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const now = Date.now();
+                  setLastReadActivityTimestamp(now);
+                  localStorage.setItem('siep_last_read_activity', String(now));
+                }}
+                className="text-orange hover:text-jet-black font-bold cursor-pointer"
+              >
+                Mark Read ✓
+              </button>
+            </div>
           </div>
         </div>
       )}
