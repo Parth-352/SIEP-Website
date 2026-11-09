@@ -39,7 +39,7 @@ function DashboardContent() {
   const [isMounted, setIsMounted] = useState(false);
 
   // Active view tab
-  const [activeTab, setActiveTab] = useState<'kanban' | 'teams' | 'videos' | 'accounts'>('kanban');
+  const [activeTab, setActiveTab] = useState<'my_tasks' | 'kanban' | 'teams' | 'videos' | 'accounts'>('kanban');
 
   // Main data state
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -51,6 +51,10 @@ function DashboardContent() {
   const [selectedSubsystemFilter, setSelectedSubsystemFilter] = useState<string>('all');
   const [selectedPriorityFilter, setSelectedPriorityFilter] = useState<string>('all');
   const [assignedToMeOnly, setAssignedToMeOnly] = useState(false);
+
+  // Personal workbench state
+  const [isMyTasksCollapsed, setIsMyTasksCollapsed] = useState(false);
+  const [myTasksTabStatusFilter, setMyTasksTabStatusFilter] = useState<'all' | TaskStatus>('all');
 
   // Task Detail Modal state
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -196,26 +200,52 @@ function DashboardContent() {
     }
   }, [user]);
 
-  // Total tasks assigned to the current member
-  const myAssignedCount = useMemo(() => {
-    if (!user) return 0;
-    const myName = user.displayName.toLowerCase();
+  // Dedicated memo for all tasks assigned to the current member
+  const myAssignedTasks = useMemo(() => {
+    if (!user) return [];
+    const myName = (user.displayName || '').toLowerCase().trim();
+    const myEmail = (user.email || '').toLowerCase().trim();
     return tasks.filter((t) =>
-      (t.assignedMembers || []).some(
-        (m) => m.toLowerCase().includes(myName) || myName.includes(m.toLowerCase())
-      )
-    ).length;
+      (t.assignedMembers || []).some((m) => {
+        const member = m.toLowerCase().trim();
+        return (
+          member === myName ||
+          (myName && member.includes(myName)) ||
+          (myName && myName.includes(member)) ||
+          (myEmail && member === myEmail)
+        );
+      })
+    );
   }, [tasks, user]);
+
+  const myAssignedCount = myAssignedTasks.length;
+
+  const myTasksBreakdown = useMemo(() => {
+    const todo = myAssignedTasks.filter((t) => t.status === 'todo').length;
+    const inProgress = myAssignedTasks.filter((t) => t.status === 'in_progress').length;
+    const review = myAssignedTasks.filter((t) => t.status === 'review').length;
+    const done = myAssignedTasks.filter((t) => t.status === 'done').length;
+    const total = myAssignedTasks.length;
+    const completionPct = total > 0 ? Math.round((done / total) * 100) : 0;
+    return { todo, inProgress, review, done, total, completionPct };
+  }, [myAssignedTasks]);
 
   // Filtered Tasks computation (hook called before any early return)
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
       // Assigned to me filter
       if (assignedToMeOnly && user) {
-        const myName = user.displayName.toLowerCase();
-        const isAssigned = (task.assignedMembers || []).some(
-          (m) => m.toLowerCase().includes(myName) || myName.includes(m.toLowerCase())
-        );
+        const myName = (user.displayName || '').toLowerCase().trim();
+        const myEmail = (user.email || '').toLowerCase().trim();
+        const isAssigned = (task.assignedMembers || []).some((m) => {
+          const member = m.toLowerCase().trim();
+          return (
+            member === myName ||
+            (myName && member.includes(myName)) ||
+            (myName && myName.includes(member)) ||
+            (myEmail && member === myEmail)
+          );
+        });
         if (!isAssigned) return false;
       }
       // Subsystem filter
@@ -584,10 +614,241 @@ function DashboardContent() {
         </div>
 
         {/* =========================================================================
+            PERSONAL ACTION WORKBENCH: TASKS ASSIGNED TO YOU
+            Prominently displays all deliverables assigned to the currently logged-in member
+           ========================================================================= */}
+        <div className="bg-white border border-jet-black/10 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-jet-black/10">
+            <div className="flex items-center gap-3">
+              <span className="w-10 h-10 rounded-xl bg-orange/15 text-orange flex items-center justify-center text-lg font-bold">
+                📌
+              </span>
+              <div>
+                <div className="flex items-center gap-2.5">
+                  <h3 className="text-base sm:text-lg font-bold text-jet-black tracking-tight">
+                    Tasks Assigned to You
+                  </h3>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-mono font-bold ${
+                    myAssignedCount > 0 ? 'bg-orange text-white' : 'bg-jet-black/10 text-grey'
+                  }`}>
+                    {myAssignedCount} {myAssignedCount === 1 ? 'task' : 'tasks'}
+                  </span>
+                </div>
+                <p className="text-xs text-grey font-mono mt-0.5">
+                  Assigned to <strong className="text-jet-black">{user.displayName}</strong> across all engineering subsystems
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {myAssignedCount > 0 && (
+                <div className="hidden md:flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-xl bg-alice-blue/60 border border-jet-black/5">
+                  <span className="text-grey font-bold">Progress:</span>
+                  <span className="text-orange font-bold">{myTasksBreakdown.inProgress} active</span>
+                  <span className="text-grey">•</span>
+                  <span className="text-emerald-600 font-bold">{myTasksBreakdown.done} done</span>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setIsMyTasksCollapsed(!isMyTasksCollapsed)}
+                className="text-xs font-mono px-3 py-1.5 rounded-xl border border-jet-black/15 bg-alice-blue/40 hover:bg-alice-blue text-jet-black font-bold transition-all cursor-pointer flex items-center gap-1"
+                title={isMyTasksCollapsed ? "Expand assigned tasks" : "Collapse assigned tasks"}
+              >
+                <span>{isMyTasksCollapsed ? 'Expand ▼' : 'Collapse ▲'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setAssignedToMeOnly(true);
+                  setActiveTab('kanban');
+                }}
+                className="text-xs font-mono px-3.5 py-1.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold cursor-pointer whitespace-nowrap"
+              >
+                Filter on Board &rarr;
+              </button>
+            </div>
+          </div>
+
+          {/* Collapsible Content */}
+          {!isMyTasksCollapsed && (
+            <>
+              {myAssignedTasks.length === 0 ? (
+                <div className="py-8 px-4 rounded-xl bg-alice-blue/40 border border-dashed border-jet-black/15 text-center flex flex-col items-center justify-center space-y-2">
+                  <span className="text-2xl">✨</span>
+                  <p className="text-xs sm:text-sm font-mono font-bold text-jet-black">
+                    No active tasks assigned to you right now. You're all caught up!
+                  </p>
+                  <p className="text-xs font-mono text-grey max-w-md">
+                    Tasks assigned to {user.displayName} will appear here with one-click status advancement and work logging.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAssignedToMeOnly(false);
+                      setActiveTab('kanban');
+                    }}
+                    className="mt-1 px-3 py-1.5 rounded-lg border border-jet-black/20 bg-white hover:bg-jet-black hover:text-white text-xs font-mono font-bold transition-all cursor-pointer"
+                  >
+                    Browse All Squad Tasks &rarr;
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+                  {myAssignedTasks.map((task) => {
+                    const taskTeam = TEAMS[task.teamId];
+                    const priorityInfo = PRIORITY_BADGES[task.priority] || PRIORITY_BADGES.medium;
+                    const canManageThisTask = true; // Assigned member has authority over their assigned deliverable
+
+                    const statusBadge: Record<TaskStatus, { label: string; dot: string; bg: string; text: string }> = {
+                      todo: { label: 'To Do', dot: 'bg-zinc-400', bg: 'bg-zinc-100', text: 'text-zinc-700' },
+                      in_progress: { label: 'In Progress', dot: 'bg-orange animate-pulse', bg: 'bg-orange/10', text: 'text-orange font-bold' },
+                      review: { label: 'Under Review', dot: 'bg-sky-500', bg: 'bg-sky-50', text: 'text-sky-700 font-bold' },
+                      done: { label: 'Completed', dot: 'bg-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-700 font-bold' },
+                    };
+                    const curStatus = statusBadge[task.status] || statusBadge.todo;
+
+                    return (
+                      <div
+                        key={task.id}
+                        onClick={() => handleOpenTaskDetail(task)}
+                        className="group bg-alice-blue/30 hover:bg-white border border-jet-black/10 hover:border-orange/60 rounded-xl p-4 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between cursor-pointer space-y-3"
+                      >
+                        <div className="space-y-2.5">
+                          {/* Subsystem & Priority */}
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold border ${taskTeam?.badgeBg || 'bg-jet-black/5 text-jet-black'}`}>
+                              [{taskTeam?.code}] {taskTeam?.shortName}
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider font-bold ${priorityInfo.bg}`}>
+                                {priorityInfo.label}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider flex items-center gap-1 ${curStatus.bg} ${curStatus.text}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${curStatus.dot}`}></span>
+                                {curStatus.label}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Deliverable Title */}
+                          <div>
+                            <h4 className="text-sm font-bold text-jet-black leading-snug group-hover:text-orange transition-colors">
+                              {task.title}
+                            </h4>
+                            {task.description && (
+                              <p className="text-xs text-grey mt-1 font-light line-clamp-2 leading-relaxed">
+                                {task.description}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Due date & co-assignees */}
+                          <div className="pt-2 border-t border-jet-black/5 flex flex-wrap items-center justify-between gap-1.5 text-[10px] font-mono text-grey">
+                            {task.dueDate ? (
+                              <span className="bg-white px-2 py-0.5 rounded border border-jet-black/10 text-jet-black font-semibold flex items-center gap-1">
+                                <span>📅</span> Due: {task.dueDate}
+                              </span>
+                            ) : (
+                              <span className="italic text-grey/60">No due date</span>
+                            )}
+
+                            {task.assignedMembers && task.assignedMembers.length > 1 && (
+                              <span className="text-[10px] text-grey">
+                                +{task.assignedMembers.length - 1} co-assigned
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Status Progression & Actions Footer */}
+                        <div className="pt-2.5 border-t border-jet-black/5 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                            {task.status !== 'todo' && (
+                              <button
+                                type="button"
+                                disabled={!canManageThisTask}
+                                onClick={(e) => {
+                                  const prevIdx = STATUS_COLUMNS.findIndex((c) => c.id === task.status) - 1;
+                                  if (prevIdx >= 0) handleMoveStatus(e, task.id, STATUS_COLUMNS[prevIdx].id);
+                                }}
+                                title="Move back"
+                                className="px-2 py-1 text-[10px] font-mono bg-white hover:bg-jet-black/5 rounded-lg border border-jet-black/15 cursor-pointer font-bold transition-colors disabled:opacity-40"
+                              >
+                                ←
+                              </button>
+                            )}
+
+                            {task.status !== 'done' && (
+                              <button
+                                type="button"
+                                disabled={!canManageThisTask}
+                                onClick={(e) => {
+                                  const nextIdx = STATUS_COLUMNS.findIndex((c) => c.id === task.status) + 1;
+                                  if (nextIdx < STATUS_COLUMNS.length) handleMoveStatus(e, task.id, STATUS_COLUMNS[nextIdx].id);
+                                }}
+                                title="Advance status"
+                                className="px-2.5 py-1 text-[10px] font-mono bg-jet-black text-alice-blue hover:bg-orange rounded-lg font-bold transition-colors cursor-pointer disabled:opacity-40 flex items-center gap-1"
+                              >
+                                <span>Advance →</span>
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                            <Link
+                              href={`/log?team=${task.teamId}&task=${encodeURIComponent(task.title)}`}
+                              className="text-[10px] font-mono px-2 py-1 rounded-lg border border-orange/40 text-orange hover:bg-orange hover:text-white transition-all font-bold"
+                            >
+                              Log Work
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenTaskDetail(task)}
+                              className="text-[10px] font-mono text-grey hover:text-orange font-bold transition-colors cursor-pointer"
+                            >
+                              Details ↗
+                            </button>
+                          </div>
+                        </div>
+
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* =========================================================================
             ELEVATED VIEW NAVIGATION TABS
             Segmented controller with clean icons and counts
            ========================================================================= */}
         <div className="bg-white border border-jet-black/10 rounded-2xl p-2 shadow-sm flex items-center gap-2 overflow-x-auto hide-scrollbar">
+          <button
+            type="button"
+            onClick={() => setActiveTab('my_tasks')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+              activeTab === 'my_tasks'
+                ? 'bg-jet-black text-alice-blue font-bold shadow-sm'
+                : 'text-grey hover:text-jet-black hover:bg-alice-blue/60'
+            }`}
+          >
+            <span>📌 My Tasks</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              activeTab === 'my_tasks'
+                ? 'bg-orange text-white'
+                : myAssignedCount > 0
+                ? 'bg-orange/15 text-orange'
+                : 'bg-jet-black/10 text-jet-black'
+            }`}>
+              {myAssignedCount}
+            </span>
+          </button>
+
           <button
             type="button"
             onClick={() => setActiveTab('kanban')}
@@ -656,6 +917,246 @@ function DashboardContent() {
             </button>
           )}
         </div>
+
+        {/* =========================================================================
+            TAB 0: DEDICATED PERSONAL WORKBENCH (MY TASKS)
+            Personal focus space for all deliverables assigned to the authenticated user
+           ========================================================================= */}
+        {activeTab === 'my_tasks' && (
+          <div className="space-y-6">
+            
+            {/* Header & Filter Toolbar for My Tasks */}
+            <div className="bg-white border border-jet-black/10 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-orange animate-pulse"></span>
+                    <h3 className="text-base sm:text-lg font-bold text-jet-black">
+                      Personal Action Workbench
+                    </h3>
+                  </div>
+                  <p className="text-xs font-mono text-grey mt-0.5">
+                    Managing {myAssignedCount} deliverables assigned to <strong className="text-jet-black">{user.displayName}</strong>
+                  </p>
+                </div>
+
+                {/* Personal Completion Metric */}
+                <div className="flex items-center gap-3">
+                  <div className="text-right font-mono">
+                    <div className="text-xs text-grey">Personal Progress</div>
+                    <div className="text-sm font-bold text-jet-black">
+                      {myTasksBreakdown.done} / {myTasksBreakdown.total} completed ({myTasksBreakdown.completionPct}%)
+                    </div>
+                  </div>
+                  <div className="w-24 h-2.5 bg-alice-blue rounded-full overflow-hidden border border-jet-black/10 hidden sm:block">
+                    <div
+                      className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                      style={{ width: `${myTasksBreakdown.completionPct}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Filter Pills for My Tasks */}
+              <div className="pt-3 border-t border-jet-black/5 flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-mono uppercase text-grey font-bold shrink-0">
+                  Filter Status:
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => setMyTasksTabStatusFilter('all')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                    myTasksTabStatusFilter === 'all'
+                      ? 'bg-jet-black text-alice-blue font-bold shadow-sm'
+                      : 'bg-alice-blue/60 text-grey hover:text-jet-black hover:bg-alice-blue'
+                  }`}
+                >
+                  <span>All Assigned</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                    myTasksTabStatusFilter === 'all' ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-jet-black'
+                  }`}>
+                    {myAssignedTasks.length}
+                  </span>
+                </button>
+
+                {STATUS_COLUMNS.map((col) => {
+                  const count = myAssignedTasks.filter((t) => t.status === col.id).length;
+                  const isSelected = myTasksTabStatusFilter === col.id;
+                  return (
+                    <button
+                      key={col.id}
+                      type="button"
+                      onClick={() => setMyTasksTabStatusFilter(col.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                        isSelected
+                          ? 'bg-jet-black text-alice-blue font-bold shadow-sm'
+                          : 'bg-alice-blue/60 text-grey hover:text-jet-black hover:bg-alice-blue'
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${col.dotColor}`}></span>
+                      <span>{col.label}</span>
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                        isSelected ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-jet-black'
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* My Tasks Cards Layout */}
+            {myAssignedTasks.length === 0 ? (
+              <div className="bg-white border border-jet-black/10 rounded-2xl p-12 text-center flex flex-col items-center justify-center space-y-3 shadow-sm">
+                <div className="w-12 h-12 rounded-2xl bg-orange/10 text-orange flex items-center justify-center text-2xl">
+                  ✨
+                </div>
+                <h4 className="text-base font-mono font-bold text-jet-black">
+                  No Active Tasks Assigned to You
+                </h4>
+                <p className="text-xs font-mono text-grey max-w-md leading-relaxed">
+                  You are all caught up! When tasks are assigned to <strong className="text-jet-black">{user.displayName}</strong>, they will be organized here with status flow and drive video attachments.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('kanban')}
+                  className="mt-2 px-5 py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-mono text-xs font-bold uppercase tracking-wider cursor-pointer shadow-sm"
+                >
+                  Go to Team Task Board &rarr;
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                {STATUS_COLUMNS.map((col) => {
+                  const columnTasks = myAssignedTasks
+                    .filter((t) => t.status === col.id)
+                    .filter((t) => myTasksTabStatusFilter === 'all' || myTasksTabStatusFilter === col.id);
+
+                  return (
+                    <div
+                      key={col.id}
+                      className="bg-white border border-jet-black/10 rounded-2xl p-5 flex flex-col min-h-[400px] shadow-sm"
+                    >
+                      {/* Column Header */}
+                      <div className="flex items-center justify-between pb-3.5 mb-3.5 border-b border-jet-black/10">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2.5 h-2.5 rounded-full ${col.dotColor}`}></span>
+                          <h4 className="text-xs font-mono uppercase font-black tracking-wider text-jet-black">
+                            {col.label}
+                          </h4>
+                        </div>
+                        <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-alice-blue text-jet-black font-bold border border-jet-black/10">
+                          {columnTasks.length}
+                        </span>
+                      </div>
+
+                      {/* Cards */}
+                      <div className="space-y-3.5 flex-1 overflow-y-auto pr-1">
+                        {columnTasks.length === 0 ? (
+                          <div className="h-32 border-2 border-dashed border-jet-black/10 rounded-xl flex items-center justify-center text-center p-3">
+                            <span className="text-[11px] text-grey font-mono">
+                              No tasks in {col.label}
+                            </span>
+                          </div>
+                        ) : (
+                          columnTasks.map((task) => {
+                            const taskTeam = TEAMS[task.teamId];
+                            const priorityInfo = PRIORITY_BADGES[task.priority] || PRIORITY_BADGES.medium;
+
+                            return (
+                              <div
+                                key={task.id}
+                                onClick={() => handleOpenTaskDetail(task)}
+                                className="group bg-alice-blue/40 hover:bg-white border border-jet-black/10 hover:border-orange/60 rounded-xl p-4 shadow-2xs hover:shadow-md transition-all space-y-3 cursor-pointer"
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold border ${taskTeam?.badgeBg || 'bg-jet-black/5 text-jet-black'}`}>
+                                    [{taskTeam?.code}] {taskTeam?.shortName}
+                                  </span>
+                                  <span className={`px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider font-bold ${priorityInfo.bg}`}>
+                                    {priorityInfo.label}
+                                  </span>
+                                </div>
+
+                                <div>
+                                  <h5 className="text-sm font-bold text-jet-black leading-snug group-hover:text-orange transition-colors">
+                                    {task.title}
+                                  </h5>
+                                  {task.description && (
+                                    <p className="text-xs text-grey mt-1 font-light line-clamp-2 leading-relaxed">
+                                      {task.description}
+                                    </p>
+                                  )}
+                                </div>
+
+                                <div className="pt-2 border-t border-jet-black/5 flex items-center justify-between text-[10px] font-mono text-grey">
+                                  {task.dueDate ? (
+                                    <span className="bg-white px-2 py-0.5 rounded border border-jet-black/10 text-jet-black font-semibold">
+                                      📅 {task.dueDate}
+                                    </span>
+                                  ) : (
+                                    <span className="italic text-grey/60">No due date</span>
+                                  )}
+                                </div>
+
+                                <div className="pt-2.5 border-t border-jet-black/5 flex items-center justify-between">
+                                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                    {col.id !== 'todo' && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          const prevIdx = STATUS_COLUMNS.findIndex((c) => c.id === col.id) - 1;
+                                          if (prevIdx >= 0) handleMoveStatus(e, task.id, STATUS_COLUMNS[prevIdx].id);
+                                        }}
+                                        title="Move back"
+                                        className="px-2 py-1 text-[10px] font-mono bg-white hover:bg-jet-black/5 rounded-lg border border-jet-black/15 cursor-pointer font-bold transition-colors"
+                                      >
+                                        ←
+                                      </button>
+                                    )}
+                                    {col.id !== 'done' && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          const nextIdx = STATUS_COLUMNS.findIndex((c) => c.id === col.id) + 1;
+                                          if (nextIdx < STATUS_COLUMNS.length) handleMoveStatus(e, task.id, STATUS_COLUMNS[nextIdx].id);
+                                        }}
+                                        title="Advance status"
+                                        className="px-2.5 py-1 text-[10px] font-mono bg-jet-black text-alice-blue hover:bg-orange rounded-lg font-bold transition-colors cursor-pointer"
+                                      >
+                                        Advance →
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                    <Link
+                                      href={`/log?team=${task.teamId}&task=${encodeURIComponent(task.title)}`}
+                                      className="text-[10px] font-mono px-2 py-1 rounded-lg border border-orange/40 text-orange hover:bg-orange hover:text-white transition-all font-bold"
+                                    >
+                                      Log
+                                    </Link>
+                                    <span className="text-[10px] font-mono text-grey group-hover:text-orange font-bold transition-colors">
+                                      Details ↗
+                                    </span>
+                                  </div>
+                                </div>
+
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+          </div>
+        )}
 
         {/* =========================================================================
             TAB 1: KANBAN TASK BOARD
@@ -830,7 +1331,18 @@ function DashboardContent() {
                         columnTasks.map((task) => {
                           const taskTeam = TEAMS[task.teamId];
                           const priorityInfo = PRIORITY_BADGES[task.priority] || PRIORITY_BADGES.medium;
-                          const canManageThisTask = isCoreAdmin || user.teamId === task.teamId;
+                          const isTaskAssignedToMe = (task.assignedMembers || []).some((m) => {
+                            const member = m.toLowerCase().trim();
+                            const myName = (user.displayName || '').toLowerCase().trim();
+                            const myEmail = (user.email || '').toLowerCase().trim();
+                            return (
+                              member === myName ||
+                              (myName && member.includes(myName)) ||
+                              (myName && myName.includes(member)) ||
+                              (myEmail && member === myEmail)
+                            );
+                          });
+                          const canManageThisTask = isCoreAdmin || user.teamId === task.teamId || isTaskAssignedToMe;
 
                           return (
                             <div

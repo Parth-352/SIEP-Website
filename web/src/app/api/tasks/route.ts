@@ -171,6 +171,9 @@ export async function PATCH(request: NextRequest) {
       session.isCore || session.role === 'admin' || session.teamId === 'core'
     );
 
+    const sessionName = (session.name || '').toLowerCase().trim();
+    const sessionEmail = (session.email || '').toLowerCase().trim();
+
     if (!existing) {
       // Also try fetching from Firestore directly
       const firestoreTasks = await getFirestoreTasks();
@@ -179,10 +182,11 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ success: false, error: 'Task not found' }, { status: 404 });
       }
 
-      // Check authorization
-      const isAssigned = fsExisting.assignedMembers?.some(
-        (m) => m.toLowerCase() === session.name.toLowerCase()
-      );
+      // Check authorization (Core leadership, squad members, or assigned members)
+      const isAssigned = fsExisting.assignedMembers?.some((m) => {
+        const norm = m.toLowerCase().trim();
+        return norm === sessionName || (sessionName && (norm.includes(sessionName) || sessionName.includes(norm))) || (sessionEmail && norm === sessionEmail);
+      });
       if (!isCoreAdmin && fsExisting.teamId !== session.teamId && !isAssigned) {
         return NextResponse.json(
           { success: false, error: 'Forbidden: You cannot modify tasks outside your subsystem.' },
@@ -199,10 +203,11 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: true, task: updatedFs });
     }
 
-    // Check authorization
-    const isAssigned = existing.assignedMembers?.some(
-      (m) => m.toLowerCase() === session.name.toLowerCase()
-    );
+    // Check authorization (Core leadership, squad members, or assigned members)
+    const isAssigned = existing.assignedMembers?.some((m) => {
+      const norm = m.toLowerCase().trim();
+      return norm === sessionName || (sessionName && (norm.includes(sessionName) || sessionName.includes(norm))) || (sessionEmail && norm === sessionEmail);
+    });
     if (!isCoreAdmin && existing.teamId !== session.teamId && !isAssigned) {
       return NextResponse.json(
         { success: false, error: 'Forbidden: You cannot modify tasks outside your subsystem.' },
