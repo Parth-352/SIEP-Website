@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense, useCallback } from 'react';
+import React, { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
@@ -11,6 +11,7 @@ import MemberSelect from '@/components/MemberSelect';
 import TaskCompleteModal from '@/components/TaskCompleteModal';
 import { useBackgroundSync } from '@/components/BackgroundSyncProvider';
 import { getOfflineCachedLogs, cacheOfflineLogs } from '@/lib/offlineDb';
+import { isTaskAssignedToUser } from '@/lib/taskMatching';
 
 function LogLoadingSkeleton() {
   return (
@@ -35,9 +36,16 @@ function LogPageContent() {
   const [selectedTeamFilter, setSelectedTeamFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Active tasks for squad context
+  // Active tasks for squad context & personal deliverables
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [teamTasks, setTeamTasks] = useState<Task[]>([]);
+  const [taskViewMode, setTaskViewMode] = useState<'assigned' | 'subsystem'>('assigned');
   const [loadingTasks, setLoadingTasks] = useState(false);
+
+  const myAssignedTasks = useMemo(() => {
+    if (!user) return [];
+    return allTasks.filter((t) => isTaskAssignedToUser(t, user));
+  }, [allTasks, user]);
 
   // Task Complete with Video Modal state
   const [taskToComplete, setTaskToComplete] = useState<Task | null>(null);
@@ -171,18 +179,22 @@ function LogPageContent() {
     return () => window.removeEventListener('siep_log_synced', handleLogSynced);
   }, []);
 
-  // Fetch team tasks for pipeline context
+  // Fetch tasks for deliverables pipeline & personal assignments
   const loadTeamTasks = useCallback(async () => {
     if (!user) return;
     setLoadingTasks(true);
-    const teamQuery = !isCoreAdmin ? user.teamId : (selectedTeamFilter !== 'all' ? selectedTeamFilter : '');
-    const url = teamQuery ? `/api/tasks?teamId=${teamQuery}` : '/api/tasks';
 
     try {
-      const res = await fetch(url);
+      const res = await fetch('/api/tasks');
       const data = await res.json();
       if (data.success && Array.isArray(data.tasks)) {
-        setTeamTasks(data.tasks);
+        setAllTasks(data.tasks);
+        const filtered = data.tasks.filter((t: Task) =>
+          selectedTeamFilter === 'all'
+            ? (isCoreAdmin ? true : t.teamId === user.teamId)
+            : t.teamId === selectedTeamFilter
+        );
+        setTeamTasks(filtered);
       }
     } catch (err) {
       console.warn('Failed to load team tasks on log page:', err);
@@ -190,6 +202,52 @@ function LogPageContent() {
       setLoadingTasks(false);
     }
   }, [user, isCoreAdmin, selectedTeamFilter]);
+
+  // Quick 1-click self-assign or toggle on log page
+  const handleQuickAssignToMe = async (task: Task) => {
+    if (!user) return;
+    const myName = user.displayName;
+    const currentMembers = Array.isArray(task.assignedMembers)
+      ? [...task.assignedMembers]
+      : typeof task.assignedMembers === 'string'
+      ? (task.assignedMembers as string).split(',').map((s) => s.trim())
+      : [];
+
+    const isAssigned = isTaskAssignedToUser(task, user);
+    let updatedMembers: string[];
+    if (isAssigned) {
+      updatedMembers = currentMembers.filter(
+        (m) =>
+          m.toLowerCase() !== myName.toLowerCase() &&
+          !m.toLowerCase().includes(myName.toLowerCase()) &&
+          !myName.toLowerCase().includes(m.toLowerCase())
+      );
+    } else {
+      updatedMembers = [...currentMembers, myName];
+    }
+
+    const updatedTask: Task = {
+      ...task,
+      assignedMembers: updatedMembers,
+      updatedAt: Date.now(),
+    };
+
+    setAllTasks((prev) => prev.map((t) => (t.id === task.id ? updatedTask : t)));
+    setTeamTasks((prev) => prev.map((t) => (t.id === task.id ? updatedTask : t)));
+
+    try {
+      await fetch('/api/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: task.id,
+          assignedMembers: updatedMembers,
+        }),
+      });
+    } catch (err) {
+      console.warn('Failed to assign task on log page:', err);
+    }
+  };
 
   useEffect(() => {
     loadLogs();
@@ -512,103 +570,176 @@ function LogPageContent() {
         </div>
 
         {/* =========================================================================
-            SQUAD ACTIVE PIPELINE TASKS WIDGET
-            Shows assigned deliverables for the team, allowing 1-click step prefill
+            SQUAD & PERSONAL DELIVERABLES WIDGET
+            Shows assigned deliverables for the member and team with 1-click step prefill
            ========================================================================= */}
-        {teamTasks.length > 0 && (
+        {(teamTasks.length > 0 || myAssignedTasks.length > 0) && (
           <div className="bg-white border border-jet-black/10 rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-jet-black/10">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-orange animate-pulse"></span>
-                <h3 className="text-xs font-mono uppercase font-black tracking-wider text-jet-black">
-                  Subsystem Active Deliverables ({teamTasks.filter((t) => t.status !== 'done').length})
-                </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-jet-black/10">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTaskViewMode('assigned')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-mono uppercase tracking-wider font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    taskViewMode === 'assigned'
+                      ? 'bg-orange text-white shadow-sm'
+                      : 'bg-alice-blue/70 text-grey hover:text-jet-black'
+                  }`}
+                >
+                  <span>📌 Assigned to Me</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                    taskViewMode === 'assigned' ? 'bg-white/25 text-white' : 'bg-jet-black/10 text-jet-black'
+                  }`}>
+                    {myAssignedTasks.filter((t: Task) => t.status !== 'done').length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTaskViewMode('subsystem')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-mono uppercase tracking-wider font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    taskViewMode === 'subsystem'
+                      ? 'bg-jet-black text-alice-blue shadow-sm'
+                      : 'bg-alice-blue/70 text-grey hover:text-jet-black'
+                  }`}
+                >
+                  <span>Subsystem Deliverables</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                    taskViewMode === 'subsystem' ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-jet-black'
+                  }`}>
+                    {teamTasks.filter((t: Task) => t.status !== 'done').length}
+                  </span>
+                </button>
               </div>
+
               <Link
                 href="/dashboard"
                 className="text-xs font-mono text-orange hover:text-jet-black font-bold transition-colors inline-flex items-center gap-1"
               >
-                <span>View Full Task Board</span>
+                <span>Full Task Board</span>
                 <span>→</span>
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {teamTasks
-                .filter((t) => t.status !== 'done')
-                .slice(0, 6)
-                .map((task) => {
-                  const taskTeam = TEAMS[task.teamId];
-                  return (
-                    <div
-                      key={task.id}
-                      className="bg-alice-blue/40 border border-jet-black/10 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-orange/60 hover:bg-white transition-all shadow-sm"
-                    >
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between gap-1.5">
-                          <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
-                            task.status === 'in_progress'
-                              ? 'bg-orange/15 text-orange'
-                              : task.status === 'review'
-                              ? 'bg-purple-100 text-purple-700'
-                              : 'bg-zinc-100 text-zinc-700'
-                          }`}>
-                            {task.status.replace('_', ' ')}
-                          </span>
-                          <span className={`px-2 py-0.5 rounded text-[9px] font-mono uppercase font-bold ${
-                            task.priority === 'urgent'
-                              ? 'bg-red-500 text-white'
-                              : task.priority === 'high'
-                              ? 'bg-orange text-jet-black'
-                              : 'bg-zinc-100 text-zinc-600'
-                          }`}>
-                            {task.priority}
-                          </span>
-                        </div>
-                        <h4 className="text-xs font-bold text-jet-black line-clamp-2">
-                          {task.title}
-                        </h4>
-                        {task.dueDate && (
-                          <div className="text-[10px] font-mono text-grey">
-                            Due: {task.dueDate}
-                          </div>
-                        )}
-                      </div>
+            {/* Tasks list */}
+            {(() => {
+              const displayTasks: Task[] = (taskViewMode === 'assigned' ? myAssignedTasks : teamTasks)
+                .filter((t: Task) => t.status !== 'done')
+                .slice(0, 6);
 
-                      <div className="pt-2 border-t border-jet-black/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleSelectTaskForLog(task)}
-                          className="px-2.5 py-1.5 sm:py-1 bg-jet-black text-alice-blue hover:bg-orange rounded-lg text-[10px] font-mono font-bold uppercase transition-colors cursor-pointer w-full sm:w-auto min-h-[36px] sm:min-h-0 flex items-center justify-center"
-                        >
-                          Log Work ✎
-                        </button>
-                        <div className="flex items-center gap-1.5 w-full sm:w-auto">
+              if (displayTasks.length === 0) {
+                return (
+                  <div className="py-6 px-4 bg-alice-blue/40 border border-dashed border-jet-black/10 rounded-xl text-center space-y-1.5 font-mono text-xs">
+                    <p className="text-jet-black font-semibold">
+                      {taskViewMode === 'assigned'
+                        ? `No active deliverables currently assigned to ${user.displayName}.`
+                        : 'No active subsystem deliverables in this view.'}
+                    </p>
+                    <p className="text-grey text-[11px]">
+                      {taskViewMode === 'assigned'
+                        ? 'Click "Subsystem Deliverables" above to browse and claim tasks for your squad!'
+                        : 'New tasks can be created from the Project Dashboard.'}
+                    </p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {displayTasks.map((task: Task) => {
+                    const taskTeam = TEAMS[task.teamId];
+                    const isAssigned = isTaskAssignedToUser(task, user);
+
+                    return (
+                      <div
+                        key={task.id}
+                        className="bg-alice-blue/40 border border-jet-black/10 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-orange/60 hover:bg-white transition-all shadow-sm"
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
+                              task.status === 'in_progress'
+                                ? 'bg-orange/15 text-orange'
+                                : task.status === 'review'
+                                ? 'bg-purple-100 text-purple-700'
+                                : 'bg-zinc-100 text-zinc-700'
+                            }`}>
+                              {task.status.replace('_', ' ')}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-jet-black/5 text-jet-black">
+                                [{taskTeam?.code || task.teamId.toUpperCase()}]
+                              </span>
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-mono uppercase font-bold ${
+                                task.priority === 'urgent'
+                                  ? 'bg-red-500 text-white'
+                                  : task.priority === 'high'
+                                  ? 'bg-orange text-jet-black'
+                                  : 'bg-zinc-100 text-zinc-600'
+                              }`}>
+                                {task.priority}
+                              </span>
+                            </div>
+                          </div>
+                          <h4 className="text-xs font-bold text-jet-black line-clamp-2">
+                            {task.title}
+                          </h4>
+                          <div className="flex items-center justify-between gap-2 text-[10px] font-mono text-grey pt-0.5">
+                            {task.dueDate ? (
+                              <span>Due: {task.dueDate}</span>
+                            ) : (
+                              <span className="italic text-grey/60">No due date</span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleQuickAssignToMe(task)}
+                              className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-all cursor-pointer ${
+                                isAssigned
+                                  ? 'bg-orange/15 text-orange border border-orange/30'
+                                  : 'bg-jet-black/5 hover:bg-orange hover:text-white border border-jet-black/10'
+                              }`}
+                            >
+                              {isAssigned ? '✓ Assigned' : '+ Claim'}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-jet-black/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-1.5">
                           <button
                             type="button"
-                            onClick={() => {
-                              setTaskToComplete(task);
-                              setIsCompleteModalOpen(true);
-                            }}
-                            className="px-2.5 py-1.5 sm:py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border border-emerald-300 rounded-lg text-[10px] font-mono font-bold transition-colors cursor-pointer flex-1 sm:flex-initial min-h-[36px] sm:min-h-0 flex items-center justify-center text-center"
-                            title="Mark completed with video evidence"
+                            onClick={() => handleSelectTaskForLog(task)}
+                            className="px-2.5 py-1.5 sm:py-1 bg-jet-black text-alice-blue hover:bg-orange rounded-lg text-[10px] font-mono font-bold uppercase transition-colors cursor-pointer w-full sm:w-auto min-h-[36px] sm:min-h-0 flex items-center justify-center"
                           >
-                            Done + Video ✓
+                            Log Work ✎
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => handleQuickAdvanceTask(task)}
-                            className="px-2.5 py-1.5 sm:py-1 bg-white hover:bg-jet-black/5 border border-jet-black/15 rounded-lg text-[10px] font-mono font-bold text-jet-black transition-colors cursor-pointer flex-1 sm:flex-initial min-h-[36px] sm:min-h-0 flex items-center justify-center text-center"
-                            title="Advance task status"
-                          >
-                            {task.status === 'review' ? 'Mark Done' : 'Advance →'}
-                          </button>
+                          <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTaskToComplete(task);
+                                setIsCompleteModalOpen(true);
+                              }}
+                              className="px-2.5 py-1.5 sm:py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border border-emerald-300 rounded-lg text-[10px] font-mono font-bold transition-colors cursor-pointer flex-1 sm:flex-initial min-h-[36px] sm:min-h-0 flex items-center justify-center text-center"
+                              title="Mark completed with video evidence"
+                            >
+                              Done + Video ✓
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleQuickAdvanceTask(task)}
+                              className="px-2.5 py-1.5 sm:py-1 bg-white hover:bg-jet-black/5 border border-jet-black/15 rounded-lg text-[10px] font-mono font-bold text-jet-black transition-colors cursor-pointer flex-1 sm:flex-initial min-h-[36px] sm:min-h-0 flex items-center justify-center text-center"
+                              title="Advance task status"
+                            >
+                              {task.status === 'review' ? 'Mark Done' : 'Advance →'}
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-            </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         )}
 

@@ -14,6 +14,7 @@ import TaskCompleteModal from '@/components/TaskCompleteModal';
 import { usePwaInstall } from '@/components/PwaInstallProvider';
 import { useBackgroundSync } from '@/components/BackgroundSyncProvider';
 import { getOfflineCachedTasks, cacheOfflineTasks, getOfflineCachedLogs, cacheOfflineLogs } from '@/lib/offlineDb';
+import { isTaskAssignedToUser } from '@/lib/taskMatching';
 
 const STATUS_COLUMNS: { id: TaskStatus; label: string; color: string; dotColor: string }[] = [
   { id: 'todo', label: 'To Do', color: 'bg-zinc-100 text-zinc-700', dotColor: 'bg-zinc-400' },
@@ -232,19 +233,7 @@ function DashboardContent() {
   // Dedicated memo for all tasks assigned to the current member
   const myAssignedTasks = useMemo(() => {
     if (!user) return [];
-    const myName = (user.displayName || '').toLowerCase().trim();
-    const myEmail = (user.email || '').toLowerCase().trim();
-    return tasks.filter((t) =>
-      (t.assignedMembers || []).some((m) => {
-        const member = m.toLowerCase().trim();
-        return (
-          member === myName ||
-          (myName && member.includes(myName)) ||
-          (myName && myName.includes(member)) ||
-          (myEmail && member === myEmail)
-        );
-      })
-    );
+    return tasks.filter((t) => isTaskAssignedToUser(t, user));
   }, [tasks, user]);
 
   const myAssignedCount = myAssignedTasks.length;
@@ -264,21 +253,10 @@ function DashboardContent() {
     return tasks.filter((task) => {
       // Assigned to me filter
       if (assignedToMeOnly && user) {
-        const myName = (user.displayName || '').toLowerCase().trim();
-        const myEmail = (user.email || '').toLowerCase().trim();
-        const isAssigned = (task.assignedMembers || []).some((m) => {
-          const member = m.toLowerCase().trim();
-          return (
-            member === myName ||
-            (myName && member.includes(myName)) ||
-            (myName && myName.includes(member)) ||
-            (myEmail && member === myEmail)
-          );
-        });
-        if (!isAssigned) return false;
+        if (!isTaskAssignedToUser(task, user)) return false;
       }
-      // Subsystem filter
-      if (selectedSubsystemFilter !== 'all' && task.teamId !== selectedSubsystemFilter) {
+      // Subsystem filter (only applies if assignedToMeOnly is false)
+      if (!assignedToMeOnly && selectedSubsystemFilter !== 'all' && task.teamId !== selectedSubsystemFilter) {
         return false;
       }
       // Priority filter
@@ -290,7 +268,9 @@ function DashboardContent() {
         const q = searchQuery.toLowerCase().trim();
         const titleMatch = task.title.toLowerCase().includes(q);
         const descMatch = (task.description || '').toLowerCase().includes(q);
-        const memberMatch = (task.assignedMembers || []).some((m) => m.toLowerCase().includes(q));
+        const memberMatch = Array.isArray(task.assignedMembers)
+          ? task.assignedMembers.some((m) => m.toLowerCase().includes(q))
+          : String(task.assignedMembers || '').toLowerCase().includes(q);
         const teamMatch = (TEAMS[task.teamId]?.name || '').toLowerCase().includes(q);
         if (!titleMatch && !descMatch && !memberMatch && !teamMatch) {
           return false;
@@ -435,6 +415,53 @@ function DashboardContent() {
   const handleOpenTaskDetail = (task: Task) => {
     setSelectedTask(task);
     setIsDetailModalOpen(true);
+  };
+
+  // Quick 1-click self-assign or toggle
+  const handleQuickAssignToMe = async (e: React.MouseEvent, task: Task) => {
+    e.stopPropagation();
+    if (!user) return;
+    const myName = user.displayName;
+    const currentMembers = Array.isArray(task.assignedMembers)
+      ? [...task.assignedMembers]
+      : typeof task.assignedMembers === 'string'
+      ? (task.assignedMembers as string).split(',').map((s) => s.trim())
+      : [];
+
+    const isAssigned = isTaskAssignedToUser(task, user);
+    let updatedMembers: string[];
+    if (isAssigned) {
+      updatedMembers = currentMembers.filter(
+        (m) =>
+          m.toLowerCase() !== myName.toLowerCase() &&
+          !m.toLowerCase().includes(myName.toLowerCase()) &&
+          !myName.toLowerCase().includes(m.toLowerCase())
+      );
+    } else {
+      updatedMembers = [...currentMembers, myName];
+    }
+
+    const updatedTask: Task = {
+      ...task,
+      assignedMembers: updatedMembers,
+      updatedAt: Date.now(),
+    };
+
+    setTasks((prev) => prev.map((t) => (t.id === task.id ? updatedTask : t)));
+    persistTasksLocal(tasks.map((t) => (t.id === task.id ? updatedTask : t)));
+
+    try {
+      await fetch('/api/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: task.id,
+          assignedMembers: updatedMembers,
+        }),
+      });
+    } catch (err) {
+      console.warn('Failed to update task assignment:', err);
+    }
   };
 
   // Backup & Reset Handlers (Admin)
@@ -1279,7 +1306,13 @@ function DashboardContent() {
 
                 <button
                   type="button"
-                  onClick={() => setAssignedToMeOnly(!assignedToMeOnly)}
+                  onClick={() => {
+                    const nextVal = !assignedToMeOnly;
+                    setAssignedToMeOnly(nextVal);
+                    if (nextVal) {
+                      setSelectedSubsystemFilter('all');
+                    }
+                  }}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                     assignedToMeOnly
                       ? 'bg-orange text-white font-bold shadow-md'
@@ -1377,17 +1410,7 @@ function DashboardContent() {
                         columnTasks.map((task) => {
                           const taskTeam = TEAMS[task.teamId];
                           const priorityInfo = PRIORITY_BADGES[task.priority] || PRIORITY_BADGES.medium;
-                          const isTaskAssignedToMe = (task.assignedMembers || []).some((m) => {
-                            const member = m.toLowerCase().trim();
-                            const myName = (user.displayName || '').toLowerCase().trim();
-                            const myEmail = (user.email || '').toLowerCase().trim();
-                            return (
-                              member === myName ||
-                              (myName && member.includes(myName)) ||
-                              (myName && myName.includes(member)) ||
-                              (myEmail && member === myEmail)
-                            );
-                          });
+                          const isTaskAssignedToMe = isTaskAssignedToUser(task, user);
                           const canManageThisTask = isCoreAdmin || user.teamId === task.teamId || isTaskAssignedToMe;
 
                           return (
@@ -1419,21 +1442,38 @@ function DashboardContent() {
                                 )}
                               </div>
 
-                              {/* Assignees & Due Date */}
+                              {/* Assignees & Due Date + Quick Self-Assign Button */}
                               <div className="pt-2.5 border-t border-jet-black/5 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-grey">
                                 {task.assignedMembers && task.assignedMembers.length > 0 ? (
-                                  <span className="text-jet-black font-semibold truncate max-w-[140px]">
-                                    👤 {task.assignedMembers.join(', ')}
+                                  <span className="text-jet-black font-semibold truncate max-w-[130px]">
+                                    👤 {Array.isArray(task.assignedMembers) ? task.assignedMembers.join(', ') : task.assignedMembers}
                                   </span>
                                 ) : (
                                   <span className="italic text-grey/60">Unassigned</span>
                                 )}
 
-                                {task.dueDate && (
-                                  <span className="bg-white px-2 py-0.5 rounded border border-jet-black/10">
-                                    Due: {task.dueDate}
-                                  </span>
-                                )}
+                                <div className="flex items-center gap-1.5">
+                                  {isTaskAssignedToMe ? (
+                                    <span className="px-1.5 py-0.5 rounded bg-orange/15 text-orange font-bold text-[9px] flex items-center gap-0.5">
+                                      <span>✓</span> Assigned
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => handleQuickAssignToMe(e, task)}
+                                      className="px-2 py-0.5 rounded bg-jet-black/5 hover:bg-orange hover:text-white border border-jet-black/10 text-[9px] font-mono font-bold transition-all cursor-pointer"
+                                      title="Assign this task to yourself"
+                                    >
+                                      + Claim
+                                    </button>
+                                  )}
+
+                                  {task.dueDate && (
+                                    <span className="bg-white px-2 py-0.5 rounded border border-jet-black/10">
+                                      Due: {task.dueDate}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
 
                               {/* Quick Move Status Controls & Open Details */}

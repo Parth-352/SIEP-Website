@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Task, TaskStatus, TaskPriority, TeamId } from '@/lib/types';
 import { TEAMS, TEAMS_LIST } from '@/lib/teams';
 import MemberSelect from './MemberSelect';
+import { useAuth } from '@/context/AuthContext';
+import { isTaskAssignedToUser } from '@/lib/taskMatching';
 
 interface TaskDetailModalProps {
   task: Task | null;
@@ -48,6 +50,51 @@ export default function TaskDetailModal({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { user } = useAuth();
+  const isAssignedToMe = Boolean(task && user && isTaskAssignedToUser(task, user));
+
+  const handleToggleAssignMe = async () => {
+    if (!task || !user) return;
+    const myName = user.displayName;
+    const currentMembers = Array.isArray(task.assignedMembers)
+      ? [...task.assignedMembers]
+      : typeof task.assignedMembers === 'string'
+      ? (task.assignedMembers as string).split(',').map((s) => s.trim())
+      : [];
+
+    let updatedMembers: string[];
+    if (isAssignedToMe) {
+      updatedMembers = currentMembers.filter(
+        (m) =>
+          m.toLowerCase() !== myName.toLowerCase() &&
+          !m.toLowerCase().includes(myName.toLowerCase()) &&
+          !myName.toLowerCase().includes(m.toLowerCase())
+      );
+    } else {
+      updatedMembers = [...currentMembers, myName];
+    }
+
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: task.id,
+          assignedMembers: updatedMembers,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.task) {
+        onTaskUpdated(data.task);
+      }
+    } catch (err) {
+      console.warn('Failed to toggle assignment:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Edit form state
   const [editTitle, setEditTitle] = useState('');
@@ -302,23 +349,53 @@ export default function TaskDetailModal({
               
               {/* Assigned Members */}
               <div className="p-4 bg-white border border-jet-black/10 rounded-xl space-y-2">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-grey font-bold block">
-                  Assigned Team Members:
-                </span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-grey font-bold block">
+                    Assigned Team Members:
+                  </span>
+                  {user && (
+                    <button
+                      type="button"
+                      disabled={isSaving}
+                      onClick={handleToggleAssignMe}
+                      className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                        isAssignedToMe
+                          ? 'border-red-200 text-red-600 bg-red-50 hover:bg-red-100'
+                          : 'border-orange/40 bg-orange/10 text-orange hover:bg-orange hover:text-white'
+                      }`}
+                    >
+                      {isAssignedToMe ? '✕ Unassign Me' : '+ Assign to Me'}
+                    </button>
+                  )}
+                </div>
                 {task.assignedMembers && task.assignedMembers.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5">
-                    {task.assignedMembers.map((member) => (
-                      <span
-                        key={member}
-                        className="px-2.5 py-1 bg-alice-blue border border-jet-black/10 rounded-lg text-xs font-mono font-bold text-jet-black inline-flex items-center gap-1.5"
-                      >
-                        <span className="w-2 h-2 rounded-full bg-orange"></span>
-                        <span>{member}</span>
-                      </span>
-                    ))}
+                    {task.assignedMembers.map((member) => {
+                      const isMe = user && (
+                        member.toLowerCase() === user.displayName.toLowerCase() ||
+                        user.displayName.toLowerCase().includes(member.toLowerCase()) ||
+                        member.toLowerCase().includes(user.displayName.toLowerCase())
+                      );
+                      return (
+                        <span
+                          key={member}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold inline-flex items-center gap-1.5 border ${
+                            isMe
+                              ? 'bg-orange/15 text-orange border-orange/30'
+                              : 'bg-alice-blue border-jet-black/10 text-jet-black'
+                          }`}
+                        >
+                          <span className={`w-2 h-2 rounded-full ${isMe ? 'bg-orange animate-pulse' : 'bg-jet-black/40'}`}></span>
+                          <span>{member}</span>
+                          {isMe && (
+                            <span className="text-[9px] text-orange uppercase font-bold">(You)</span>
+                          )}
+                        </span>
+                      );
+                    })}
                   </div>
                 ) : (
-                  <span className="text-xs font-mono italic text-grey">No specific members assigned</span>
+                  <span className="text-xs font-mono italic text-grey">No specific members assigned yet</span>
                 )}
               </div>
 
