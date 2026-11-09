@@ -12,6 +12,8 @@ import MemberSelect from '@/components/MemberSelect';
 import TaskDetailModal from '@/components/TaskDetailModal';
 import TaskCompleteModal from '@/components/TaskCompleteModal';
 import { usePwaInstall } from '@/components/PwaInstallProvider';
+import { useBackgroundSync } from '@/components/BackgroundSyncProvider';
+import { getOfflineCachedTasks, cacheOfflineTasks, getOfflineCachedLogs, cacheOfflineLogs } from '@/lib/offlineDb';
 
 const STATUS_COLUMNS: { id: TaskStatus; label: string; color: string; dotColor: string }[] = [
   { id: 'todo', label: 'To Do', color: 'bg-zinc-100 text-zinc-700', dotColor: 'bg-zinc-400' },
@@ -36,6 +38,7 @@ function DashboardContent() {
 
   const { user, loading: authLoading, isAdmin, isCore, isLead, tier } = useAuth();
   const { isInstalled, installApp } = usePwaInstall();
+  const { enqueueTaskStatusUpdate, isOnline } = useBackgroundSync();
   const isCoreAdmin = Boolean(isCore || isAdmin || (user && user.teamId === 'core'));
 
   const [isMounted, setIsMounted] = useState(false);
@@ -165,9 +168,18 @@ function DashboardContent() {
     }
   };
 
-  // Load tasks and logs from API
+  // Load tasks and logs from API + offline fallback
   const loadDashboardData = useCallback(async () => {
     if (!user) return;
+
+    // Immediately hydrate from offline caches if available
+    getOfflineCachedTasks().then((cached) => {
+      if (cached && cached.length > 0) setTasks(cached);
+    });
+    getOfflineCachedLogs().then((cached) => {
+      if (cached && cached.length > 0) setLogs(cached);
+    });
+
     try {
       const [tasksRes, logsRes] = await Promise.all([
         fetch('/api/tasks'),
@@ -178,16 +190,31 @@ function DashboardContent() {
 
       if (tasksData.success && Array.isArray(tasksData.tasks)) {
         persistTasksLocal(tasksData.tasks);
+        cacheOfflineTasks(tasksData.tasks);
       }
       if (logsData.success && Array.isArray(logsData.logs)) {
         setLogs(logsData.logs);
+        cacheOfflineLogs(logsData.logs);
       }
     } catch (err) {
-      console.error('Failed to reload dashboard data:', err);
+      console.warn('Network offline or failed, using cached dashboard data:', err);
     } finally {
       setLoadingData(false);
     }
   }, [user]);
+
+  // Listen to background sync updates
+  useEffect(() => {
+    const handleSync = () => {
+      loadDashboardData();
+    };
+    window.addEventListener('siep_task_synced', handleSync);
+    window.addEventListener('siep_log_synced', handleSync);
+    return () => {
+      window.removeEventListener('siep_task_synced', handleSync);
+      window.removeEventListener('siep_log_synced', handleSync);
+    };
+  }, [loadDashboardData]);
 
   useEffect(() => {
     if (user) {
@@ -346,6 +373,12 @@ function DashboardContent() {
       t.id === taskId ? { ...t, status: nextStatus, updatedAt: Date.now() } : t
     );
     persistTasksLocal(updatedTasks);
+    cacheOfflineTasks(updatedTasks);
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      enqueueTaskStatusUpdate({ taskId, nextStatus });
+      return;
+    }
 
     try {
       await fetch('/api/tasks', {
@@ -354,8 +387,8 @@ function DashboardContent() {
         body: JSON.stringify({ id: taskId, status: nextStatus }),
       });
     } catch (err) {
-      console.error('Failed to sync status update:', err);
-      loadDashboardData();
+      console.warn('Network offline or update failed, queuing status update:', err);
+      enqueueTaskStatusUpdate({ taskId, nextStatus });
     }
   };
 

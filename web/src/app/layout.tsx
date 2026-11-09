@@ -38,6 +38,7 @@ export const metadata: Metadata = {
 import Navigation from "@/components/Navigation";
 import { AuthProvider } from "@/context/AuthContext";
 import { PwaInstallProvider } from "@/components/PwaInstallProvider";
+import { BackgroundSyncProvider } from "@/components/BackgroundSyncProvider";
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
@@ -47,10 +48,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col bg-alice-blue text-jet-black">
         <AuthProvider>
-          <PwaInstallProvider>
-            <Navigation />
-            {children}
-          </PwaInstallProvider>
+          <BackgroundSyncProvider>
+            <PwaInstallProvider>
+              <Navigation />
+              {children}
+            </PwaInstallProvider>
+          </BackgroundSyncProvider>
         </AuthProvider>
       </body>
     </html>

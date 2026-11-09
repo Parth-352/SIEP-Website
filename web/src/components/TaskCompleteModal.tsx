@@ -6,6 +6,7 @@ import { TEAMS } from '@/lib/teams';
 import { uploadFileToGoogleDrive, getEmbeddableVideoUrl } from '@/lib/driveUpload';
 import MemberSelect from './MemberSelect';
 import { useAuth } from '@/context/AuthContext';
+import { useBackgroundSync } from '@/components/BackgroundSyncProvider';
 
 interface TaskCompleteModalProps {
   task: Task | null;
@@ -21,6 +22,7 @@ export default function TaskCompleteModal({
   onTaskCompleted,
 }: TaskCompleteModalProps) {
   const { user } = useAuth();
+  const { enqueueTaskCompletion } = useBackgroundSync();
 
   // Carried-forward log state
   const [stepTitle, setStepTitle] = useState('');
@@ -83,7 +85,7 @@ export default function TaskCompleteModal({
     }
   };
 
-  // Submit Handler: Uploads video, creates log, and updates task to 'done'
+  // Submit Handler: Enqueues background upload of video, log creation, and task completion
   const handleSubmitWithVideo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stepTitle.trim() || !description.trim()) {
@@ -91,90 +93,37 @@ export default function TaskCompleteModal({
       return;
     }
 
-    setIsSubmitting(true);
-    setErrorMessage(null);
+    const updatedTask: Task = {
+      ...task,
+      status: 'done',
+      updatedAt: Date.now(),
+    };
 
-    let finalVideoUrl = videoUrlInput.trim();
-    let driveFileId: string | undefined = undefined;
+    const logPayload = {
+      stepTitle: stepTitle.trim(),
+      phase: 'Deliverable Completed',
+      teamId: task.teamId,
+      authorName: authorName.trim() || user?.displayName || 'Squad Member',
+      date: date || new Date().toISOString().split('T')[0],
+      workTime: workTime || '12:00 PM',
+      membersPresent: selectedMembers,
+      hoursSpent: parseFloat(hoursSpent) || 0,
+      description: description.trim(),
+      achievements: achievements.trim(),
+      blockers: blockers.trim(),
+      videoUrl: videoUrlInput.trim(),
+    };
 
-    // 1. If file is selected, stream to personal Google Drive
-    if (videoFile) {
-      setIsUploading(true);
-      const sizeMb = (videoFile.size / (1024 * 1024)).toFixed(1);
-      setUploadStatus(`Preparing ${sizeMb} MB upload to Google Drive...`);
+    // Optimistically update the task on dashboard immediately
+    onTaskCompleted(updatedTask);
+    onClose();
 
-      const uploadRes = await uploadFileToGoogleDrive({
-        file: videoFile,
-        teamName: currentTeam?.name || task.teamId,
-        stepTitle,
-        onProgress: (p) => {
-          setUploadProgress(p);
-          if (p < 10) {
-            setUploadStatus('Creating Google Drive resumable session...');
-          } else if (p < 95) {
-            setUploadStatus(`Streaming ${sizeMb} MB to Drive (${p}%)...`);
-          } else {
-            setUploadStatus('Finalizing permissions & embed link...');
-          }
-        },
-      });
-
-      if (!uploadRes.success) {
-        setErrorMessage(uploadRes.error || 'Failed to upload video to Google Drive');
-        setIsUploading(false);
-        setIsSubmitting(false);
-        return;
-      }
-
-      finalVideoUrl = uploadRes.embedUrl || uploadRes.viewUrl || '';
-      driveFileId = uploadRes.fileId;
-      setIsUploading(false);
-    }
-
-    try {
-      // 2. Mark Task as Done in API
-      const taskRes = await fetch('/api/tasks', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: task.id, status: 'done' }),
-      });
-      const taskData = await taskRes.json();
-      if (!taskData.success) {
-        throw new Error(taskData.error || 'Failed to update task status to Completed');
-      }
-
-      // 3. Create WorkLog entry with carried forward data and video evidence
-      const logRes = await fetch('/api/logs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          stepTitle: stepTitle.trim(),
-          phase: 'Deliverable Completed',
-          teamId: task.teamId,
-          authorName: authorName.trim() || user?.displayName || 'Squad Member',
-          date,
-          workTime,
-          membersPresent: selectedMembers,
-          hoursSpent: parseFloat(hoursSpent) || 0,
-          description: description.trim(),
-          achievements: achievements.trim(),
-          blockers: blockers.trim(),
-          videoUrl: finalVideoUrl || undefined,
-          driveFileId,
-          videoSource: finalVideoUrl ? 'drive' : undefined,
-        }),
-      });
-
-      const logData = await logRes.json();
-
-      onTaskCompleted(taskData.task, logData.log);
-      onClose();
-    } catch (err: unknown) {
-      console.error('Error in task completion flow:', err);
-      setErrorMessage(err instanceof Error ? err.message : 'Error completing task and recording log');
-    } finally {
-      setIsSubmitting(false);
-    }
+    // Enqueue background upload to Google Drive & Firestore sync
+    enqueueTaskCompletion({
+      taskId: task.id,
+      logData: logPayload,
+      videoFile: videoFile || undefined,
+    });
   };
 
   // Quick Complete (Mark done only, skip video log)

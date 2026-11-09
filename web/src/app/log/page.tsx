@@ -9,6 +9,8 @@ import { WorkLog, TeamId, Task, TaskStatus, TaskPriority } from '@/lib/types';
 import { uploadFileToGoogleDrive, getEmbeddableVideoUrl } from '@/lib/driveUpload';
 import MemberSelect from '@/components/MemberSelect';
 import TaskCompleteModal from '@/components/TaskCompleteModal';
+import { useBackgroundSync } from '@/components/BackgroundSyncProvider';
+import { getOfflineCachedLogs, cacheOfflineLogs } from '@/lib/offlineDb';
 
 function LogLoadingSkeleton() {
   return (
@@ -23,6 +25,7 @@ function LogPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading: authLoading, isCore, isLead } = useAuth();
+  const { enqueueLogUpload, isOnline } = useBackgroundSync();
   // Master administrative access for Core Leadership (Tier 1)
   const isCoreAdmin = Boolean(isCore || (user && user.teamId === 'core'));
 
@@ -133,25 +136,46 @@ function LogPageContent() {
     setIsMounted(true);
   }, []);
 
-  // Fetch logs with clean async pattern
+  // Fetch logs with clean async pattern + offline fallback
   const loadLogs = useCallback(async () => {
     if (!user) return;
     setLoadingLogs(true);
+
+    // 1. Immediately hydrate from offline cache if available
+    getOfflineCachedLogs().then((cached) => {
+      if (cached && cached.length > 0) {
+        setLogs(cached);
+      }
+    });
+
     const teamQuery = !isCoreAdmin && user ? user.teamId : (selectedTeamFilter !== 'all' ? selectedTeamFilter : '');
     const url = teamQuery ? `/api/logs?teamId=${teamQuery}` : '/api/logs';
 
     try {
       const res = await fetch(url);
       const data = await res.json();
-      if (data.success) {
+      if (data.success && Array.isArray(data.logs)) {
         setLogs(data.logs);
+        cacheOfflineLogs(data.logs);
       }
     } catch (err) {
-      console.error('Failed to load logs:', err);
+      console.warn('Network offline or failed, using cached logs:', err);
     } finally {
       setLoadingLogs(false);
     }
   }, [user, isCoreAdmin, selectedTeamFilter]);
+
+  // Listen to background sync completion events
+  useEffect(() => {
+    const handleLogSynced = (e: any) => {
+      const newLog = e.detail;
+      if (newLog) {
+        setLogs((prev) => [newLog, ...prev.filter((l) => l.id !== newLog.id && !l.id.startsWith('temp-log-'))]);
+      }
+    };
+    window.addEventListener('siep_log_synced', handleLogSynced);
+    return () => window.removeEventListener('siep_log_synced', handleLogSynced);
+  }, []);
 
   // Fetch team tasks for pipeline context
   const loadTeamTasks = useCallback(async () => {
@@ -243,7 +267,7 @@ function LogPageContent() {
     }
   };
 
-  // Submit new log handler
+  // Submit new log handler (Background Queue & Offline Compatible)
   const handleLogSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -256,99 +280,53 @@ function LogPageContent() {
     const effectiveTeamId: TeamId = isCoreAdmin ? targetTeamId : user.teamId;
     const effectiveTeamConfig = TEAMS[effectiveTeamId];
 
-    setIsSubmitting(true);
-    let finalVideoUrl = videoUrlInput.trim();
-    let driveFileId: string | undefined = undefined;
+    const logPayload = {
+      stepTitle: stepTitle.trim(),
+      teamId: effectiveTeamId,
+      teamName: effectiveTeamConfig?.name || effectiveTeamId,
+      authorName: authorName.trim() || user.displayName,
+      date: date || new Date().toISOString().split('T')[0],
+      workTime: workTime.trim() || '12:00 PM',
+      membersPresent: selectedMembers,
+      hoursSpent: parseFloat(hoursSpent) || 0,
+      description: description.trim(),
+      achievements: achievements.trim(),
+      blockers: blockers.trim(),
+      videoUrl: videoUrlInput.trim(),
+    };
 
-    // Handle Google Drive file upload if a file was selected
-    if (videoFile) {
-      setIsUploading(true);
-      const mbSize = (videoFile.size / (1024 * 1024)).toFixed(1);
-      setUploadStatus(`Preparing ${mbSize} MB resumable upload...`);
-      const uploadRes = await uploadFileToGoogleDrive({
-        file: videoFile,
-        teamName: effectiveTeamConfig?.name || effectiveTeamId,
-        stepTitle,
-        onProgress: (p) => {
-          setUploadProgress(p);
-          if (p < 8) {
-            setUploadStatus('Creating Google Drive resumable session...');
-          } else if (p < 93) {
-            setUploadStatus(`Streaming ${mbSize} MB to Drive (${p}%)...`);
-          } else if (p < 100) {
-            setUploadStatus('Finalizing Google Drive permissions & embed...');
-          } else {
-            setUploadStatus('Upload complete!');
-          }
-        },
-      });
+    // 1. Instantly create optimistic preview log so user sees it right away!
+    const tempId = `temp-log-${Date.now()}`;
+    const optimisticLog: WorkLog = {
+      id: tempId,
+      stepNumber: (logs[0]?.stepNumber || 0) + 1,
+      ...logPayload,
+      createdAt: Date.now(),
+    };
+    setLogs((prev) => [optimisticLog, ...prev]);
 
-      if (!uploadRes.success) {
-        setFormError(uploadRes.error || 'Failed to upload video to Google Drive');
-        setIsUploading(false);
-        setIsSubmitting(false);
-        return;
-      }
+    // 2. Reset form immediately — user is never blocked!
+    setStepTitle('');
+    setDescription('');
+    setAchievements('');
+    setBlockers('');
+    setVideoFile(null);
+    setVideoUrlInput('');
+    setSelectedMembers([]);
+    setUploadProgress(0);
+    setUploadStatus(null);
+    setLargeFileNotice(null);
+    setIsFormOpen(false);
 
-      finalVideoUrl = uploadRes.embedUrl || uploadRes.viewUrl || '';
-      driveFileId = uploadRes.fileId;
-      setIsUploading(false);
-      setUploadStatus('Video successfully saved to your Google Drive!');
-    }
+    // 3. Initiate background upload queue (handles streaming video to Drive & cloud sync)
+    enqueueLogUpload({
+      logData: logPayload,
+      videoFile: videoFile || undefined,
+    });
 
-    try {
-      const res = await fetch('/api/logs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          stepTitle: stepTitle.trim(),
-          teamId: effectiveTeamId,
-          authorName: authorName.trim() || user.displayName,
-          date: date || new Date().toISOString().split('T')[0],
-          workTime: workTime.trim() || '12:00 PM',
-          membersPresent: selectedMembers,
-          hoursSpent: parseFloat(hoursSpent) || 0,
-          description: description.trim(),
-          achievements: achievements.trim(),
-          blockers: blockers.trim(),
-          videoUrl: finalVideoUrl,
-          driveFileId,
-        }),
-      });
-
-      const data = await res.json();
-      if (data.success && data.log) {
-        // Reset form inputs
-        setStepTitle('');
-        setDescription('');
-        setAchievements('');
-        setBlockers('');
-        setVideoFile(null);
-        setVideoUrlInput('');
-        setSelectedMembers([]);
-        setUploadProgress(0);
-        setUploadStatus(null);
-        setLargeFileNotice(null);
-        setIsFormOpen(false);
-
-        // Instantly reflect in logs list
-        setLogs((prev) => [data.log, ...prev.filter((item) => item.id !== data.log.id)]);
-        setSelectedTeamFilter('all');
-        setSearchQuery('');
-
-        setTimeout(() => {
-          document.getElementById('engineering-feed')?.scrollIntoView({ behavior: 'smooth' });
-        }, 150);
-
-        loadLogs();
-      } else {
-        setFormError(data.error || 'Failed to save log entry');
-      }
-    } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : 'Error submitting log');
-    } finally {
-      setIsSubmitting(false);
-    }
+    setTimeout(() => {
+      document.getElementById('engineering-feed')?.scrollIntoView({ behavior: 'smooth' });
+    }, 150);
   };
 
   // Open Edit Modal

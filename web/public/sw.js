@@ -79,6 +79,31 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Handle API GET requests with stale-while-revalidate / cache-fallback
+  if (request.url.includes('/api/tasks') || request.url.includes('/api/logs')) {
+    event.respondWith(
+      fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, clone);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(async () => {
+          const cache = await caches.open(CACHE_NAME);
+          const cached = await cache.match(request);
+          if (cached) return cached;
+          return new Response(JSON.stringify({ success: true, fromOfflineCache: true, tasks: [], logs: [] }), {
+            headers: { 'Content-Type': 'application/json' },
+          });
+        })
+    );
+    return;
+  }
+
   // Default: Network with cache fallback
   event.respondWith(
     fetch(request).catch(() => caches.match(request))
