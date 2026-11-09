@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Task, TaskStatus, TaskPriority, TeamId } from '@/lib/types';
+import { Task, TaskStatus, TaskPriority, TeamId, SubTask, TaskComment } from '@/lib/types';
 import { TEAMS, TEAMS_LIST } from '@/lib/teams';
 import MemberSelect from './MemberSelect';
 import { useAuth } from '@/context/AuthContext';
 import { isTaskAssignedToUser } from '@/lib/taskMatching';
+import { queueTaskAction } from '@/lib/offlineDb';
 
 interface TaskDetailModalProps {
   task: Task | null;
@@ -117,8 +118,225 @@ export default function TaskDetailModal({
       setIsEditing(false);
       setShowDeleteConfirm(false);
       setError(null);
+      setShowBlockerInput(false);
+      setBlockerReasonDraft(task.blockerReason || '');
     }
   }, [task]);
+
+  // Sprint Granularity State
+  const [newSubtaskText, setNewSubtaskText] = useState('');
+  const [isAddingSubtask, setIsAddingSubtask] = useState(false);
+  const [newCommentText, setNewCommentText] = useState('');
+  const [isPostingComment, setIsPostingComment] = useState(false);
+  const [showBlockerInput, setShowBlockerInput] = useState(false);
+  const [blockerReasonDraft, setBlockerReasonDraft] = useState('');
+  const [isSavingBlocker, setIsSavingBlocker] = useState(false);
+  const [hoursToLog, setHoursToLog] = useState('');
+  const [showHoursInput, setShowHoursInput] = useState(false);
+  const [isLoggingHours, setIsLoggingHours] = useState(false);
+
+  // Subtask Toggle Handler
+  const handleToggleSubtask = async (subtaskId: string, currentCompleted: boolean) => {
+    if (!task) return;
+    const nextCompleted = !currentCompleted;
+    const updatedSubtasks = (task.subtasks || []).map((st) =>
+      st.id === subtaskId
+        ? {
+            ...st,
+            completed: nextCompleted,
+            completedBy: user?.displayName || 'Team Member',
+            completedAt: Date.now(),
+          }
+        : st
+    );
+    const updatedTask: Task = { ...task, subtasks: updatedSubtasks };
+    onTaskUpdated(updatedTask);
+
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: task.id,
+          action: 'TOGGLE_SUBTASK',
+          subtaskId,
+          completed: nextCompleted,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.task) {
+        onTaskUpdated(data.task);
+      }
+    } catch {
+      await queueTaskAction({
+        id: task.id,
+        action: 'TOGGLE_SUBTASK',
+        subtaskId,
+        completed: nextCompleted,
+      });
+    }
+  };
+
+  // Add Subtask Handler
+  const handleAddSubtask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!task || !newSubtaskText.trim()) return;
+    const text = newSubtaskText.trim();
+    setNewSubtaskText('');
+    setIsAddingSubtask(true);
+
+    const tempId = `st-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const newSt: SubTask = { id: tempId, text, completed: false };
+    const updatedSubtasks = [...(task.subtasks || []), newSt];
+    onTaskUpdated({ ...task, subtasks: updatedSubtasks });
+
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: task.id, action: 'ADD_SUBTASK', text }),
+      });
+      const data = await res.json();
+      if (data.success && data.task) {
+        onTaskUpdated(data.task);
+      }
+    } catch {
+      await queueTaskAction({ id: task.id, action: 'ADD_SUBTASK', text });
+    } finally {
+      setIsAddingSubtask(false);
+    }
+  };
+
+  // Delete Subtask Handler
+  const handleDeleteSubtask = async (subtaskId: string) => {
+    if (!task) return;
+    const updatedSubtasks = (task.subtasks || []).filter((st) => st.id !== subtaskId);
+    onTaskUpdated({ ...task, subtasks: updatedSubtasks });
+
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: task.id, action: 'DELETE_SUBTASK', subtaskId }),
+      });
+      const data = await res.json();
+      if (data.success && data.task) {
+        onTaskUpdated(data.task);
+      }
+    } catch {
+      await queueTaskAction({ id: task.id, action: 'DELETE_SUBTASK', subtaskId });
+    }
+  };
+
+  // Blocker Toggle Handler
+  const handleToggleBlocker = async (isBlocked: boolean, reason?: string) => {
+    if (!task) return;
+    setIsSavingBlocker(true);
+    const updatedTask: Task = {
+      ...task,
+      isBlocked,
+      blockerReason: reason || '',
+    };
+    onTaskUpdated(updatedTask);
+    setShowBlockerInput(false);
+    setBlockerReasonDraft('');
+
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: task.id,
+          action: 'SET_BLOCKER',
+          isBlocked,
+          blockerReason: reason || '',
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.task) {
+        onTaskUpdated(data.task);
+      }
+    } catch {
+      await queueTaskAction({
+        id: task.id,
+        action: 'SET_BLOCKER',
+        isBlocked,
+        blockerReason: reason || '',
+      });
+    } finally {
+      setIsSavingBlocker(false);
+    }
+  };
+
+  // Log Hours Handler
+  const handleLogHours = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!task || !hoursToLog) return;
+    const val = parseFloat(hoursToLog);
+    if (isNaN(val) || val <= 0) return;
+    setIsLoggingHours(true);
+
+    const updatedTask: Task = {
+      ...task,
+      actualHours: (task.actualHours || 0) + val,
+    };
+    onTaskUpdated(updatedTask);
+    setHoursToLog('');
+    setShowHoursInput(false);
+
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: task.id, action: 'LOG_HOURS', hours: val }),
+      });
+      const data = await res.json();
+      if (data.success && data.task) {
+        onTaskUpdated(data.task);
+      }
+    } catch {
+      await queueTaskAction({ id: task.id, action: 'LOG_HOURS', hours: val });
+    } finally {
+      setIsLoggingHours(false);
+    }
+  };
+
+  // Post Discussion Note Handler
+  const handlePostComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!task || !newCommentText.trim() || !user) return;
+    const text = newCommentText.trim();
+    setNewCommentText('');
+    setIsPostingComment(true);
+
+    const tempId = `c-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const newComment: TaskComment = {
+      id: tempId,
+      authorId: user.memberId || user.email,
+      authorName: user.displayName,
+      authorTeam: user.teamId,
+      text,
+      createdAt: Date.now(),
+    };
+    const updatedComments = [...(task.comments || []), newComment];
+    onTaskUpdated({ ...task, comments: updatedComments });
+
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: task.id, action: 'ADD_COMMENT', text }),
+      });
+      const data = await res.json();
+      if (data.success && data.task) {
+        onTaskUpdated(data.task);
+      }
+    } catch {
+      await queueTaskAction({ id: task.id, action: 'ADD_COMMENT', text });
+    } finally {
+      setIsPostingComment(false);
+    }
+  };
 
   if (!isOpen || !task) return null;
 
@@ -334,6 +552,65 @@ export default function TaskDetailModal({
         {!isEditing ? (
           <div className="space-y-6">
             
+            {/* Blocker Alert Banner */}
+            {task.isBlocked ? (
+              <div className="p-4 rounded-xl bg-rose-500/10 border-2 border-rose-500/40 text-rose-800 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">⚠️</span>
+                    <div>
+                      <span className="font-mono text-xs font-black uppercase tracking-wider text-rose-600 block">
+                        Deliverable Blocked
+                      </span>
+                      <p className="text-sm font-semibold text-rose-950 mt-0.5">
+                        {task.blockerReason || 'Waiting on critical dependencies or workshop clearance.'}
+                      </p>
+                    </div>
+                  </div>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      disabled={isSavingBlocker}
+                      onClick={() => handleToggleBlocker(false)}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold transition-all cursor-pointer shrink-0 shadow-xs"
+                    >
+                      ✓ Resolve Blocker
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : showBlockerInput ? (
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-900">
+                    Flag Blocker for Leadership:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowBlockerInput(false)}
+                    className="text-grey hover:text-jet-black text-xs font-mono"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={blockerReasonDraft}
+                  onChange={(e) => setBlockerReasonDraft(e.target.value)}
+                  placeholder="e.g. Waiting on 4130 chromoly tubes delivery or lathe tooling..."
+                  className="w-full px-3 py-2 text-xs font-mono bg-white border border-jet-black/15 rounded-lg focus:outline-none focus:border-orange text-jet-black"
+                />
+                <button
+                  type="button"
+                  disabled={isSavingBlocker || !blockerReasonDraft.trim()}
+                  onClick={() => handleToggleBlocker(true, blockerReasonDraft)}
+                  className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-mono text-xs font-bold transition-all cursor-pointer shadow-xs disabled:opacity-50"
+                >
+                  Confirm Blocker Alert
+                </button>
+              </div>
+            ) : null}
+
             {/* Description */}
             <div className="space-y-1.5">
               <span className="text-[11px] font-mono uppercase tracking-wider text-grey font-bold block">
@@ -399,14 +676,51 @@ export default function TaskDetailModal({
                 )}
               </div>
 
-              {/* Due Date & Activity */}
+              {/* Due Date & Hours */}
               <div className="p-4 bg-white border border-jet-black/10 rounded-xl space-y-2">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-grey font-bold block">
-                  Target Due Date:
-                </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-grey font-bold block">
+                    Target Due Date:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowHoursInput(!showHoursInput)}
+                    className="text-[10px] font-mono text-orange hover:underline font-bold cursor-pointer"
+                  >
+                    + Log Time ({task.actualHours || 0}h)
+                  </button>
+                </div>
                 <div className="text-xs font-mono font-bold text-jet-black">
                   {formatDueDate(task.dueDate)}
                 </div>
+
+                {showHoursInput && (
+                  <form onSubmit={handleLogHours} className="p-2.5 rounded-lg bg-alice-blue/60 border border-jet-black/10 space-y-2">
+                    <span className="text-[10px] font-mono uppercase text-grey block">
+                      Record Workshop Hours on Deliverable:
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0.5"
+                        max="24"
+                        value={hoursToLog}
+                        onChange={(e) => setHoursToLog(e.target.value)}
+                        placeholder="e.g. 2.0"
+                        className="w-24 px-2 py-1 text-xs font-mono bg-white border border-jet-black/15 rounded"
+                      />
+                      <button
+                        type="submit"
+                        disabled={isLoggingHours || !hoursToLog}
+                        className="px-2.5 py-1 rounded bg-orange text-white font-mono text-xs font-bold transition-all disabled:opacity-40 cursor-pointer"
+                      >
+                        Save Hours
+                      </button>
+                    </div>
+                  </form>
+                )}
+
                 <div className="pt-2 border-t border-jet-black/5 text-[10px] font-mono text-grey space-y-0.5">
                   <div>Created: {new Date(task.createdAt).toLocaleString()}</div>
                   {task.updatedAt && (
@@ -415,6 +729,175 @@ export default function TaskDetailModal({
                 </div>
               </div>
 
+            </div>
+
+            {/* Subtasks Checklist Section */}
+            <div className="p-4 bg-white border border-jet-black/10 rounded-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-grey font-bold">
+                    Checklist &amp; Subtasks
+                  </span>
+                  {task.subtasks && task.subtasks.length > 0 && (
+                    <span className="px-2 py-0.5 rounded-full bg-jet-black/5 text-[10px] font-mono font-bold text-jet-black">
+                      {task.subtasks.filter((st) => st.completed).length}/{task.subtasks.length} ({Math.round((task.subtasks.filter((st) => st.completed).length / task.subtasks.length) * 100)}%)
+                    </span>
+                  )}
+                </div>
+                {canEdit && !task.isBlocked && !showBlockerInput && (
+                  <button
+                    type="button"
+                    onClick={() => setShowBlockerInput(true)}
+                    className="text-[10px] font-mono text-amber-700 hover:text-amber-800 font-bold hover:underline cursor-pointer"
+                  >
+                    ⚠️ Flag Blocker
+                  </button>
+                )}
+              </div>
+
+              {/* Progress Bar */}
+              {task.subtasks && task.subtasks.length > 0 && (
+                <div className="w-full h-2 bg-alice-blue rounded-full overflow-hidden border border-jet-black/5">
+                  <div
+                    className="h-full bg-emerald-500 transition-all duration-300"
+                    style={{ width: `${Math.round((task.subtasks.filter((st) => st.completed).length / task.subtasks.length) * 100)}%` }}
+                  />
+                </div>
+              )}
+
+              {/* Subtasks List */}
+              <div className="space-y-1.5 pt-1">
+                {task.subtasks && task.subtasks.length > 0 ? (
+                  task.subtasks.map((st) => (
+                    <div
+                      key={st.id}
+                      className={`group p-2.5 rounded-xl border transition-all flex items-center justify-between gap-3 ${
+                        st.completed
+                          ? 'bg-emerald-500/5 border-emerald-500/20 text-grey'
+                          : 'bg-alice-blue/30 border-jet-black/5 hover:border-jet-black/15 text-jet-black'
+                      }`}
+                    >
+                      <label className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={st.completed}
+                          disabled={!canEdit}
+                          onChange={() => handleToggleSubtask(st.id, st.completed)}
+                          className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-jet-black/20 cursor-pointer shrink-0"
+                        />
+                        <span className={`text-xs font-mono select-none break-words ${st.completed ? 'line-through text-grey' : 'font-medium'}`}>
+                          {st.text}
+                        </span>
+                      </label>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        {st.completedBy && st.completed && (
+                          <span className="text-[9px] font-mono text-emerald-700 bg-emerald-100/60 px-1.5 py-0.5 rounded">
+                            ✓ {st.completedBy.split(' ')[0]}
+                          </span>
+                        )}
+                        {canEdit && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSubtask(st.id)}
+                            className="text-grey hover:text-red-500 text-xs px-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            title="Remove item"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs font-mono italic text-grey/60 py-1">
+                    No checklist items yet. Add subtasks to track step-by-step progress.
+                  </p>
+                )}
+              </div>
+
+              {/* Add Subtask Input */}
+              {canEdit && (
+                <form onSubmit={handleAddSubtask} className="flex items-center gap-2 pt-1">
+                  <input
+                    type="text"
+                    value={newSubtaskText}
+                    onChange={(e) => setNewSubtaskText(e.target.value)}
+                    placeholder="+ Add a checklist step (press Enter)..."
+                    className="flex-1 px-3 py-2 text-xs font-mono bg-alice-blue/50 border border-jet-black/10 rounded-xl focus:outline-none focus:border-orange text-jet-black"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isAddingSubtask || !newSubtaskText.trim()}
+                    className="px-3.5 py-2 rounded-xl bg-jet-black text-alice-blue hover:bg-orange text-xs font-mono font-bold transition-all disabled:opacity-40 cursor-pointer shrink-0"
+                  >
+                    Add
+                  </button>
+                </form>
+              )}
+            </div>
+
+            {/* Team Discussion & Notes Thread */}
+            <div className="p-4 bg-white border border-jet-black/10 rounded-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-grey font-bold">
+                  Discussion &amp; Workshop Notes ({task.comments?.length || 0})
+                </span>
+                <span className="text-[10px] font-mono text-grey">
+                  Internal Squad Thread
+                </span>
+              </div>
+
+              {/* Comments Feed */}
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {task.comments && task.comments.length > 0 ? (
+                  task.comments.map((comment) => (
+                    <div key={comment.id} className="p-3 rounded-xl bg-alice-blue/40 border border-jet-black/5 text-xs font-mono space-y-1">
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="font-bold text-jet-black flex items-center gap-1.5">
+                          <span className="w-5 h-5 rounded-full bg-jet-black text-white flex items-center justify-center text-[9px] font-bold">
+                            {comment.authorName ? comment.authorName.charAt(0).toUpperCase() : 'M'}
+                          </span>
+                          <span>{comment.authorName}</span>
+                          {comment.authorTeam && (
+                            <span className="text-orange uppercase">[{comment.authorTeam}]</span>
+                          )}
+                        </span>
+                        <span className="text-grey/70">
+                          {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="text-jet-black/90 whitespace-pre-wrap leading-relaxed pl-6">
+                        {comment.text}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs font-mono italic text-grey/60 py-1">
+                    No notes recorded yet. Post fabrication notes, tool requirements, or blockers here.
+                  </p>
+                )}
+              </div>
+
+              {/* Add Comment Input */}
+              {user && (
+                <form onSubmit={handlePostComment} className="flex items-center gap-2 pt-1">
+                  <input
+                    type="text"
+                    value={newCommentText}
+                    onChange={(e) => setNewCommentText(e.target.value)}
+                    placeholder="Write a quick update or note..."
+                    className="flex-1 px-3 py-2 text-xs font-mono bg-alice-blue/50 border border-jet-black/10 rounded-xl focus:outline-none focus:border-orange text-jet-black"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isPostingComment || !newCommentText.trim()}
+                    className="px-3.5 py-2 rounded-xl bg-jet-black text-alice-blue hover:bg-orange text-xs font-mono font-bold transition-all disabled:opacity-40 cursor-pointer shrink-0"
+                  >
+                    Post Note
+                  </button>
+                </form>
+              )}
             </div>
 
             {/* Modal Bottom Actions */}

@@ -3,7 +3,11 @@ import { WorkLog, Task, TeamId } from './types';
 
 export interface OutboxItem {
   id: string;
-  type: 'CREATE_LOG' | 'COMPLETE_TASK_WITH_VIDEO' | 'UPDATE_TASK_STATUS';
+  type:
+    | 'CREATE_LOG'
+    | 'COMPLETE_TASK_WITH_VIDEO'
+    | 'UPDATE_TASK_STATUS'
+    | 'TASK_ACTION';
   payload: any;
   fileBlob?: Blob;
   fileName?: string;
@@ -126,6 +130,60 @@ export async function getOutboxItems(): Promise<OutboxItem[]> {
       return [];
     }
   }
+}
+
+/**
+ * Queues an atomic task action (status change, subtask toggle, comment, blocker)
+ * for background or offline dispatch.
+ */
+export async function queueTaskAction(payload: { id: string; action?: string; [key: string]: any }): Promise<void> {
+  const item: OutboxItem = {
+    id: `qa-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    type: 'TASK_ACTION',
+    payload,
+    status: 'queued',
+    progress: 0,
+    createdAt: Date.now(),
+  };
+  await addOutboxItem(item);
+}
+
+/**
+ * Flushes queued task actions to the backend when online.
+ */
+export async function flushTaskOutbox(): Promise<{ synced: number; failed: number }> {
+  if (typeof window === 'undefined' || !navigator.onLine) {
+    return { synced: 0, failed: 0 };
+  }
+
+  const items = await getOutboxItems();
+  const taskActions = items.filter((it) => it.type === 'TASK_ACTION' && it.status === 'queued');
+  let synced = 0;
+  let failed = 0;
+
+  for (const item of taskActions) {
+    try {
+      await updateOutboxItem(item.id, { status: 'uploading' });
+      const res = await fetch('/api/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item.payload),
+      });
+
+      if (res.ok) {
+        await removeOutboxItem(item.id);
+        synced++;
+      } else {
+        await updateOutboxItem(item.id, { status: 'failed', error: `Server error ${res.status}` });
+        failed++;
+      }
+    } catch (err: any) {
+      await updateOutboxItem(item.id, { status: 'failed', error: err?.message || 'Network error' });
+      failed++;
+    }
+  }
+
+  return { synced, failed };
 }
 
 // =========================================================================

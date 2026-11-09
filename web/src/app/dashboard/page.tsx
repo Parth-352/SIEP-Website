@@ -796,6 +796,11 @@ function DashboardContent() {
                               [{taskTeam?.code}] {taskTeam?.shortName}
                             </span>
                             <div className="flex items-center gap-1.5">
+                              {task.isBlocked && (
+                                <span className="px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-500/30 text-rose-700 text-[9px] font-mono font-bold flex items-center gap-0.5" title={task.blockerReason || 'Blocked deliverable'}>
+                                  <span>⚠️</span> Blocked
+                                </span>
+                              )}
                               <span className={`px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider font-bold ${priorityInfo.bg}`}>
                                 {priorityInfo.label}
                               </span>
@@ -818,15 +823,42 @@ function DashboardContent() {
                             )}
                           </div>
 
+                          {/* Subtasks Progress Bar */}
+                          {task.subtasks && task.subtasks.length > 0 && (
+                            <div className="space-y-1 pt-0.5">
+                              <div className="flex items-center justify-between text-[10px] font-mono text-grey">
+                                <span>☑ Checklist</span>
+                                <span className="font-semibold text-jet-black">
+                                  {task.subtasks.filter((st) => st.completed).length}/{task.subtasks.length}
+                                </span>
+                              </div>
+                              <div className="w-full h-1.5 bg-jet-black/10 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-emerald-500 transition-all duration-300"
+                                  style={{
+                                    width: `${Math.round((task.subtasks.filter((st) => st.completed).length / task.subtasks.length) * 100)}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
+
                           {/* Due date & co-assignees */}
                           <div className="pt-2 border-t border-jet-black/5 flex flex-wrap items-center justify-between gap-1.5 text-[10px] font-mono text-grey">
-                            {task.dueDate ? (
-                              <span className="bg-white px-2 py-0.5 rounded border border-jet-black/10 text-jet-black font-semibold flex items-center gap-1">
-                                <span>📅</span> Due: {task.dueDate}
-                              </span>
-                            ) : (
-                              <span className="italic text-grey/60">No due date</span>
-                            )}
+                            <div className="flex items-center gap-1.5">
+                              {task.dueDate ? (
+                                <span className="bg-white px-2 py-0.5 rounded border border-jet-black/10 text-jet-black font-semibold flex items-center gap-1">
+                                  <span>📅</span> Due: {task.dueDate}
+                                </span>
+                              ) : (
+                                <span className="italic text-grey/60">No due date</span>
+                              )}
+                              {task.comments && task.comments.length > 0 && (
+                                <span className="px-1.5 py-0.5 rounded bg-white border border-jet-black/10 text-grey font-bold flex items-center gap-0.5 text-[9px]">
+                                  <span>💬</span> {task.comments.length}
+                                </span>
+                              )}
+                            </div>
 
                             {task.assignedMembers && task.assignedMembers.length > 1 && (
                               <span className="text-[10px] text-grey">
@@ -1425,9 +1457,16 @@ function DashboardContent() {
                                   [{taskTeam?.code}] {taskTeam?.shortName}
                                 </span>
 
-                                <span className={`px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider font-bold ${priorityInfo.bg}`}>
-                                  {priorityInfo.label}
-                                </span>
+                                <div className="flex items-center gap-1.5">
+                                  {task.isBlocked && (
+                                    <span className="px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-500/30 text-rose-700 text-[9px] font-mono font-bold flex items-center gap-0.5" title={task.blockerReason || 'Blocked deliverable'}>
+                                      <span>⚠️</span> Blocked
+                                    </span>
+                                  )}
+                                  <span className={`px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider font-bold ${priorityInfo.bg}`}>
+                                    {priorityInfo.label}
+                                  </span>
+                                </div>
                               </div>
 
                               {/* Title & Desc */}
@@ -1442,15 +1481,47 @@ function DashboardContent() {
                                 )}
                               </div>
 
+                              {/* Subtasks Progress Bar */}
+                              {task.subtasks && task.subtasks.length > 0 && (
+                                <div className="space-y-1 pt-0.5">
+                                  <div className="flex items-center justify-between text-[10px] font-mono text-grey">
+                                    <span>☑ Checklist</span>
+                                    <span className="font-semibold text-jet-black">
+                                      {task.subtasks.filter((st) => st.completed).length}/{task.subtasks.length}
+                                    </span>
+                                  </div>
+                                  <div className="w-full h-1.5 bg-jet-black/10 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-emerald-500 transition-all duration-300"
+                                      style={{
+                                        width: `${Math.round((task.subtasks.filter((st) => st.completed).length / task.subtasks.length) * 100)}%`,
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+
                               {/* Assignees & Due Date + Quick Self-Assign Button */}
                               <div className="pt-2.5 border-t border-jet-black/5 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-grey">
-                                {task.assignedMembers && task.assignedMembers.length > 0 ? (
-                                  <span className="text-jet-black font-semibold truncate max-w-[130px]">
-                                    👤 {Array.isArray(task.assignedMembers) ? task.assignedMembers.join(', ') : task.assignedMembers}
-                                  </span>
-                                ) : (
-                                  <span className="italic text-grey/60">Unassigned</span>
-                                )}
+                                <div className="flex items-center gap-2 max-w-[170px] truncate">
+                                  {task.assignedMembers && task.assignedMembers.length > 0 ? (
+                                    <span className="text-jet-black font-semibold truncate">
+                                      👤 {Array.isArray(task.assignedMembers) ? task.assignedMembers.join(', ') : task.assignedMembers}
+                                    </span>
+                                  ) : (
+                                    <span className="italic text-grey/60">Unassigned</span>
+                                  )}
+                                  {task.comments && task.comments.length > 0 && (
+                                    <span className="px-1.5 py-0.5 rounded bg-white border border-jet-black/10 text-grey font-bold flex items-center gap-0.5 text-[9px]">
+                                      <span>💬</span> {task.comments.length}
+                                    </span>
+                                  )}
+                                  {Boolean(task.actualHours) && (
+                                    <span className="px-1.5 py-0.5 rounded bg-white border border-jet-black/10 text-grey font-bold flex items-center gap-0.5 text-[9px]">
+                                      <span>⏱</span> {task.actualHours}h
+                                    </span>
+                                  )}
+                                </div>
 
                                 <div className="flex items-center gap-1.5">
                                   {isTaskAssignedToMe ? (
