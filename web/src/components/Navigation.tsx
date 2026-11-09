@@ -435,6 +435,192 @@ export default function Navigation() {
           )}
         </div>
       </div>
+
+      {/* =========================================================================
+          GLOBAL INSTAGRAM-STYLE BOTTOM NAVIGATION BAR
+          Always visible on all screens (mobile edge-to-edge, desktop floating dock).
+          Excluded on /dashboard (which has its own dedicated operations dock).
+         ========================================================================= */}
+      {pathname !== '/dashboard' && (
+        <nav
+          aria-label="Global Instagram Bottom Navigation"
+          className="fixed bottom-0 left-0 right-0 sm:bottom-5 sm:left-1/2 sm:-translate-x-1/2 sm:w-[94%] sm:max-w-md sm:rounded-2xl sm:shadow-[0_12px_45px_rgba(0,0,0,0.18)] sm:border sm:border-jet-black/15 bg-white/95 backdrop-blur-xl border-t border-jet-black/10 px-3 pt-2 sm:py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] z-50 transition-all duration-300"
+        >
+          <div className="flex items-center justify-between max-w-md mx-auto px-1 sm:px-2">
+            {user ? (
+              /* Authenticated Member Instagram Bottom Bar */
+              <>
+                {/* 1. Board */}
+                <Link
+                  href="/dashboard"
+                  title="Task Board"
+                  className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all group ${
+                    pathname === '/dashboard' ? 'text-jet-black font-bold scale-105' : 'text-grey hover:text-jet-black'
+                  }`}
+                >
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                  </svg>
+                  <span className="text-[10px] font-mono tracking-tight mt-0.5 font-bold text-jet-black">
+                    Board
+                  </span>
+                </Link>
+
+                {/* 2. Squads */}
+                <Link
+                  href="/dashboard?tab=teams"
+                  title="Engineering Squads"
+                  className="flex flex-col items-center justify-center py-1 px-2.5 transition-all text-grey hover:text-jet-black group"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9" strokeWidth="2" />
+                    <polygon points="16 8 13.5 13.5 8 16 10.5 10.5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span className="text-[10px] font-mono tracking-tight mt-0.5">Squads</span>
+                </Link>
+
+                {/* 3. Center Create [+] */}
+                {(isCore || isLead) ? (
+                  <Link
+                    href="/log"
+                    title="Engineering Build Log"
+                    className="flex flex-col items-center justify-center py-0.5 px-2 group active:scale-95 transition-transform"
+                  >
+                    <div className="w-8 h-8 rounded-xl border-2 border-jet-black bg-jet-black text-alice-blue flex items-center justify-center font-bold hover:bg-orange hover:border-orange transition-all shadow-2xs">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+                      </svg>
+                    </div>
+                    <span className="text-[10px] font-mono tracking-tight mt-0.5 font-bold text-jet-black">
+                      Log
+                    </span>
+                  </Link>
+                ) : (
+                  <Link
+                    href="/dashboard"
+                    title="Tasks & Deliverables"
+                    className="flex flex-col items-center justify-center py-0.5 px-2 group active:scale-95 transition-transform"
+                  >
+                    <div className="w-8 h-8 rounded-xl border-2 border-jet-black bg-white text-jet-black flex items-center justify-center font-bold hover:bg-orange hover:text-white hover:border-orange transition-all shadow-2xs">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+                      </svg>
+                    </div>
+                    <span className="text-[10px] font-mono tracking-tight mt-0.5 font-bold text-jet-black">
+                      Action
+                    </span>
+                  </Link>
+                )}
+
+                {/* 4. Main Site */}
+                <Link
+                  href="/"
+                  title="Main Website"
+                  className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all group ${
+                    pathname === '/' ? 'text-orange font-bold' : 'text-grey hover:text-jet-black'
+                  }`}
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
+                  </svg>
+                  <span className="text-[10px] font-mono tracking-tight mt-0.5">Site</span>
+                </Link>
+
+                {/* 5. Profile / My Tasks */}
+                <Link
+                  href="/dashboard?tab=my_tasks"
+                  title="My Workbench"
+                  className="flex flex-col items-center justify-center py-1 px-2.5 transition-all group text-grey hover:text-jet-black"
+                >
+                  <div className="w-7 h-7 rounded-full border-2 border-jet-black/40 group-hover:border-jet-black bg-alice-blue/80 flex items-center justify-center">
+                    <span className="text-[10px] font-mono font-bold uppercase text-jet-black">
+                      {user.displayName.slice(0, 2).toUpperCase()}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono tracking-tight mt-0.5">Profile</span>
+                </Link>
+              </>
+            ) : (
+              /* Public Visitor Instagram Bottom Bar */
+              <>
+                {/* 1. Home */}
+                <Link
+                  href="/"
+                  title="Home"
+                  className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all group ${
+                    pathname === '/' ? 'text-jet-black font-bold scale-105' : 'text-grey hover:text-jet-black'
+                  }`}
+                >
+                  <svg className="w-6 h-6" fill={pathname === '/' ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                  <span className="text-[10px] font-mono tracking-tight mt-0.5">Home</span>
+                </Link>
+
+                {/* 2. About */}
+                <Link
+                  href="/about"
+                  title="About"
+                  className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all group ${
+                    pathname === '/about' ? 'text-orange font-bold' : 'text-grey hover:text-jet-black'
+                  }`}
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                  <span className="text-[10px] font-mono tracking-tight mt-0.5">About</span>
+                </Link>
+
+                {/* 3. The Bike */}
+                <Link
+                  href="/bike"
+                  title="The Bike"
+                  className="flex flex-col items-center justify-center py-0.5 px-2 group active:scale-95 transition-transform"
+                >
+                  <div className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center font-bold transition-all shadow-2xs ${
+                    pathname === '/bike'
+                      ? 'border-orange bg-orange text-white'
+                      : 'border-jet-black bg-white text-jet-black group-hover:border-orange group-hover:text-orange'
+                  }`}>
+                    <span className="text-sm">⚡</span>
+                  </div>
+                  <span className="text-[10px] font-mono tracking-tight mt-0.5 font-bold text-jet-black">Bike</span>
+                </Link>
+
+                {/* 4. Competition */}
+                <Link
+                  href="/competition"
+                  title="Competition"
+                  className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all group ${
+                    pathname === '/competition' ? 'text-orange font-bold' : 'text-grey hover:text-jet-black'
+                  }`}
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                  </svg>
+                  <span className="text-[10px] font-mono tracking-tight mt-0.5">Comp</span>
+                </Link>
+
+                {/* 5. Portal Login */}
+                <Link
+                  href="/login"
+                  title="Portal Login"
+                  className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all group ${
+                    pathname === '/login' ? 'text-orange font-bold' : 'text-grey hover:text-jet-black'
+                  }`}
+                >
+                  <div className="w-7 h-7 rounded-full border-2 border-jet-black/40 group-hover:border-jet-black bg-alice-blue/80 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-jet-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <span className="text-[10px] font-mono tracking-tight mt-0.5">Login</span>
+                </Link>
+              </>
+            )}
+          </div>
+        </nav>
+      )}
     </>
   );
 }

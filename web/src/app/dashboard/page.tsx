@@ -45,7 +45,19 @@ function DashboardContent() {
   const [isMounted, setIsMounted] = useState(false);
 
   // Active view tab
-  const [activeTab, setActiveTab] = useState<'my_tasks' | 'kanban' | 'teams' | 'videos' | 'accounts'>('kanban');
+  const [activeTab, setActiveTab] = useState<'my_tasks' | 'kanban' | 'teams' | 'videos' | 'metrics' | 'accounts'>('kanban');
+
+  // Team Metrics & Leaderboard filter state
+  const [leaderboardSquadFilter, setLeaderboardSquadFilter] = useState<string>('all');
+  const [memberSearchQuery, setMemberSearchQuery] = useState<string>('');
+
+  // Handle URL query tab parameter (e.g. /dashboard?tab=teams or ?tab=my_tasks)
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['my_tasks', 'kanban', 'teams', 'videos', 'metrics', 'accounts'].includes(tabParam)) {
+      setActiveTab(tabParam as any);
+    }
+  }, [searchParams]);
 
   // Mobile All-in-One Bottom Menu & Keyboard states
   const [isMobileQuickMenuOpen, setIsMobileQuickMenuOpen] = useState(false);
@@ -352,6 +364,106 @@ function DashboardContent() {
     const completionPct = total > 0 ? Math.round((done / total) * 100) : 0;
     return { todo, inProgress, review, done, total, completionPct };
   }, [myAssignedTasks]);
+
+  // Team Metrics: Member Velocity Leaderboard calculation
+  const memberMetrics = useMemo(() => {
+    return ROSTER_MEMBERS.map((member) => {
+      const memberNameLower = member.name.toLowerCase();
+
+      // Find logs authored or attended by member
+      const memberLogs = logs.filter((l) => {
+        const isAuthor = Boolean(l.authorName && (l.authorName.toLowerCase().includes(memberNameLower) || memberNameLower.includes(l.authorName.toLowerCase())));
+        const isPresent = Array.isArray(l.membersPresent) && l.membersPresent.some((mp) => mp.toLowerCase().includes(memberNameLower) || memberNameLower.includes(mp.toLowerCase()));
+        return isAuthor || isPresent;
+      });
+
+      const totalHours = Number(memberLogs.reduce((acc, curr) => acc + (curr.hoursSpent || 0), 0).toFixed(1));
+
+      // Find tasks assigned to member
+      const memberTasks = tasks.filter((t) => {
+        return Array.isArray(t.assignedMembers) && t.assignedMembers.some((am) => {
+          const amLower = am.toLowerCase();
+          return amLower.includes(memberNameLower) || memberNameLower.includes(amLower) || am === member.id;
+        });
+      });
+
+      const completedTasksCount = memberTasks.filter((t) => t.status === 'done').length;
+      const activeTasksCount = memberTasks.filter((t) => t.status === 'in_progress' || t.status === 'review').length;
+
+      let subtasksDoneCount = 0;
+      memberTasks.forEach((t) => {
+        if (t.subtasks) {
+          subtasksDoneCount += t.subtasks.filter((st) => st.completed).length;
+        }
+      });
+
+      // Weighted velocity score: 10 pts per workshop hr + 15 pts per done deliverable + 5 pts active + 2 per subtask
+      const velocityScore = Math.round((totalHours * 10) + (completedTasksCount * 15) + (activeTasksCount * 5) + (subtasksDoneCount * 2));
+
+      return {
+        member,
+        totalHours,
+        logsCount: memberLogs.length,
+        completedTasksCount,
+        activeTasksCount,
+        subtasksDoneCount,
+        velocityScore,
+      };
+    }).sort((a, b) => {
+      if (b.velocityScore !== a.velocityScore) return b.velocityScore - a.velocityScore;
+      if (b.totalHours !== a.totalHours) return b.totalHours - a.totalHours;
+      return b.completedTasksCount - a.completedTasksCount;
+    });
+  }, [logs, tasks]);
+
+  // Filtered Leaderboard
+  const filteredMemberMetrics = useMemo(() => {
+    return memberMetrics.filter((item) => {
+      if (leaderboardSquadFilter !== 'all' && item.member.teamId !== leaderboardSquadFilter) {
+        return false;
+      }
+      if (memberSearchQuery.trim()) {
+        const q = memberSearchQuery.toLowerCase();
+        const matchName = item.member.name.toLowerCase().includes(q);
+        const matchRole = item.member.role.toLowerCase().includes(q);
+        if (!matchName && !matchRole) return false;
+      }
+      return true;
+    });
+  }, [memberMetrics, leaderboardSquadFilter, memberSearchQuery]);
+
+  // Squad Subsystem Velocity Matrix
+  const squadMetrics = useMemo(() => {
+    return TEAMS_LIST.map((team) => {
+      const squadTasks = tasks.filter((t) => t.teamId === team.id);
+      const doneTasks = squadTasks.filter((t) => t.status === 'done').length;
+      const inProgressTasks = squadTasks.filter((t) => t.status === 'in_progress' || t.status === 'review').length;
+      const blockedTasks = squadTasks.filter((t) => t.isBlocked).length;
+
+      const squadLogs = logs.filter((l) => l.teamId === team.id);
+      const squadHours = Number(squadLogs.reduce((acc, curr) => acc + (curr.hoursSpent || 0), 0).toFixed(1));
+      const completionPercent = squadTasks.length > 0 ? Math.round((doneTasks / squadTasks.length) * 100) : 0;
+
+      const lead = ROSTER_MEMBERS.find((m) => m.teamId === team.id && m.isLead);
+
+      return {
+        team,
+        lead,
+        totalTasks: squadTasks.length,
+        doneTasks,
+        inProgressTasks,
+        blockedTasks,
+        squadHours,
+        completionPercent,
+        logsCount: squadLogs.length,
+      };
+    }).sort((a, b) => b.completionPercent - a.completionPercent);
+  }, [tasks, logs]);
+
+  // Active Blockers Radar
+  const blockedRadarTasks = useMemo(() => {
+    return tasks.filter((t) => t.isBlocked && t.status !== 'done');
+  }, [tasks]);
 
   // Filtered Tasks computation (hook called before any early return)
   const filteredTasks = useMemo(() => {
@@ -1135,6 +1247,23 @@ function DashboardContent() {
               activeTab === 'videos' ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-jet-black'
             }`}>
               {videoLogsCount}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('metrics')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+              activeTab === 'metrics'
+                ? 'bg-jet-black text-alice-blue font-bold shadow-sm'
+                : 'text-grey hover:text-jet-black hover:bg-alice-blue/60'
+            }`}
+          >
+            <span>📊 Team Velocity & Metrics</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              activeTab === 'metrics' ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-jet-black'
+            }`}>
+              {completedTasks}/{tasks.length}
             </span>
           </button>
 
@@ -1990,7 +2119,362 @@ function DashboardContent() {
         )}
 
         {/* =========================================================================
-            TAB 4: CREDENTIALS & ACCESS DIRECTORY (Core Leadership Only)
+            TAB 4: TEAM VELOCITY & METRICS LEADERBOARD
+            Comprehensive analytics, squad progress bars, and member rankings
+           ========================================================================= */}
+        {activeTab === 'metrics' && (
+          <div className="space-y-6">
+
+            {/* Header & KPI Summary */}
+            <div className="bg-white border border-jet-black/10 rounded-2xl p-6 sm:p-8 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-orange animate-pulse" />
+                    <span className="text-[11px] font-mono uppercase tracking-widest text-grey font-bold">
+                      Team Velocity &amp; Accountability
+                    </span>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-black text-jet-black tracking-tight mt-1">
+                    Engineering Contribution Leaderboard<span className="text-orange">.</span>
+                  </h3>
+                  <p className="text-xs sm:text-sm text-grey font-light mt-0.5">
+                    Real-time performance metrics across all 23 team innovators and 9 engineering subsystems for SIEP 2026–27.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleManualSync}
+                    disabled={isManualSyncing}
+                    className="px-3.5 py-2 rounded-xl border border-jet-black/15 bg-alice-blue/60 hover:bg-alice-blue text-jet-black text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span className={isManualSyncing ? 'animate-spin' : ''}>🔄</span>
+                    <span>{isManualSyncing ? 'Syncing...' : 'Refresh Metrics'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 4-Stat Metric Row */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-jet-black/5">
+                <div className="p-3.5 rounded-xl bg-alice-blue/40 border border-jet-black/5">
+                  <div className="text-[10px] font-mono uppercase text-grey font-bold">Workshop Hours</div>
+                  <div className="text-2xl font-black font-mono text-jet-black mt-1">
+                    {totalHours.toFixed(1)} <span className="text-xs font-bold text-grey">hrs</span>
+                  </div>
+                  <div className="text-[10px] font-mono text-grey mt-0.5">{logs.length} build steps logged</div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-alice-blue/40 border border-jet-black/5">
+                  <div className="text-[10px] font-mono uppercase text-grey font-bold">Overall Progress</div>
+                  <div className="text-2xl font-black font-mono text-emerald-600 mt-1">
+                    {tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0}%
+                  </div>
+                  <div className="text-[10px] font-mono text-grey mt-0.5">{completedTasks} of {tasks.length} deliverables</div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-alice-blue/40 border border-jet-black/5">
+                  <div className="text-[10px] font-mono uppercase text-grey font-bold">Active Pipeline</div>
+                  <div className="text-2xl font-black font-mono text-orange mt-1">
+                    {inProgressTasks}
+                  </div>
+                  <div className="text-[10px] font-mono text-grey mt-0.5">in progress or review</div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-alice-blue/40 border border-jet-black/5">
+                  <div className="text-[10px] font-mono uppercase text-grey font-bold">Blocker Radar</div>
+                  <div className={`text-2xl font-black font-mono mt-1 ${
+                    blockedRadarTasks.length > 0 ? 'text-rose-600' : 'text-emerald-600'
+                  }`}>
+                    {blockedRadarTasks.length}
+                  </div>
+                  <div className="text-[10px] font-mono text-grey mt-0.5">
+                    {blockedRadarTasks.length === 0 ? 'All subsystems clear' : 'Attention required'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Blocker Radar Section */}
+            {blockedRadarTasks.length > 0 ? (
+              <div className="bg-rose-50/70 border border-rose-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-rose-800">
+                    <span className="text-lg">⚠️</span>
+                    <h4 className="text-sm font-mono font-bold uppercase tracking-wider">
+                      Active Blocker Radar ({blockedRadarTasks.length})
+                    </h4>
+                  </div>
+                  <span className="text-[10px] font-mono text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full font-bold">
+                    Action Required
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {blockedRadarTasks.map((bt) => {
+                    const btTeam = TEAMS[bt.teamId];
+                    return (
+                      <div
+                        key={bt.id}
+                        onClick={() => handleOpenTaskDetail(bt)}
+                        className="bg-white border border-rose-200 hover:border-rose-400 rounded-xl p-3.5 shadow-2xs hover:shadow-sm cursor-pointer transition-all space-y-2"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${btTeam?.badgeBg || 'bg-jet-black/5 text-jet-black'}`}>
+                            [{btTeam?.code}] {btTeam?.shortName}
+                          </span>
+                          <span className="text-[10px] font-mono text-rose-600 font-bold">
+                            Resolve Blocker ↗
+                          </span>
+                        </div>
+                        <h5 className="text-xs font-bold text-jet-black">{bt.title}</h5>
+                        {bt.blockerReason && (
+                          <div className="p-2 rounded-lg bg-rose-50 border border-rose-100 text-[11px] font-mono text-rose-800">
+                            <strong>Reason:</strong> {bt.blockerReason}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-3 text-emerald-900 text-xs font-mono shadow-sm">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-base">✨</span>
+                  <span>
+                    <strong>Blocker Radar Clear:</strong> All 9 engineering subsystems are running without active impediments.
+                  </span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                  0 BLOCKED
+                </span>
+              </div>
+            )}
+
+            {/* Subsystem Squad Velocity Matrix */}
+            <div className="bg-white border border-jet-black/10 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-jet-black/10">
+                <div>
+                  <h4 className="text-base font-bold text-jet-black tracking-tight">
+                    Subsystem Velocity Matrix
+                  </h4>
+                  <p className="text-xs text-grey font-mono mt-0.5">
+                    Completion rate and deliverables status across all 9 technical squads
+                  </p>
+                </div>
+                <span className="text-xs font-mono text-grey">
+                  Sorted by completion velocity
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                {squadMetrics.map((sq) => {
+                  return (
+                    <div
+                      key={sq.team.id}
+                      className="p-4 rounded-xl border border-jet-black/10 bg-alice-blue/20 hover:bg-white hover:border-orange/50 transition-all shadow-2xs space-y-3"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${sq.team.badgeBg}`}>
+                            [{sq.team.code}]
+                          </span>
+                          <span className="text-xs font-bold text-jet-black truncate">
+                            {sq.team.shortName}
+                          </span>
+                        </div>
+                        <span className="text-xs font-mono font-black text-jet-black">
+                          {sq.completionPercent}%
+                        </span>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="w-full h-2 bg-jet-black/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-500 transition-all duration-300"
+                          style={{ width: `${sq.completionPercent}%` }}
+                        />
+                      </div>
+
+                      {/* Details row */}
+                      <div className="flex items-center justify-between text-[10px] font-mono text-grey pt-1">
+                        <div>
+                          <span className="text-emerald-700 font-bold">{sq.doneTasks} done</span>
+                          <span className="mx-1">•</span>
+                          <span>{sq.inProgressTasks} active</span>
+                          {sq.blockedTasks > 0 && (
+                            <>
+                              <span className="mx-1">•</span>
+                              <span className="text-rose-600 font-bold">{sq.blockedTasks} blocked</span>
+                            </>
+                          )}
+                        </div>
+                        <div className="font-bold text-jet-black">
+                          {sq.squadHours} hrs
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-jet-black/5 flex items-center justify-between text-[10px] font-mono">
+                        <span className="text-grey truncate">
+                          Lead: <strong className="text-jet-black">{sq.lead?.name || 'Assigned'}</strong>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedSubsystemFilter(sq.team.id);
+                            setActiveTab('kanban');
+                          }}
+                          className="text-orange hover:text-jet-black font-bold cursor-pointer"
+                        >
+                          View Tasks &rarr;
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Member Contribution Leaderboard */}
+            <div className="bg-white border border-jet-black/10 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-jet-black/10">
+                <div>
+                  <h4 className="text-base sm:text-lg font-bold text-jet-black tracking-tight">
+                    Member Contribution Leaderboard
+                  </h4>
+                  <p className="text-xs text-grey font-mono mt-0.5">
+                    Rankings based on logged workshop hours, completed deliverables, and active checklist moves
+                  </p>
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="text"
+                    value={memberSearchQuery}
+                    onChange={(e) => setMemberSearchQuery(e.target.value)}
+                    placeholder="Search innovator..."
+                    className="px-3 py-1.5 rounded-xl border border-jet-black/15 bg-alice-blue/40 text-xs font-mono focus:outline-none focus:border-orange w-36 sm:w-44"
+                  />
+
+                  <select
+                    value={leaderboardSquadFilter}
+                    onChange={(e) => setLeaderboardSquadFilter(e.target.value)}
+                    className="px-2.5 py-1.5 rounded-xl border border-jet-black/15 bg-alice-blue/40 text-xs font-mono focus:outline-none focus:border-orange cursor-pointer"
+                  >
+                    <option value="all">All Squads ({ROSTER_MEMBERS.length})</option>
+                    {TEAMS_LIST.map((tm) => (
+                      <option key={tm.id} value={tm.id}>
+                        [{tm.code}] {tm.shortName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Leaderboard Table / Cards */}
+              <div className="space-y-2">
+                {filteredMemberMetrics.length === 0 ? (
+                  <div className="py-12 text-center text-xs font-mono text-grey">
+                    No team innovators match the current filter.
+                  </div>
+                ) : (
+                  filteredMemberMetrics.map((item, index) => {
+                    const memberTeam = TEAMS[item.member.teamId];
+                    const isTop1 = index === 0 && item.velocityScore > 0;
+                    const isTop2 = index === 1 && item.velocityScore > 0;
+                    const isTop3 = index === 2 && item.velocityScore > 0;
+
+                    const rankBadge = isTop1 ? '👑 #1' : isTop2 ? '🥈 #2' : isTop3 ? '🥉 #3' : `#${index + 1}`;
+
+                    return (
+                      <div
+                        key={item.member.id}
+                        className={`p-3.5 sm:p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                          isTop1
+                            ? 'bg-amber-500/10 border-amber-500/30 shadow-2xs'
+                            : isTop2
+                            ? 'bg-slate-100/70 border-slate-300'
+                            : isTop3
+                            ? 'bg-amber-700/5 border-amber-700/20'
+                            : 'bg-alice-blue/20 border-jet-black/10 hover:bg-white'
+                        }`}
+                      >
+                        {/* Member Identity */}
+                        <div className="flex items-center gap-3">
+                          <span className={`w-8 h-8 rounded-xl font-mono text-xs font-black flex items-center justify-center shrink-0 ${
+                            isTop1
+                              ? 'bg-amber-500 text-white shadow-sm'
+                              : isTop2
+                              ? 'bg-slate-400 text-white shadow-sm'
+                              : isTop3
+                              ? 'bg-amber-700 text-white shadow-sm'
+                              : 'bg-jet-black/5 text-jet-black'
+                          }`}>
+                            {rankBadge}
+                          </span>
+
+                          <div className="w-9 h-9 rounded-full bg-jet-black text-alice-blue font-mono font-bold text-xs flex items-center justify-center shrink-0">
+                            {item.member.name.slice(0, 2).toUpperCase()}
+                          </div>
+
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h5 className="text-sm font-bold text-jet-black">
+                                {item.member.name}
+                              </h5>
+                              <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold border ${memberTeam?.badgeBg}`}>
+                                [{memberTeam?.code || item.member.teamId.toUpperCase()}]
+                              </span>
+                              {item.member.isLead && (
+                                <span className="text-[9px] font-mono text-orange font-bold uppercase">
+                                  Lead
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] font-mono text-grey truncate max-w-xs sm:max-w-sm">
+                              {item.member.role}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Metrics Breakdown */}
+                        <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-6 pt-2 sm:pt-0 border-t sm:border-t-0 border-jet-black/5 text-xs font-mono">
+                          <div className="text-center sm:text-right">
+                            <span className="text-[10px] text-grey uppercase block">Workshop</span>
+                            <strong className="text-jet-black font-black text-sm">{item.totalHours} hrs</strong>
+                          </div>
+
+                          <div className="text-center sm:text-right">
+                            <span className="text-[10px] text-grey uppercase block">Done</span>
+                            <strong className="text-emerald-600 font-black text-sm">{item.completedTasksCount}</strong>
+                          </div>
+
+                          <div className="text-center sm:text-right">
+                            <span className="text-[10px] text-grey uppercase block">Active</span>
+                            <strong className="text-orange font-black text-sm">{item.activeTasksCount}</strong>
+                          </div>
+
+                          <div className="text-center sm:text-right">
+                            <span className="text-[10px] text-grey uppercase block">Score</span>
+                            <span className="px-2 py-0.5 rounded-full bg-jet-black text-alice-blue font-bold text-xs shadow-2xs">
+                              {item.velocityScore}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* =========================================================================
+            TAB 5: CREDENTIALS & ACCESS DIRECTORY (Core Leadership Only)
             Exclusively restricted to Core Leadership (Tier 1)
            ========================================================================= */}
         {activeTab === 'accounts' && isCoreAdmin && (
@@ -2785,10 +3269,10 @@ function DashboardContent() {
       )}
 
       {/* =========================================================================
-          FLOATING QUICK FILTER PILL: MY TASKS (Mobile Kanban view only)
+          FLOATING QUICK FILTER PILL: MY TASKS (Kanban view)
          ========================================================================= */}
       {activeTab === 'kanban' && !isMobileQuickMenuOpen && !isActivityDrawerOpen && !isInputFocused && user && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-30 md:hidden pointer-events-auto">
+        <div className="fixed bottom-20 sm:bottom-24 left-1/2 -translate-x-1/2 z-40 pointer-events-auto">
           <button
             type="button"
             onClick={() => setAssignedToMeOnly(!assignedToMeOnly)}
@@ -2808,19 +3292,19 @@ function DashboardContent() {
       )}
 
       {/* =========================================================================
-          MOBILE ALL-IN-ONE BOTTOM APP BAR (md:hidden)
-          Persistent, ergonomic 1-thumb operations bar fixed at bottom
+          INSTAGRAM-STYLE BOTTOM NAVIGATION DOCK
+          Visible across all devices: flush at bottom on mobile, floating dock on desktop.
          ========================================================================= */}
       {user && (
         <nav
-          aria-label="Mobile Navigation"
-          className={`md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-jet-black/10 shadow-[0_-4px_25px_rgba(0,0,0,0.08)] px-2 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] transition-transform duration-300 ${
-            isInputFocused ? 'translate-y-full pointer-events-none' : 'translate-y-0'
-          }`}
+          aria-label="Instagram Bottom Navigation"
+          className={`fixed z-50 transition-all duration-300 ${
+            isInputFocused ? 'translate-y-32 pointer-events-none opacity-0' : 'translate-y-0 opacity-100'
+          } bottom-0 left-0 right-0 sm:bottom-5 sm:left-1/2 sm:-translate-x-1/2 sm:w-[94%] sm:max-w-md sm:rounded-2xl sm:shadow-[0_12px_45px_rgba(0,0,0,0.18)] sm:border sm:border-jet-black/15 bg-white/95 backdrop-blur-xl border-t border-jet-black/10 px-3 pt-2 sm:py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]`}
         >
-          <div className="flex items-center justify-around max-w-lg mx-auto relative">
+          <div className="flex items-center justify-between max-w-md mx-auto px-1 sm:px-2">
             
-            {/* Tab 1: Board */}
+            {/* 1. Home / Task Board */}
             <button
               type="button"
               onClick={() => {
@@ -2828,74 +3312,37 @@ function DashboardContent() {
                 setIsActivityDrawerOpen(false);
                 setIsMobileQuickMenuOpen(false);
               }}
-              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all cursor-pointer ${
+              title="Task Board"
+              className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all cursor-pointer group ${
                 activeTab === 'kanban' && !isActivityDrawerOpen && !isMobileQuickMenuOpen
-                  ? 'text-orange font-bold'
+                  ? 'text-jet-black scale-105'
                   : 'text-grey hover:text-jet-black'
               }`}
             >
               <div className="relative">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-                </svg>
+                {activeTab === 'kanban' && !isActivityDrawerOpen && !isMobileQuickMenuOpen ? (
+                  <svg className="w-6 h-6 text-jet-black" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                )}
                 {tasks.length > 0 && (
                   <span className="absolute -top-1 -right-2 px-1 py-0.2 bg-jet-black/10 text-jet-black text-[9px] font-mono rounded-full font-bold">
                     {tasks.length}
                   </span>
                 )}
               </div>
-              <span className="text-[10px] font-mono tracking-tight mt-1">Board</span>
-            </button>
-
-            {/* Tab 2: My Tasks */}
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('my_tasks');
-                setIsActivityDrawerOpen(false);
-                setIsMobileQuickMenuOpen(false);
-              }}
-              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all cursor-pointer ${
-                activeTab === 'my_tasks' && !isActivityDrawerOpen && !isMobileQuickMenuOpen
-                  ? 'text-orange font-bold'
-                  : 'text-grey hover:text-jet-black'
-              }`}
-            >
-              <div className="relative">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                </svg>
-                {myAssignedCount > 0 && (
-                  <span className="absolute -top-1 -right-2 px-1.5 py-0.2 bg-orange text-white text-[9px] font-mono rounded-full font-bold">
-                    {myAssignedCount}
-                  </span>
-                )}
-              </div>
-              <span className="text-[10px] font-mono tracking-tight mt-1">My Tasks</span>
-            </button>
-
-            {/* Center Action Hub Button [ + ] */}
-            <div className="flex flex-col items-center justify-center flex-1 -mt-6">
-              <button
-                type="button"
-                onClick={() => setIsMobileQuickMenuOpen(!isMobileQuickMenuOpen)}
-                className={`w-13 h-13 rounded-2xl flex items-center justify-center shadow-lg transition-transform active:scale-95 cursor-pointer border-3 border-white ${
-                  isMobileQuickMenuOpen
-                    ? 'bg-jet-black text-white shadow-jet-black/30 rotate-45'
-                    : 'bg-gradient-to-tr from-orange to-amber-500 text-white shadow-orange/40 hover:brightness-105'
-                }`}
-                title="Quick Operations & Hub"
-              >
-                <svg className="w-6 h-6 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
-                </svg>
-              </button>
-              <span className="text-[9px] font-mono font-bold tracking-tight mt-1 text-jet-black">
-                {isMobileQuickMenuOpen ? 'Close' : 'Hub'}
+              <span className={`text-[10px] font-mono tracking-tight mt-0.5 ${
+                activeTab === 'kanban' && !isActivityDrawerOpen && !isMobileQuickMenuOpen ? 'font-bold text-jet-black' : 'font-medium'
+              }`}>
+                Board
               </span>
-            </div>
+            </button>
 
-            {/* Tab 3: Squads */}
+            {/* 2. Explore / Squads */}
             <button
               type="button"
               onClick={() => {
@@ -2903,44 +3350,126 @@ function DashboardContent() {
                 setIsActivityDrawerOpen(false);
                 setIsMobileQuickMenuOpen(false);
               }}
-              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all cursor-pointer ${
+              title="Engineering Squads"
+              className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all cursor-pointer group ${
                 activeTab === 'teams' && !isActivityDrawerOpen && !isMobileQuickMenuOpen
-                  ? 'text-orange font-bold'
+                  ? 'text-jet-black scale-105'
                   : 'text-grey hover:text-jet-black'
               }`}
             >
               <div className="relative">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
+                {activeTab === 'teams' && !isActivityDrawerOpen && !isMobileQuickMenuOpen ? (
+                  <svg className="w-6 h-6 text-jet-black" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.88 9.54l-4.5 1.76a.5.5 0 01-.64-.64l1.76-4.5a.5.5 0 01.32-.32l4.5-1.76a.5.5 0 01.64.64l-1.76 4.5a.5.5 0 01-.32.32z" />
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9" strokeWidth="2" />
+                    <polygon points="16 8 13.5 13.5 8 16 10.5 10.5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
               </div>
-              <span className="text-[10px] font-mono tracking-tight mt-1">Squads</span>
+              <span className={`text-[10px] font-mono tracking-tight mt-0.5 ${
+                activeTab === 'teams' && !isActivityDrawerOpen && !isMobileQuickMenuOpen ? 'font-bold text-jet-black' : 'font-medium'
+              }`}>
+                Squads
+              </span>
             </button>
 
-            {/* Tab 4: Moves (Activity Drawer) */}
+            {/* 3. Center Create [+] (The Signature Instagram Square Plus) */}
+            <button
+              type="button"
+              onClick={() => setIsMobileQuickMenuOpen(!isMobileQuickMenuOpen)}
+              title="Create & Hub"
+              className="flex flex-col items-center justify-center py-0.5 px-2 cursor-pointer group active:scale-95 transition-transform"
+            >
+              <div className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all ${
+                isMobileQuickMenuOpen
+                  ? 'border-orange bg-orange text-white rotate-45 shadow-md shadow-orange/30 scale-105'
+                  : 'border-jet-black bg-white text-jet-black group-hover:border-orange group-hover:text-orange group-hover:scale-105 shadow-2xs'
+              }`}>
+                <svg className="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              <span className="text-[10px] font-mono tracking-tight mt-0.5 font-bold text-jet-black">
+                {isMobileQuickMenuOpen ? 'Close' : 'Create'}
+              </span>
+            </button>
+
+            {/* 4. Heart / Live Moves Activity */}
             <button
               type="button"
               onClick={() => {
                 handleOpenActivityDrawer();
                 setIsMobileQuickMenuOpen(false);
               }}
-              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all cursor-pointer ${
+              title="Team Moves & Alerts"
+              className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all cursor-pointer group ${
                 isActivityDrawerOpen
-                  ? 'text-orange font-bold'
+                  ? 'text-rose-500 scale-105'
                   : 'text-grey hover:text-jet-black'
               }`}
             >
               <div className="relative">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                <svg
+                  className={`w-6 h-6 transition-all ${
+                    isActivityDrawerOpen
+                      ? 'fill-rose-500 text-rose-500'
+                      : 'fill-none text-jet-black group-hover:text-rose-500'
+                  }`}
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
                 {unreadActivitiesCount > 0 && (
-                  <span className="absolute -top-1 -right-2 px-1.5 py-0.2 bg-orange text-white text-[9px] font-mono rounded-full font-bold animate-pulse">
-                    {unreadActivitiesCount}
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-white animate-pulse" />
+                )}
+              </div>
+              <span className={`text-[10px] font-mono tracking-tight mt-0.5 ${
+                isActivityDrawerOpen ? 'font-bold text-rose-500' : 'font-medium'
+              }`}>
+                Activity
+              </span>
+            </button>
+
+            {/* 5. Profile / Personal Workbench */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('my_tasks');
+                setIsActivityDrawerOpen(false);
+                setIsMobileQuickMenuOpen(false);
+              }}
+              title="My Assigned Tasks"
+              className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all cursor-pointer group ${
+                activeTab === 'my_tasks' && !isActivityDrawerOpen && !isMobileQuickMenuOpen
+                  ? 'scale-105'
+                  : 'text-grey hover:text-jet-black'
+              }`}
+            >
+              <div className="relative">
+                <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
+                  activeTab === 'my_tasks' && !isActivityDrawerOpen && !isMobileQuickMenuOpen
+                    ? 'border-orange ring-2 ring-orange/30 bg-orange/10'
+                    : 'border-jet-black/40 group-hover:border-jet-black bg-alice-blue/80'
+                }`}>
+                  <span className="text-[10px] font-mono font-bold uppercase text-jet-black">
+                    {user?.displayName ? user.displayName.slice(0, 2).toUpperCase() : 'ME'}
+                  </span>
+                </div>
+                {myAssignedCount > 0 && (
+                  <span className="absolute -top-1 -right-1.5 px-1.5 py-0.2 bg-orange text-white text-[9px] font-mono rounded-full font-bold">
+                    {myAssignedCount}
                   </span>
                 )}
               </div>
-              <span className="text-[10px] font-mono tracking-tight mt-1">Moves</span>
+              <span className={`text-[10px] font-mono tracking-tight mt-0.5 ${
+                activeTab === 'my_tasks' && !isActivityDrawerOpen && !isMobileQuickMenuOpen ? 'font-bold text-jet-black' : 'font-medium'
+              }`}>
+                Profile
+              </span>
             </button>
 
           </div>
@@ -2948,11 +3477,11 @@ function DashboardContent() {
       )}
 
       {/* =========================================================================
-          MOBILE ALL-IN-ONE OPERATIONS HUB BOTTOM SHEET (md:hidden)
-          Every dashboard feature and action accessible directly in 1 thumb sheet
+          OPERATIONS HUB & CREATE SHEET (Instagram Style)
+          Slides up on mobile, centered modal dock on desktop.
          ========================================================================= */}
       {isMobileQuickMenuOpen && user && (
-        <div className="fixed inset-0 z-50 md:hidden flex flex-col justify-end">
+        <div className="fixed inset-0 z-50 flex flex-col justify-end sm:items-center sm:justify-center p-0 sm:p-4">
           {/* Backdrop */}
           <div
             onClick={() => setIsMobileQuickMenuOpen(false)}
@@ -2960,7 +3489,7 @@ function DashboardContent() {
           />
 
           {/* Bottom Sheet Modal */}
-          <div className="relative bg-white rounded-t-3xl max-h-[85vh] flex flex-col shadow-2xl border-t border-jet-black/10 z-10 animate-in slide-in-from-bottom duration-200 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="relative bg-white rounded-t-3xl sm:rounded-2xl max-h-[85vh] sm:max-h-[80vh] w-full sm:max-w-lg flex flex-col shadow-2xl border border-jet-black/15 z-10 animate-in slide-in-from-bottom duration-200 pb-[max(1rem,env(safe-area-inset-bottom))]">
             {/* Handle & Header */}
             <div className="pt-3 pb-2.5 px-5 flex flex-col items-center border-b border-jet-black/10">
               <div className="w-12 h-1.5 bg-jet-black/20 rounded-full mb-3" />
@@ -3145,6 +3674,27 @@ function DashboardContent() {
                       <div className="text-[10px] text-grey font-mono truncate">
                         {unreadActivitiesCount > 0 ? `${unreadActivitiesCount} unread` : `${activities.length} moves`}
                       </div>
+                    </div>
+                  </button>
+
+                  {/* Team Metrics & Velocity */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('metrics');
+                      setIsActivityDrawerOpen(false);
+                      setIsMobileQuickMenuOpen(false);
+                    }}
+                    className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                      activeTab === 'metrics' && !isActivityDrawerOpen
+                        ? 'border-orange bg-orange/5 text-jet-black font-bold'
+                        : 'border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black'
+                    }`}
+                  >
+                    <span className="text-base">📊</span>
+                    <div className="truncate">
+                      <div className="text-xs font-mono font-bold truncate">Velocity & Metrics</div>
+                      <div className="text-[10px] text-grey font-mono truncate">{completedTasks}/{tasks.length} done</div>
                     </div>
                   </button>
 
