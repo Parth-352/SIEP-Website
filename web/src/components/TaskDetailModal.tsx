@@ -512,7 +512,7 @@ export default function TaskDetailModal({
         {/* Error notification */}
         {error && (
           <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 font-mono">
-            ⚠️ {error}
+            {error}
           </div>
         )}
 
@@ -557,7 +557,7 @@ export default function TaskDetailModal({
               <div className="p-4 rounded-xl bg-rose-500/10 border-2 border-rose-500/40 text-rose-800 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">⚠️</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse"></span>
                     <div>
                       <span className="font-mono text-xs font-black uppercase tracking-wider text-rose-600 block">
                         Deliverable Blocked
@@ -574,7 +574,7 @@ export default function TaskDetailModal({
                       onClick={() => handleToggleBlocker(false)}
                       className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold transition-all cursor-pointer shrink-0 shadow-xs"
                     >
-                      ✓ Resolve Blocker
+                      Resolve Blocker
                     </button>
                   )}
                 </div>
@@ -750,7 +750,7 @@ export default function TaskDetailModal({
                     onClick={() => setShowBlockerInput(true)}
                     className="text-[10px] font-mono text-amber-700 hover:text-amber-800 font-bold hover:underline cursor-pointer"
                   >
-                    ⚠️ Flag Blocker
+                    Flag Blocker
                   </button>
                 )}
               </div>
@@ -792,8 +792,8 @@ export default function TaskDetailModal({
 
                       <div className="flex items-center gap-2 shrink-0">
                         {st.completedBy && st.completed && (
-                          <span className="text-[9px] font-mono text-emerald-700 bg-emerald-100/60 px-1.5 py-0.5 rounded">
-                            ✓ {st.completedBy.split(' ')[0]}
+                          <span className="text-[9px] font-mono text-emerald-700 bg-emerald-100/60 px-1.5 py-0.5 rounded font-semibold">
+                            Done: {st.completedBy.split(' ')[0]}
                           </span>
                         )}
                         {canEdit && (
@@ -922,7 +922,7 @@ export default function TaskDetailModal({
                     onClick={() => setIsEditing(true)}
                     className="flex-1 sm:flex-none h-10 px-3.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase font-mono tracking-wider shadow-sm cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap"
                   >
-                    <span>Edit ✎</span>
+                    <span>Edit Task</span>
                   </button>
                 )}
               </div>
@@ -943,7 +943,7 @@ export default function TaskDetailModal({
                     onClick={() => onCompleteWithVideo(task)}
                     className="h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase font-mono tracking-wider shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                   >
-                    <span>✓ Complete &amp; Attach Video</span>
+                    <span>Complete &amp; Attach Video</span>
                   </button>
                 )}
               </div>
@@ -1079,7 +1079,7 @@ export default function TaskDetailModal({
                 disabled={isSaving}
                 className="px-6 py-3 sm:py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer disabled:opacity-50 flex items-center justify-center w-full sm:w-auto min-h-[44px] sm:min-h-0"
               >
-                {isSaving ? 'Saving Changes...' : 'Save Changes ✓'}
+                {isSaving ? 'Saving Changes...' : 'Save Changes'}
               </button>
             </div>
 

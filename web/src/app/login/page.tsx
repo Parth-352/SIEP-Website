@@ -216,7 +216,7 @@ function ForgotPinModal({
         <div className="p-6 space-y-5">
           {error && (
             <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-mono flex items-center gap-2">
-              <span className="text-sm">⚠️</span>
+              <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0"></span>
               <span>{error}</span>
             </div>
           )}
@@ -372,9 +372,9 @@ function ForgotPinModal({
                   <button
                     type="button"
                     onClick={() => setShowPin(!showPin)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-grey hover:text-jet-black text-sm"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-grey hover:text-jet-black text-xs font-mono font-bold"
                   >
-                    {showPin ? '🙈' : '👁️'}
+                    {showPin ? 'HIDE' : 'SHOW'}
                   </button>
                 </div>
               </div>
@@ -417,8 +417,10 @@ function ForgotPinModal({
           {/* STEP 4: Success */}
           {step === 'success' && (
             <div className="space-y-4 text-center py-2">
-              <div className="w-14 h-14 mx-auto rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-2xl font-bold">
-                ✓
+              <div className="w-14 h-14 mx-auto rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
               </div>
               <div>
                 <h4 className="text-base font-bold text-jet-black">PIN Updated!</h4>
@@ -573,7 +575,7 @@ function LoginForm() {
         <div className="bg-white rounded-3xl border border-jet-black/10 shadow-[0_20px_50px_rgba(0,0,0,0.06)] p-6 sm:p-8 space-y-5">
           {error && (
             <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-mono flex items-start gap-2.5">
-              <span className="text-sm leading-none mt-0.5">⚠️</span>
+              <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0 mt-1"></span>
               <span className="flex-1 leading-relaxed">{error}</span>
             </div>
           )}

@@ -69,10 +69,9 @@ export default function Navigation() {
     if (isCore) {
       const isCaptain = name.toLowerCase().includes('tirthraj');
       return (
-        <span className="h-9 px-3.5 text-xs font-sans font-bold uppercase tracking-wider rounded-xl bg-jet-black text-alice-blue inline-flex items-center gap-2 shadow-sm border border-orange/30">
-          <span className="text-[10px] text-orange font-mono font-bold">[CORE]</span>
+        <span className="h-9 px-3.5 text-xs font-sans font-semibold rounded-xl bg-jet-black text-alice-blue inline-flex items-center gap-2 shadow-sm border border-orange/30">
           <span>{name}</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange/20 text-orange font-mono font-bold">
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange/20 text-orange font-mono font-bold uppercase">
             {isCaptain ? 'CAPTAIN' : 'CORE'}
           </span>
         </span>
@@ -81,10 +80,10 @@ export default function Navigation() {
 
     if (isLead) {
       return (
-        <span className="h-9 px-3.5 text-xs font-sans font-bold uppercase tracking-wider rounded-xl bg-jet-black text-alice-blue inline-flex items-center gap-2 shadow-sm border border-jet-black/20">
-          <span className="text-[10px] text-sky-400 font-mono font-bold">[{teamCode}]</span>
+        <span className="h-9 px-3.5 text-xs font-sans font-semibold rounded-xl bg-jet-black text-alice-blue inline-flex items-center gap-2 shadow-sm border border-jet-black/20">
+          <span className="text-[10px] text-sky-400 font-mono font-bold">{teamCode}</span>
           <span>{name}</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono font-bold">
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono font-bold uppercase">
             LEAD
           </span>
         </span>
@@ -93,8 +92,8 @@ export default function Navigation() {
 
     // Tier 3: Team Member
     return (
-      <span className="h-9 px-3.5 text-xs font-sans font-bold uppercase tracking-wider rounded-xl bg-jet-black text-alice-blue inline-flex items-center gap-2 shadow-sm border border-jet-black/20">
-        <span className="text-[10px] text-grey font-mono font-bold">[{teamCode}]</span>
+      <span className="h-9 px-3.5 text-xs font-sans font-semibold rounded-xl bg-jet-black text-alice-blue inline-flex items-center gap-2 shadow-sm border border-jet-black/20">
+        <span className="text-[10px] text-grey font-mono font-bold">{teamCode}</span>
         <span>{name}</span>
       </span>
     );
@@ -121,7 +120,9 @@ export default function Navigation() {
           </Link>
           <Link href="/bike" title="The Bike" className="flex flex-col items-center justify-center py-0.5 px-2 active:scale-95 transition-transform">
             <div className="w-8 h-8 rounded-xl border-2 border-jet-black bg-white text-jet-black flex items-center justify-center font-bold hover:border-orange hover:text-orange shadow-2xs">
-              <span className="text-sm">⚡</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
             </div>
             <span className="text-[10px] font-mono tracking-tight mt-0.5 font-bold text-jet-black">Bike</span>
           </Link>
@@ -211,7 +212,9 @@ export default function Navigation() {
                     title="Install SIEP Log System on your device"
                     className="h-9 px-3 rounded-xl border border-orange/40 bg-orange/10 hover:bg-orange text-jet-black hover:text-white transition-all text-xs font-sans font-bold uppercase tracking-wider inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
                   >
-                    <span>📲</span>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
                     <span className="hidden xl:inline">Install App</span>
                   </button>
                 )}
@@ -320,7 +323,9 @@ export default function Navigation() {
                       title="Install Web App on your phone or computer"
                       className="h-9 px-3 rounded-xl border border-orange/40 bg-orange/10 hover:bg-orange text-jet-black hover:text-white transition-all text-xs font-sans font-bold uppercase tracking-wider inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
                     >
-                      <span>📲</span>
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
                       <span className="hidden xl:inline">Install App</span>
                     </button>
                   )}
@@ -469,7 +474,9 @@ export default function Navigation() {
               }}
               className="w-full text-center py-3.5 min-h-[48px] flex items-center justify-center gap-2 font-sans font-bold text-sm uppercase tracking-wider text-orange hover:text-jet-black border-b border-jet-black/10 cursor-pointer"
             >
-              <span>📲</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
               <span>Install Web App</span>
             </button>
           )}
@@ -622,7 +629,9 @@ export default function Navigation() {
                       ? 'border-orange bg-orange text-white'
                       : 'border-jet-black bg-white text-jet-black group-hover:border-orange group-hover:text-orange'
                   }`}>
-                    <span className="text-sm">⚡</span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
                   </div>
                   <span className="text-[10px] font-mono tracking-tight mt-0.5 font-bold text-jet-black">Bike</span>
                 </Link>

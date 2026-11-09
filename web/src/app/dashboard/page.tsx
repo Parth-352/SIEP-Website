@@ -32,6 +32,84 @@ const PRIORITY_BADGES: Record<TaskPriority, { label: string; bg: string }> = {
 
 const TASKS_STORAGE_KEY = 'siep_tasks_cache_v3';
 
+const AVATAR_COLORS = [
+  'bg-amber-100 text-amber-900 border-amber-300',
+  'bg-sky-100 text-sky-900 border-sky-300',
+  'bg-emerald-100 text-emerald-900 border-emerald-300',
+  'bg-purple-100 text-purple-900 border-purple-300',
+  'bg-rose-100 text-rose-900 border-rose-300',
+  'bg-indigo-100 text-indigo-900 border-indigo-300',
+  'bg-teal-100 text-teal-900 border-teal-300',
+];
+
+function getMemberInitials(name: string): string {
+  if (!name) return '?';
+  const clean = name.trim();
+  const words = clean.split(/\s+/);
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+}
+
+function getAvatarColorClass(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  const index = Math.abs(hash) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[index];
+}
+
+function formatRelativeDueDate(dueDateStr?: string) {
+  if (!dueDateStr) return null;
+  const parts = dueDateStr.split('-');
+  if (parts.length !== 3) return null;
+  const target = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 23, 59, 59);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const diffTime = target.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    const overdueDays = Math.abs(diffDays);
+    return {
+      text: overdueDays === 1 ? '1 day overdue' : `${overdueDays}d overdue`,
+      className: 'bg-red-50 text-red-600 border border-red-200 font-bold',
+      isOverdue: true,
+    };
+  }
+  if (diffDays === 0) {
+    return {
+      text: 'Due today',
+      className: 'bg-red-50 text-red-600 border border-red-200 font-bold animate-pulse',
+      isDueSoon: true,
+    };
+  }
+  if (diffDays === 1) {
+    return {
+      text: 'Due tomorrow',
+      className: 'bg-orange/15 text-orange border border-orange/30 font-semibold',
+      isDueSoon: true,
+    };
+  }
+  if (diffDays <= 2) {
+    return {
+      text: `${diffDays} days left`,
+      className: 'bg-orange/15 text-orange border border-orange/30 font-semibold',
+      isDueSoon: true,
+    };
+  }
+  if (diffDays <= 7) {
+    return {
+      text: `${diffDays} days left`,
+      className: 'bg-zinc-100 text-zinc-700 border border-zinc-200 font-medium',
+      isDueSoon: true,
+    };
+  }
+  return {
+    text: `${diffDays} days left`,
+    className: 'bg-zinc-50 text-zinc-600 border border-zinc-200',
+    isDueSoon: false,
+  };
+}
+
 function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -44,8 +122,8 @@ function DashboardContent() {
 
   const [isMounted, setIsMounted] = useState(false);
 
-  // Active view tab
-  const [activeTab, setActiveTab] = useState<'my_tasks' | 'kanban' | 'teams' | 'videos' | 'metrics' | 'accounts'>('kanban');
+  // Active view tab (default to 'my_tasks' so user's work is front-and-center)
+  const [activeTab, setActiveTab] = useState<'my_tasks' | 'kanban' | 'teams' | 'videos' | 'metrics' | 'accounts'>('my_tasks');
 
   // Team Metrics & Leaderboard filter state
   const [leaderboardSquadFilter, setLeaderboardSquadFilter] = useState<string>('all');
@@ -81,6 +159,17 @@ function DashboardContent() {
   const [selectedSubsystemFilter, setSelectedSubsystemFilter] = useState<string>('all');
   const [selectedPriorityFilter, setSelectedPriorityFilter] = useState<string>('all');
   const [assignedToMeOnly, setAssignedToMeOnly] = useState(false);
+  const [specialDeadlineFilter, setSpecialDeadlineFilter] = useState<'all' | 'due_week' | 'overdue' | 'review'>('all');
+
+  // Header quick more dropdown state
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+
+  // Undo Toast state
+  const [undoState, setUndoState] = useState<{
+    taskId: string;
+    previousStatus: TaskStatus;
+    message: string;
+  } | null>(null);
 
   // Personal workbench state
   const [isMyTasksCollapsed, setIsMyTasksCollapsed] = useState(false);
@@ -164,6 +253,15 @@ function DashboardContent() {
       setActiveTab('kanban');
     }
   }, [activeTab, user]);
+
+  // Auto-dismiss undo notification toast after 6 seconds
+  useEffect(() => {
+    if (!undoState) return;
+    const timer = setTimeout(() => {
+      setUndoState(null);
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [undoState]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -465,6 +563,38 @@ function DashboardContent() {
     return tasks.filter((t) => t.isBlocked && t.status !== 'done');
   }, [tasks]);
 
+  // Actionable Deadlines & Review Counts
+  const { overdueTasksList, dueThisWeekTasksList, underReviewTasksList } = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    const overdue: Task[] = [];
+    const dueThisWeek: Task[] = [];
+    const review: Task[] = [];
+
+    tasks.forEach((t) => {
+      if (t.status === 'review') review.push(t);
+      if (t.status !== 'done' && t.dueDate) {
+        const parts = t.dueDate.split('-');
+        if (parts.length === 3) {
+          const target = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 23, 59, 59);
+          if (target.getTime() < today.getTime()) {
+            overdue.push(t);
+          } else if (target.getTime() <= nextWeek.getTime()) {
+            dueThisWeek.push(t);
+          }
+        }
+      }
+    });
+
+    return {
+      overdueTasksList: overdue,
+      dueThisWeekTasksList: dueThisWeek,
+      underReviewTasksList: review,
+    };
+  }, [tasks]);
+
   // Filtered Tasks computation (hook called before any early return)
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
@@ -479,6 +609,27 @@ function DashboardContent() {
       // Priority filter
       if (selectedPriorityFilter !== 'all' && task.priority !== selectedPriorityFilter) {
         return false;
+      }
+      // Special Deadline / Actionable KPI filter
+      if (specialDeadlineFilter === 'overdue') {
+        if (task.status === 'done' || !task.dueDate) return false;
+        const parts = task.dueDate.split('-');
+        if (parts.length !== 3) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const target = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 23, 59, 59);
+        if (target.getTime() >= today.getTime()) return false;
+      } else if (specialDeadlineFilter === 'due_week') {
+        if (task.status === 'done' || !task.dueDate) return false;
+        const parts = task.dueDate.split('-');
+        if (parts.length !== 3) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const target = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 23, 59, 59);
+        if (target.getTime() < today.getTime() || target.getTime() > nextWeek.getTime()) return false;
+      } else if (specialDeadlineFilter === 'review') {
+        if (task.status !== 'review') return false;
       }
       // Search query
       if (searchQuery.trim()) {
@@ -495,7 +646,7 @@ function DashboardContent() {
       }
       return true;
     });
-  }, [tasks, selectedSubsystemFilter, selectedPriorityFilter, searchQuery, assignedToMeOnly, user]);
+  }, [tasks, selectedSubsystemFilter, selectedPriorityFilter, searchQuery, assignedToMeOnly, specialDeadlineFilter, user]);
 
   // Loading skeleton
   if (!isMounted || authLoading || !user) {
@@ -553,17 +704,18 @@ function DashboardContent() {
     }
   };
 
-  // Move Task Status (Kanban quick advance / rewind)
+  // Move Task Status (Kanban quick advance / rewind with Undo support)
   const handleMoveStatus = async (e: React.MouseEvent, taskId: string, nextStatus: TaskStatus) => {
     e.stopPropagation(); // Don't open detail modal
 
+    const currentTask = tasks.find((t) => t.id === taskId);
+    if (!currentTask) return;
+    const prevStatus = currentTask.status;
+
     if (nextStatus === 'done') {
-      const task = tasks.find((t) => t.id === taskId);
-      if (task) {
-        setTaskToComplete(task);
-        setIsCompleteModalOpen(true);
-        return;
-      }
+      setTaskToComplete(currentTask);
+      setIsCompleteModalOpen(true);
+      return;
     }
 
     const updatedTasks = tasks.map((t) =>
@@ -571,6 +723,13 @@ function DashboardContent() {
     );
     persistTasksLocal(updatedTasks);
     cacheOfflineTasks(updatedTasks);
+
+    const nextColLabel = STATUS_COLUMNS.find((c) => c.id === nextStatus)?.label || nextStatus;
+    setUndoState({
+      taskId,
+      previousStatus: prevStatus,
+      message: `"${currentTask.title.slice(0, 32)}..." moved to ${nextColLabel}`,
+    });
 
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       enqueueTaskStatusUpdate({ taskId, nextStatus });
@@ -586,6 +745,28 @@ function DashboardContent() {
     } catch (err) {
       console.warn('Network offline or update failed, queuing status update:', err);
       enqueueTaskStatusUpdate({ taskId, nextStatus });
+    }
+  };
+
+  // Revert / Undo status advancement
+  const handleUndoMoveStatus = async () => {
+    if (!undoState) return;
+    const { taskId, previousStatus } = undoState;
+    const updatedTasks = tasks.map((t) =>
+      t.id === taskId ? { ...t, status: previousStatus, updatedAt: Date.now() } : t
+    );
+    persistTasksLocal(updatedTasks);
+    cacheOfflineTasks(updatedTasks);
+    setUndoState(null);
+
+    try {
+      await fetch('/api/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: taskId, status: previousStatus }),
+      });
+    } catch (err) {
+      console.warn('Network offline or undo failed:', err);
     }
   };
 
@@ -756,92 +937,122 @@ function DashboardContent() {
             DASHBOARD HEADER
             Spacious, modern project command console with quick actions
            ========================================================================= */}
-        <div className="bg-white border border-jet-black/10 rounded-2xl p-4 sm:p-8 shadow-sm">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div className="bg-white border border-jet-black/10 rounded-2xl p-4 sm:p-5 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-orange animate-pulse"></span>
-                <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-grey font-bold">
-                  {isCore ? 'Operations Center • Central Leadership Privileges' : `Squad Console • ${TEAMS[user.teamId]?.name || user.teamName}`}
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-orange animate-pulse"></span>
+                <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-500 font-bold">
+                  {isCore ? 'Operations Center • Central Leadership' : `Squad Console • ${TEAMS[user.teamId]?.name || user.teamName}`}
                 </span>
 
-                {/* Real-time Network & Sync Status Pill */}
                 {isOnline ? (
-                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 font-mono text-[9px] font-bold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>LIVE SYNC</span>
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[9px] font-mono font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    <span>LIVE</span>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-800 font-mono text-[9px] font-bold">
-                    <span>📡</span>
-                    <span>OFFLINE ({pendingQueueCount} QUEUED)</span>
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[9px] font-mono font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span>Offline ({pendingQueueCount})</span>
                   </div>
                 )}
               </div>
-              <h1 className="text-2xl sm:text-4xl font-black text-jet-black tracking-tight">
-                Project Operations Dashboard<span className="text-orange">.</span>
+
+              <h1 className="text-xl sm:text-2xl font-bold text-jet-black tracking-tight">
+                Project Operations Dashboard
               </h1>
-              <p className="text-grey font-light text-sm max-w-2xl leading-relaxed">
-                Full-stack engineering pipeline for SIEP 2026–27. Manage subsystem deliverables, review task workflows, audit Google Drive video evidence, and keep all 9 squads aligned.
+              <p className="text-zinc-600 text-xs sm:text-sm font-light">
+                SIEP 2026–27 electric scrambler build deliverables, tasks, and telemetry.
               </p>
             </div>
 
-            {/* Quick Header Actions */}
-            <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
-              {/* Squad Moves Activity Button */}
-              <button
-                type="button"
-                onClick={handleOpenActivityDrawer}
-                className="px-3.5 py-2.5 rounded-xl border border-jet-black/15 bg-white hover:bg-alice-blue text-jet-black hover:border-orange hover:text-orange text-xs font-mono font-bold uppercase transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1.5 relative"
-                title="View recent squad moves & activity feed"
-              >
-                <span>⚡ Squad Moves</span>
-                {unreadActivitiesCount > 0 && (
-                  <span className="px-1.5 py-0.5 rounded-full bg-orange text-white text-[9px] font-bold animate-pulse">
-                    {unreadActivitiesCount}
-                  </span>
+            {/* Quick Header Actions: More Dropdown + Primary Create Task */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              
+              {/* More Actions Dropdown */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+                  className="px-3.5 py-2 sm:py-2.5 rounded-xl border border-jet-black/15 bg-white hover:bg-alice-blue text-jet-black text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                  title="More actions"
+                >
+                  <span>More</span>
+                  <span className="text-[10px] text-zinc-500">▼</span>
+                  {unreadActivitiesCount > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-orange text-white text-[9px] font-bold">
+                      {unreadActivitiesCount}
+                    </span>
+                  )}
+                </button>
+
+                {isMoreMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setIsMoreMenuOpen(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-56 bg-white border border-jet-black/10 rounded-xl shadow-lg z-50 py-1 text-xs divide-y divide-jet-black/5 animate-fade-in">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsMoreMenuOpen(false);
+                          handleOpenActivityDrawer();
+                        }}
+                        className="w-full px-3.5 py-2.5 text-left hover:bg-alice-blue flex items-center justify-between text-jet-black cursor-pointer font-medium"
+                      >
+                        <span className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-orange"></span>
+                          <span>Squad Activity Feed</span>
+                        </span>
+                        {unreadActivitiesCount > 0 && (
+                          <span className="px-1.5 py-0.5 rounded-full bg-orange text-white text-[9px] font-bold">
+                            {unreadActivitiesCount}
+                          </span>
+                        )}
+                      </button>
+
+                      {isCoreAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsMoreMenuOpen(false);
+                            setIsBackupModalOpen(true);
+                          }}
+                          className="w-full px-3.5 py-2.5 text-left hover:bg-alice-blue flex items-center gap-2 text-jet-black cursor-pointer font-medium"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-jet-black"></span>
+                          <span>Database Backup & Sync</span>
+                        </button>
+                      )}
+
+                      {!isInstalled && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsMoreMenuOpen(false);
+                            installApp();
+                          }}
+                          className="w-full px-3.5 py-2.5 text-left hover:bg-alice-blue flex items-center gap-2 text-jet-black cursor-pointer font-medium"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                          <span>Install Web App</span>
+                        </button>
+                      )}
+                    </div>
+                  </>
                 )}
-              </button>
+              </div>
 
-              {(isCore || isLead) && (
-                <Link
-                  href="/log"
-                  className="px-4 py-2.5 rounded-xl border border-jet-black/15 bg-white hover:bg-alice-blue text-jet-black hover:border-orange hover:text-orange text-xs font-mono uppercase font-bold transition-all shadow-sm flex items-center justify-center gap-1.5"
-                >
-                  <span>Open Build Log</span>
-                  <span>→</span>
-                </Link>
-              )}
-
-              {isCoreAdmin && (
-                <button
-                  type="button"
-                  onClick={() => setIsBackupModalOpen(true)}
-                  className="px-3.5 py-2.5 rounded-xl border border-jet-black/15 bg-alice-blue/60 hover:bg-alice-blue text-jet-black text-xs font-mono font-bold uppercase transition-all shadow-sm cursor-pointer flex items-center gap-1.5"
-                  title="Database Backup & Sync"
-                >
-                  <span>💾 Backup / Sync</span>
-                </button>
-              )}
-
-              {!isInstalled && (
-                <button
-                  type="button"
-                  onClick={installApp}
-                  className="px-3.5 py-2.5 rounded-xl border border-orange/40 bg-orange/10 hover:bg-orange text-jet-black hover:text-white text-xs font-mono font-bold uppercase transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
-                  title="Install Web App on your phone or computer"
-                >
-                  <span>📲 Download App</span>
-                </button>
-              )}
-
+              {/* Primary Create Task Button */}
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(true)}
-                className="px-5 py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer flex items-center justify-center gap-2"
+                className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-semibold text-xs sm:text-sm shadow-sm cursor-pointer flex items-center justify-center gap-2"
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                 </svg>
                 <span>Create Task</span>
@@ -852,17 +1063,17 @@ function DashboardContent() {
 
           {/* Access Restriction Notice Banner */}
           {restrictedNotice && (
-            <div className="mt-4 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-amber-900 text-xs font-mono">
-              <div className="flex items-center gap-2.5">
-                <span className="text-base">🔒</span>
+            <div className="mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-amber-900 text-xs font-mono">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-600"></span>
                 <span>
-                  The <strong>Engineering Log System (/log)</strong> is reserved for Core Leadership and Domain Leads. Your assigned deliverables are active on the Task Board below.
+                  The <strong>Engineering Log System (/log)</strong> is reserved for Core Leadership and Domain Leads.
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => router.replace('/dashboard')}
-                className="text-grey hover:text-jet-black font-bold text-sm px-2 cursor-pointer"
+                className="text-zinc-500 hover:text-jet-black font-bold text-sm px-2 cursor-pointer"
                 title="Dismiss"
               >
                 ✕
@@ -872,328 +1083,155 @@ function DashboardContent() {
         </div>
 
         {/* =========================================================================
-            KPI METRICS BAR
-            Spacious, 4-column metric cards with clean typography and breathing room
+            COMPACT ACTIONABLE KPI METRICS RIBBON (Option A)
+            Clean, high-density, 4 clickable metrics that immediately filter the board
            ========================================================================= */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="bg-white border border-jet-black/10 rounded-2xl shadow-xs overflow-hidden grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 divide-x divide-jet-black/10">
           
-          <div className="bg-white border border-jet-black/10 rounded-2xl p-6 shadow-sm hover:border-jet-black/20 transition-all space-y-2">
-            <span className="text-[11px] font-mono uppercase tracking-widest text-grey block">
-              Subsystem Teams
-            </span>
-            <div className="flex items-baseline gap-2.5">
-              <span className="text-3xl sm:text-4xl font-black font-mono text-jet-black">{TEAMS_LIST.length}</span>
-              <span className="text-xs text-emerald-600 font-mono font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                Connected
+          {/* Card 1: Total Active Deliverables */}
+          <div
+            onClick={() => {
+              setSpecialDeadlineFilter('all');
+              setSelectedSubsystemFilter('all');
+              setAssignedToMeOnly(false);
+              setActiveTab('kanban');
+            }}
+            className="p-3.5 sm:p-4 hover:bg-alice-blue/50 transition-colors cursor-pointer group flex flex-col justify-between"
+            title="Click to view all tasks"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-bold">
+                Deliverables
+              </span>
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-700 font-bold group-hover:bg-jet-black group-hover:text-white transition-colors">
+                {tasks.length} Total
               </span>
             </div>
-            <p className="text-[11px] font-mono text-grey">All 9 engineering squads live</p>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="text-2xl sm:text-3xl font-extrabold font-mono text-jet-black">
+                {tasks.filter((t) => t.status !== 'done').length}
+              </span>
+              <span className="text-xs text-zinc-600 font-sans">active in flight</span>
+            </div>
           </div>
 
-          <div className="bg-white border border-jet-black/10 rounded-2xl p-6 shadow-sm hover:border-jet-black/20 transition-all space-y-2">
-            <span className="text-[11px] font-mono uppercase tracking-widest text-grey block">
-              Active Pipeline Tasks
-            </span>
-            <div className="flex items-baseline gap-2.5">
-              <span className="text-3xl sm:text-4xl font-black font-mono text-orange">{inProgressTasks}</span>
-              <span className="text-xs text-grey font-mono">
-                in progress ({tasks.length} total)
+          {/* Card 2: Due This Week */}
+          <div
+            onClick={() => {
+              setSpecialDeadlineFilter('due_week');
+              setActiveTab('kanban');
+            }}
+            className="p-3.5 sm:p-4 hover:bg-alice-blue/50 transition-colors cursor-pointer group flex flex-col justify-between"
+            title="Click to filter tasks due this week"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-bold">
+                Due This Week
+              </span>
+              <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold ${
+                dueThisWeekTasksList.length > 0 ? 'bg-orange/15 text-orange' : 'bg-zinc-100 text-zinc-600'
+              }`}>
+                Next 7 Days
               </span>
             </div>
-            <p className="text-[11px] font-mono text-grey">
-              {completedTasks} completed • {tasks.filter(t => t.status === 'todo').length} pending
-            </p>
-          </div>
-
-          <div className="bg-white border border-jet-black/10 rounded-2xl p-6 shadow-sm hover:border-jet-black/20 transition-all space-y-2">
-            <span className="text-[11px] font-mono uppercase tracking-widest text-grey block">
-              Video Evidence Clips
-            </span>
-            <div className="flex items-baseline gap-2.5">
-              <span className="text-3xl sm:text-4xl font-black font-mono text-sky-600">{videoLogsCount}</span>
-              <span className="text-xs text-sky-700 font-mono font-bold bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
-                Drive 5 GB
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className={`text-2xl sm:text-3xl font-extrabold font-mono ${
+                dueThisWeekTasksList.length > 0 ? 'text-orange' : 'text-jet-black'
+              }`}>
+                {dueThisWeekTasksList.length}
               </span>
+              <span className="text-xs text-zinc-600 font-sans">upcoming deadlines</span>
             </div>
-            <p className="text-[11px] font-mono text-grey">Streaming from Google Drive</p>
           </div>
 
-          <div className="bg-white border border-jet-black/10 rounded-2xl p-6 shadow-sm hover:border-jet-black/20 transition-all space-y-2">
-            <span className="text-[11px] font-mono uppercase tracking-widest text-grey block">
-              Workshop Hours Logged
-            </span>
-            <div className="flex items-baseline gap-2.5">
-              <span className="text-3xl sm:text-4xl font-black font-mono text-jet-black">{totalHours.toFixed(1)}</span>
-              <span className="text-xs text-grey font-mono font-bold">hrs</span>
-            </div>
-            <p className="text-[11px] font-mono text-grey">{logs.length} step moves recorded</p>
-          </div>
-
-        </div>
-
-        {/* =========================================================================
-            PERSONAL ACTION WORKBENCH: TASKS ASSIGNED TO YOU
-            Prominently displays all deliverables assigned to the currently logged-in member
-           ========================================================================= */}
-        <div className="bg-white border border-jet-black/10 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-jet-black/10">
-            <div className="flex items-center gap-3">
-              <span className="w-10 h-10 rounded-xl bg-orange/15 text-orange flex items-center justify-center text-lg font-bold">
-                📌
+          {/* Card 3: Overdue Deliverables */}
+          <div
+            onClick={() => {
+              setSpecialDeadlineFilter('overdue');
+              setActiveTab('kanban');
+            }}
+            className="p-3.5 sm:p-4 hover:bg-alice-blue/50 transition-colors cursor-pointer group flex flex-col justify-between"
+            title="Click to filter overdue tasks"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-bold">
+                Overdue
               </span>
-              <div>
-                <div className="flex items-center gap-2.5">
-                  <h3 className="text-base sm:text-lg font-bold text-jet-black tracking-tight">
-                    Tasks Assigned to You
-                  </h3>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-mono font-bold ${
-                    myAssignedCount > 0 ? 'bg-orange text-white' : 'bg-jet-black/10 text-grey'
-                  }`}>
-                    {myAssignedCount} {myAssignedCount === 1 ? 'task' : 'tasks'}
-                  </span>
-                </div>
-                <p className="text-xs text-grey font-mono mt-0.5">
-                  Assigned to <strong className="text-jet-black">{user.displayName}</strong> across all engineering subsystems
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {myAssignedCount > 0 && (
-                <div className="hidden md:flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-xl bg-alice-blue/60 border border-jet-black/5">
-                  <span className="text-grey font-bold">Progress:</span>
-                  <span className="text-orange font-bold">{myTasksBreakdown.inProgress} active</span>
-                  <span className="text-grey">•</span>
-                  <span className="text-emerald-600 font-bold">{myTasksBreakdown.done} done</span>
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setIsMyTasksCollapsed(!isMyTasksCollapsed)}
-                className="text-xs font-mono px-3 py-1.5 rounded-xl border border-jet-black/15 bg-alice-blue/40 hover:bg-alice-blue text-jet-black font-bold transition-all cursor-pointer flex items-center gap-1"
-                title={isMyTasksCollapsed ? "Expand assigned tasks" : "Collapse assigned tasks"}
-              >
-                <span>{isMyTasksCollapsed ? 'Expand ▼' : 'Collapse ▲'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setAssignedToMeOnly(true);
-                  setActiveTab('kanban');
-                }}
-                className="text-xs font-mono px-3.5 py-1.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold cursor-pointer whitespace-nowrap"
-              >
-                Filter on Board &rarr;
-              </button>
-            </div>
-          </div>
-
-          {/* Collapsible Content */}
-          {!isMyTasksCollapsed && (
-            <>
-              {myAssignedTasks.length === 0 ? (
-                <div className="py-8 px-4 rounded-xl bg-alice-blue/40 border border-dashed border-jet-black/15 text-center flex flex-col items-center justify-center space-y-2">
-                  <span className="text-2xl">✨</span>
-                  <p className="text-xs sm:text-sm font-mono font-bold text-jet-black">
-                    No active tasks assigned to you right now. You're all caught up!
-                  </p>
-                  <p className="text-xs font-mono text-grey max-w-md">
-                    Tasks assigned to {user.displayName} will appear here with one-click status advancement and work logging.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAssignedToMeOnly(false);
-                      setActiveTab('kanban');
-                    }}
-                    className="mt-1 px-3 py-1.5 rounded-lg border border-jet-black/20 bg-white hover:bg-jet-black hover:text-white text-xs font-mono font-bold transition-all cursor-pointer"
-                  >
-                    Browse All Squad Tasks &rarr;
-                  </button>
-                </div>
+              {overdueTasksList.length > 0 ? (
+                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold animate-pulse">
+                  Action Required
+                </span>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-                  {myAssignedTasks.map((task) => {
-                    const taskTeam = TEAMS[task.teamId];
-                    const priorityInfo = PRIORITY_BADGES[task.priority] || PRIORITY_BADGES.medium;
-                    const canManageThisTask = true; // Assigned member has authority over their assigned deliverable
-
-                    const statusBadge: Record<TaskStatus, { label: string; dot: string; bg: string; text: string }> = {
-                      todo: { label: 'To Do', dot: 'bg-zinc-400', bg: 'bg-zinc-100', text: 'text-zinc-700' },
-                      in_progress: { label: 'In Progress', dot: 'bg-orange animate-pulse', bg: 'bg-orange/10', text: 'text-orange font-bold' },
-                      review: { label: 'Under Review', dot: 'bg-sky-500', bg: 'bg-sky-50', text: 'text-sky-700 font-bold' },
-                      done: { label: 'Completed', dot: 'bg-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-700 font-bold' },
-                    };
-                    const curStatus = statusBadge[task.status] || statusBadge.todo;
-
-                    return (
-                      <div
-                        key={task.id}
-                        onClick={() => handleOpenTaskDetail(task)}
-                        className="group bg-alice-blue/30 hover:bg-white border border-jet-black/10 hover:border-orange/60 rounded-xl p-4 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between cursor-pointer space-y-3"
-                      >
-                        <div className="space-y-2.5">
-                          {/* Subsystem & Priority */}
-                          <div className="flex items-center justify-between gap-2">
-                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold border ${taskTeam?.badgeBg || 'bg-jet-black/5 text-jet-black'}`}>
-                              [{taskTeam?.code}] {taskTeam?.shortName}
-                            </span>
-                            <div className="flex items-center gap-1.5">
-                              {task.isBlocked && (
-                                <span className="px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-500/30 text-rose-700 text-[9px] font-mono font-bold flex items-center gap-0.5" title={task.blockerReason || 'Blocked deliverable'}>
-                                  <span>⚠️</span> Blocked
-                                </span>
-                              )}
-                              <span className={`px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider font-bold ${priorityInfo.bg}`}>
-                                {priorityInfo.label}
-                              </span>
-                              <span className={`px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider flex items-center gap-1 ${curStatus.bg} ${curStatus.text}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${curStatus.dot}`}></span>
-                                {curStatus.label}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Deliverable Title */}
-                          <div>
-                            <h4 className="text-sm font-bold text-jet-black leading-snug group-hover:text-orange transition-colors">
-                              {task.title}
-                            </h4>
-                            {task.description && (
-                              <p className="text-xs text-grey mt-1 font-light line-clamp-2 leading-relaxed">
-                                {task.description}
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Subtasks Progress Bar */}
-                          {task.subtasks && task.subtasks.length > 0 && (
-                            <div className="space-y-1 pt-0.5">
-                              <div className="flex items-center justify-between text-[10px] font-mono text-grey">
-                                <span>☑ Checklist</span>
-                                <span className="font-semibold text-jet-black">
-                                  {task.subtasks.filter((st) => st.completed).length}/{task.subtasks.length}
-                                </span>
-                              </div>
-                              <div className="w-full h-1.5 bg-jet-black/10 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-emerald-500 transition-all duration-300"
-                                  style={{
-                                    width: `${Math.round((task.subtasks.filter((st) => st.completed).length / task.subtasks.length) * 100)}%`,
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Due date & co-assignees */}
-                          <div className="pt-2 border-t border-jet-black/5 flex flex-wrap items-center justify-between gap-1.5 text-[10px] font-mono text-grey">
-                            <div className="flex items-center gap-1.5">
-                              {task.dueDate ? (
-                                <span className="bg-white px-2 py-0.5 rounded border border-jet-black/10 text-jet-black font-semibold flex items-center gap-1">
-                                  <span>📅</span> Due: {task.dueDate}
-                                </span>
-                              ) : (
-                                <span className="italic text-grey/60">No due date</span>
-                              )}
-                              {task.comments && task.comments.length > 0 && (
-                                <span className="px-1.5 py-0.5 rounded bg-white border border-jet-black/10 text-grey font-bold flex items-center gap-0.5 text-[9px]">
-                                  <span>💬</span> {task.comments.length}
-                                </span>
-                              )}
-                            </div>
-
-                            {task.assignedMembers && task.assignedMembers.length > 1 && (
-                              <span className="text-[10px] text-grey">
-                                +{task.assignedMembers.length - 1} co-assigned
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Status Progression & Actions Footer */}
-                        <div className="pt-2.5 border-t border-jet-black/5 flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                            {task.status !== 'todo' && (
-                              <button
-                                type="button"
-                                disabled={!canManageThisTask}
-                                onClick={(e) => {
-                                  const prevIdx = STATUS_COLUMNS.findIndex((c) => c.id === task.status) - 1;
-                                  if (prevIdx >= 0) handleMoveStatus(e, task.id, STATUS_COLUMNS[prevIdx].id);
-                                }}
-                                title="Move back"
-                                className="px-2 py-1 text-[10px] font-mono bg-white hover:bg-jet-black/5 rounded-lg border border-jet-black/15 cursor-pointer font-bold transition-colors disabled:opacity-40"
-                              >
-                                ←
-                              </button>
-                            )}
-
-                            {task.status !== 'done' && (
-                              <button
-                                type="button"
-                                disabled={!canManageThisTask}
-                                onClick={(e) => {
-                                  const nextIdx = STATUS_COLUMNS.findIndex((c) => c.id === task.status) + 1;
-                                  if (nextIdx < STATUS_COLUMNS.length) handleMoveStatus(e, task.id, STATUS_COLUMNS[nextIdx].id);
-                                }}
-                                title="Advance status"
-                                className="px-2.5 py-1 text-[10px] font-mono bg-jet-black text-alice-blue hover:bg-orange rounded-lg font-bold transition-colors cursor-pointer disabled:opacity-40 flex items-center gap-1"
-                              >
-                                <span>Advance →</span>
-                              </button>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                            <Link
-                              href={`/log?team=${task.teamId}&task=${encodeURIComponent(task.title)}`}
-                              className="text-[10px] font-mono px-2 py-1 rounded-lg border border-orange/40 text-orange hover:bg-orange hover:text-white transition-all font-bold"
-                            >
-                              Log Work
-                            </Link>
-                            <button
-                              type="button"
-                              onClick={() => handleOpenTaskDetail(task)}
-                              className="text-[10px] font-mono text-grey hover:text-orange font-bold transition-colors cursor-pointer"
-                            >
-                              Details ↗
-                            </button>
-                          </div>
-                        </div>
-
-                      </div>
-                    );
-                  })}
-                </div>
+                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
+                  On Track
+                </span>
               )}
-            </>
-          )}
+            </div>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className={`text-2xl sm:text-3xl font-extrabold font-mono ${
+                overdueTasksList.length > 0 ? 'text-red-600' : 'text-emerald-600'
+              }`}>
+                {overdueTasksList.length}
+              </span>
+              <span className="text-xs text-zinc-600 font-sans">
+                {overdueTasksList.length > 0 ? 'past deadline' : 'all on schedule'}
+              </span>
+            </div>
+          </div>
+
+          {/* Card 4: Waiting for Review */}
+          <div
+            onClick={() => {
+              setSpecialDeadlineFilter('review');
+              setActiveTab('kanban');
+            }}
+            className="p-3.5 sm:p-4 hover:bg-alice-blue/50 transition-colors cursor-pointer group flex flex-col justify-between"
+            title="Click to filter review queue"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-bold">
+                Review Queue
+              </span>
+              <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold ${
+                underReviewTasksList.length > 0 ? 'bg-purple-100 text-purple-700' : 'bg-zinc-100 text-zinc-600'
+              }`}>
+                Lead Sign-off
+              </span>
+            </div>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className={`text-2xl sm:text-3xl font-extrabold font-mono ${
+                underReviewTasksList.length > 0 ? 'text-purple-600' : 'text-jet-black'
+              }`}>
+                {underReviewTasksList.length}
+              </span>
+              <span className="text-xs text-zinc-600 font-sans">under verification</span>
+            </div>
+          </div>
+
         </div>
 
         {/* =========================================================================
             ELEVATED VIEW NAVIGATION TABS
-            Segmented controller with clean icons and counts
+            Natural sentence case, high contrast, clean icons and active indicators
            ========================================================================= */}
-        <div className="bg-white border border-jet-black/10 rounded-2xl p-2 shadow-sm flex items-center gap-2 overflow-x-auto hide-scrollbar">
+        <div className="bg-white border border-jet-black/10 rounded-2xl p-1.5 sm:p-2 shadow-xs flex items-center gap-1.5 sm:gap-2 overflow-x-auto hide-scrollbar">
+          
           <button
             type="button"
             onClick={() => setActiveTab('my_tasks')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+            className={`px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-sans font-medium transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
               activeTab === 'my_tasks'
-                ? 'bg-jet-black text-alice-blue font-bold shadow-sm'
-                : 'text-grey hover:text-jet-black hover:bg-alice-blue/60'
+                ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
+                : 'text-zinc-600 hover:text-jet-black hover:bg-alice-blue/70'
             }`}
           >
-            <span>📌 My Tasks</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+            <span>My Tasks</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
               activeTab === 'my_tasks'
                 ? 'bg-orange text-white'
                 : myAssignedCount > 0
                 ? 'bg-orange/15 text-orange'
-                : 'bg-jet-black/10 text-jet-black'
+                : 'bg-jet-black/10 text-zinc-700'
             }`}>
               {myAssignedCount}
             </span>
@@ -1202,15 +1240,15 @@ function DashboardContent() {
           <button
             type="button"
             onClick={() => setActiveTab('kanban')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+            className={`px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-sans font-medium transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
               activeTab === 'kanban'
-                ? 'bg-jet-black text-alice-blue font-bold shadow-sm'
-                : 'text-grey hover:text-jet-black hover:bg-alice-blue/60'
+                ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
+                : 'text-zinc-600 hover:text-jet-black hover:bg-alice-blue/70'
             }`}
           >
             <span>Task Board</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-              activeTab === 'kanban' ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-jet-black'
+            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+              activeTab === 'kanban' ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-zinc-700'
             }`}>
               {tasks.length}
             </span>
@@ -1219,15 +1257,15 @@ function DashboardContent() {
           <button
             type="button"
             onClick={() => setActiveTab('teams')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+            className={`px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-sans font-medium transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
               activeTab === 'teams'
-                ? 'bg-jet-black text-alice-blue font-bold shadow-sm'
-                : 'text-grey hover:text-jet-black hover:bg-alice-blue/60'
+                ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
+                : 'text-zinc-600 hover:text-jet-black hover:bg-alice-blue/70'
             }`}
           >
             <span>Subsystems</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-              activeTab === 'teams' ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-jet-black'
+            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+              activeTab === 'teams' ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-zinc-700'
             }`}>
               {TEAMS_LIST.length}
             </span>
@@ -1236,15 +1274,15 @@ function DashboardContent() {
           <button
             type="button"
             onClick={() => setActiveTab('videos')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+            className={`px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-sans font-medium transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
               activeTab === 'videos'
-                ? 'bg-jet-black text-alice-blue font-bold shadow-sm'
-                : 'text-grey hover:text-jet-black hover:bg-alice-blue/60'
+                ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
+                : 'text-zinc-600 hover:text-jet-black hover:bg-alice-blue/70'
             }`}
           >
-            <span>Master Video Gallery</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-              activeTab === 'videos' ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-jet-black'
+            <span>Video Evidence</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+              activeTab === 'videos' ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-zinc-700'
             }`}>
               {videoLogsCount}
             </span>
@@ -1253,15 +1291,15 @@ function DashboardContent() {
           <button
             type="button"
             onClick={() => setActiveTab('metrics')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+            className={`px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-sans font-medium transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
               activeTab === 'metrics'
-                ? 'bg-jet-black text-alice-blue font-bold shadow-sm'
-                : 'text-grey hover:text-jet-black hover:bg-alice-blue/60'
+                ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
+                : 'text-zinc-600 hover:text-jet-black hover:bg-alice-blue/70'
             }`}
           >
-            <span>📊 Team Velocity & Metrics</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-              activeTab === 'metrics' ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-jet-black'
+            <span>Squad Metrics</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+              activeTab === 'metrics' ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-zinc-700'
             }`}>
               {completedTasks}/{tasks.length}
             </span>
@@ -1271,14 +1309,14 @@ function DashboardContent() {
             <button
               type="button"
               onClick={() => setActiveTab('accounts')}
-              className={`px-4 py-2.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+              className={`px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-sans font-medium transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ml-auto ${
                 activeTab === 'accounts'
-                  ? 'bg-jet-black text-alice-blue font-bold shadow-sm'
-                  : 'text-grey hover:text-jet-black hover:bg-alice-blue/60'
+                  ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
+                  : 'text-zinc-600 hover:text-jet-black hover:bg-alice-blue/70'
               }`}
             >
               <span>Team Credentials</span>
-              <span className="text-[10px] text-orange font-bold uppercase font-mono px-1.5 py-0.5 rounded bg-orange/15">
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange/20 text-orange font-bold uppercase">
                 Core Only
               </span>
             </button>
@@ -1377,8 +1415,10 @@ function DashboardContent() {
             {/* My Tasks Cards Layout */}
             {myAssignedTasks.length === 0 ? (
               <div className="bg-white border border-jet-black/10 rounded-2xl p-12 text-center flex flex-col items-center justify-center space-y-3 shadow-sm">
-                <div className="w-12 h-12 rounded-2xl bg-orange/10 text-orange flex items-center justify-center text-2xl">
-                  ✨
+                <div className="w-12 h-12 rounded-2xl bg-orange/10 text-orange flex items-center justify-center">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
                 </div>
                 <h4 className="text-base font-mono font-bold text-jet-black">
                   No Active Tasks Assigned to You
@@ -1461,7 +1501,7 @@ function DashboardContent() {
                                 <div className="pt-2 border-t border-jet-black/5 flex items-center justify-between text-[10px] font-mono text-grey">
                                   {task.dueDate ? (
                                     <span className="bg-white px-2 py-0.5 rounded border border-jet-black/10 text-jet-black font-semibold">
-                                      📅 {task.dueDate}
+                                      Due: {task.dueDate}
                                     </span>
                                   ) : (
                                     <span className="italic text-grey/60">No due date</span>
@@ -1568,10 +1608,10 @@ function DashboardContent() {
                     className="px-3 py-2 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none bg-white cursor-pointer"
                   >
                     <option value="all">All Priorities</option>
-                    <option value="urgent">🔴 Urgent</option>
-                    <option value="high">🟠 High Priority</option>
-                    <option value="medium">🟡 Medium Priority</option>
-                    <option value="low">⚪ Low Priority</option>
+                    <option value="urgent">Urgent</option>
+                    <option value="high">High Priority</option>
+                    <option value="medium">Medium Priority</option>
+                    <option value="low">Low Priority</option>
                   </select>
                 </div>
 
@@ -1613,7 +1653,7 @@ function DashboardContent() {
                       : 'bg-alice-blue/60 text-grey hover:text-jet-black hover:bg-alice-blue'
                   }`}
                 >
-                  <span>📌 Assigned to Me</span>
+                  <span>Assigned to Me</span>
                   <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
                     assignedToMeOnly ? 'bg-white/30 text-white' : 'bg-jet-black/10 text-jet-black'
                   }`}>
@@ -1721,8 +1761,8 @@ function DashboardContent() {
 
                                 <div className="flex items-center gap-1.5">
                                   {task.isBlocked && (
-                                    <span className="px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-500/30 text-rose-700 text-[9px] font-mono font-bold flex items-center gap-0.5" title={task.blockerReason || 'Blocked deliverable'}>
-                                      <span>⚠️</span> Blocked
+                                    <span className="px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-500/30 text-rose-700 text-[9px] font-mono font-bold flex items-center gap-1" title={task.blockerReason || 'Blocked deliverable'}>
+                                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Blocked
                                     </span>
                                   )}
                                   <span className={`px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider font-bold ${priorityInfo.bg}`}>
@@ -1747,7 +1787,7 @@ function DashboardContent() {
                               {task.subtasks && task.subtasks.length > 0 && (
                                 <div className="space-y-1 pt-0.5">
                                   <div className="flex items-center justify-between text-[10px] font-mono text-grey">
-                                    <span>☑ Checklist</span>
+                                    <span>Checklist</span>
                                     <span className="font-semibold text-jet-black">
                                       {task.subtasks.filter((st) => st.completed).length}/{task.subtasks.length}
                                     </span>
@@ -1768,19 +1808,22 @@ function DashboardContent() {
                                 <div className="flex items-center gap-2 max-w-[170px] truncate">
                                   {task.assignedMembers && task.assignedMembers.length > 0 ? (
                                     <span className="text-jet-black font-semibold truncate">
-                                      👤 {Array.isArray(task.assignedMembers) ? task.assignedMembers.join(', ') : task.assignedMembers}
+                                      {Array.isArray(task.assignedMembers) ? task.assignedMembers.join(', ') : task.assignedMembers}
                                     </span>
                                   ) : (
                                     <span className="italic text-grey/60">Unassigned</span>
                                   )}
                                   {task.comments && task.comments.length > 0 && (
-                                    <span className="px-1.5 py-0.5 rounded bg-white border border-jet-black/10 text-grey font-bold flex items-center gap-0.5 text-[9px]">
-                                      <span>💬</span> {task.comments.length}
+                                    <span className="px-1.5 py-0.5 rounded bg-white border border-jet-black/10 text-grey font-bold flex items-center gap-1 text-[9px]">
+                                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                      </svg>
+                                      {task.comments.length}
                                     </span>
                                   )}
                                   {Boolean(task.actualHours) && (
                                     <span className="px-1.5 py-0.5 rounded bg-white border border-jet-black/10 text-grey font-bold flex items-center gap-0.5 text-[9px]">
-                                      <span>⏱</span> {task.actualHours}h
+                                      {task.actualHours}h
                                     </span>
                                   )}
                                 </div>
@@ -1788,7 +1831,7 @@ function DashboardContent() {
                                 <div className="flex items-center gap-1.5">
                                   {isTaskAssignedToMe ? (
                                     <span className="px-1.5 py-0.5 rounded bg-orange/15 text-orange font-bold text-[9px] flex items-center gap-0.5">
-                                      <span>✓</span> Assigned
+                                      Assigned
                                     </span>
                                   ) : (
                                     <button
@@ -2150,7 +2193,9 @@ function DashboardContent() {
                     disabled={isManualSyncing}
                     className="px-3.5 py-2 rounded-xl border border-jet-black/15 bg-alice-blue/60 hover:bg-alice-blue text-jet-black text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5"
                   >
-                    <span className={isManualSyncing ? 'animate-spin' : ''}>🔄</span>
+                    <svg className={`w-3.5 h-3.5 ${isManualSyncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
                     <span>{isManualSyncing ? 'Syncing...' : 'Refresh Metrics'}</span>
                   </button>
                 </div>
@@ -2201,7 +2246,7 @@ function DashboardContent() {
               <div className="bg-rose-50/70 border border-rose-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-rose-800">
-                    <span className="text-lg">⚠️</span>
+                    <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse"></span>
                     <h4 className="text-sm font-mono font-bold uppercase tracking-wider">
                       Active Blocker Radar ({blockedRadarTasks.length})
                     </h4>
@@ -2241,7 +2286,7 @@ function DashboardContent() {
             ) : (
               <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-3 text-emerald-900 text-xs font-mono shadow-sm">
                 <div className="flex items-center gap-2.5">
-                  <span className="text-base">✨</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                   <span>
                     <strong>Blocker Radar Clear:</strong> All 9 engineering subsystems are running without active impediments.
                   </span>
@@ -2386,7 +2431,7 @@ function DashboardContent() {
                     const isTop2 = index === 1 && item.velocityScore > 0;
                     const isTop3 = index === 2 && item.velocityScore > 0;
 
-                    const rankBadge = isTop1 ? '👑 #1' : isTop2 ? '🥈 #2' : isTop3 ? '🥉 #3' : `#${index + 1}`;
+                    const rankBadge = isTop1 ? '#1' : isTop2 ? '#2' : isTop3 ? '#3' : `#${index + 1}`;
 
                     return (
                       <div
@@ -2501,7 +2546,7 @@ function DashboardContent() {
                         : 'text-grey hover:text-jet-black'
                     }`}
                   >
-                    👤 Members ({ROSTER_MEMBERS.length})
+                    Members ({ROSTER_MEMBERS.length})
                   </button>
                   <button
                     type="button"
@@ -2512,7 +2557,7 @@ function DashboardContent() {
                         : 'text-grey hover:text-jet-black'
                     }`}
                   >
-                    👥 Squads ({ALL_TEAMS.length})
+                    Squads ({ALL_TEAMS.length})
                   </button>
                 </div>
 
@@ -2522,14 +2567,14 @@ function DashboardContent() {
                   className="text-xs font-mono px-3 py-2 bg-alice-blue text-jet-black hover:bg-jet-black hover:text-white border border-jet-black/10 rounded-xl font-bold transition-all cursor-pointer"
                   title="Reload from Google Cloud Firestore"
                 >
-                  ⟳ Refresh
+                  Refresh
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowCredentialsPasswords(!showCredentialsPasswords)}
                   className="text-xs font-mono px-3.5 py-2 bg-alice-blue text-jet-black hover:bg-jet-black hover:text-white border border-jet-black/10 rounded-xl font-bold transition-all cursor-pointer"
                 >
-                  {showCredentialsPasswords ? '🔒 Mask PINs' : '👁 Show PINs'}
+                  {showCredentialsPasswords ? 'Mask PINs' : 'Show PINs'}
                 </button>
               </div>
             </div>
@@ -2830,7 +2875,7 @@ function DashboardContent() {
 
             {createError && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 font-mono">
-                ⚠️ {createError}
+                {createError}
               </div>
             )}
 
@@ -3104,7 +3149,7 @@ function DashboardContent() {
                   </>
                 ) : (
                   <>
-                    <span>✕ Confirm Delete</span>
+                    <span>Confirm Delete</span>
                   </>
                 )}
               </button>
@@ -3185,7 +3230,9 @@ function DashboardContent() {
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {filteredActivities.length === 0 ? (
                 <div className="text-center py-16 text-grey text-xs font-mono space-y-2">
-                  <span className="text-2xl block">📡</span>
+                  <div className="w-10 h-10 mx-auto rounded-xl bg-jet-black/5 text-jet-black flex items-center justify-center font-bold text-xs tracking-wider border border-jet-black/10">
+                    FEED
+                  </div>
                   <p className="font-semibold text-jet-black">No recent moves found</p>
                   <p className="text-[11px] text-grey/70">
                     Activity events automatically stream in as members check off deliverables and log work.
@@ -3194,16 +3241,16 @@ function DashboardContent() {
               ) : (
                 filteredActivities.map((act) => {
                   const actTeam = TEAMS[act.teamId];
-                  const iconMap: Record<string, string> = {
-                    subtask_toggled: '☑️',
-                    comment_added: '💬',
-                    task_blocked: '⚠️',
-                    task_status: '🔄',
-                    task_created: '➕',
-                    hours_logged: '⏱️',
-                    log_submitted: '📝',
+                  const typeTagMap: Record<string, { label: string; color: string }> = {
+                    subtask_toggled: { label: 'CHECK', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                    comment_added: { label: 'NOTE', color: 'bg-sky-50 text-sky-700 border-sky-200' },
+                    task_blocked: { label: 'BLOCKED', color: 'bg-red-50 text-red-700 border-red-200' },
+                    task_status: { label: 'STATUS', color: 'bg-purple-50 text-purple-700 border-purple-200' },
+                    task_created: { label: 'NEW', color: 'bg-orange/10 text-orange border-orange/20' },
+                    hours_logged: { label: 'HOURS', color: 'bg-amber-50 text-amber-700 border-amber-200' },
+                    log_submitted: { label: 'REPORT', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
                   };
-                  const icon = iconMap[act.type] || '⚡';
+                  const tag = typeTagMap[act.type] || { label: 'LOG', color: 'bg-alice-blue text-jet-black border-jet-black/10' };
 
                   return (
                     <div
@@ -3225,7 +3272,9 @@ function DashboardContent() {
                     >
                       <div className="flex items-center justify-between text-[10px]">
                         <span className="font-bold flex items-center gap-1.5">
-                          <span className="text-xs">{icon}</span>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded border font-mono tracking-wider font-semibold ${tag.color}`}>
+                            {tag.label}
+                          </span>
                           <span className="text-orange">[{actTeam?.code || act.teamId.toUpperCase()}]</span>
                           <span className="text-jet-black">{act.memberName}</span>
                         </span>
@@ -3234,12 +3283,12 @@ function DashboardContent() {
                         </span>
                       </div>
 
-                      <div className="pl-5 text-jet-black/90 font-medium">
+                      <div className="pl-1 text-jet-black/90 font-medium">
                         {act.detail || act.title}
                       </div>
 
                       {act.title && act.detail !== act.title && (
-                        <div className="pl-5 text-[10px] text-grey truncate">
+                        <div className="pl-1 text-[10px] text-grey truncate">
                           Task: <strong>{act.title}</strong>
                         </div>
                       )}
@@ -3261,7 +3310,7 @@ function DashboardContent() {
                 }}
                 className="text-orange hover:text-jet-black font-bold cursor-pointer"
               >
-                Mark Read ✓
+                Mark Read
               </button>
             </div>
           </div>
@@ -3282,7 +3331,7 @@ function DashboardContent() {
                 : 'bg-white/95 backdrop-blur-md text-jet-black border-jet-black/15 shadow-black/10 hover:border-orange'
             }`}
           >
-            <span>{assignedToMeOnly ? '✓' : '👤'}</span>
+            <span className={`w-2 h-2 rounded-full ${assignedToMeOnly ? 'bg-white' : 'bg-orange'}`} />
             <span>{assignedToMeOnly ? 'Showing: My Deliverables' : `Filter: My Tasks (${myAssignedCount})`}</span>
             {assignedToMeOnly && (
               <span className="text-[10px] opacity-90 underline ml-0.5">Show All</span>
@@ -3536,7 +3585,9 @@ function DashboardContent() {
                   }}
                   className="p-3 rounded-2xl bg-orange text-white font-mono text-xs font-bold shadow-md shadow-orange/20 flex items-center justify-center gap-2 cursor-pointer active:scale-98 transition-transform"
                 >
-                  <span className="text-base leading-none">➕</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+                  </svg>
                   <span>New Deliverable</span>
                 </button>
 
@@ -3546,7 +3597,7 @@ function DashboardContent() {
                     onClick={() => setIsMobileQuickMenuOpen(false)}
                     className="p-3 rounded-2xl bg-jet-black text-alice-blue font-mono text-xs font-bold shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-98 transition-transform"
                   >
-                    <span>📝 Open Build Log</span>
+                    <span>Open Build Log</span>
                     <span>→</span>
                   </Link>
                 ) : (
@@ -3556,7 +3607,9 @@ function DashboardContent() {
                     disabled={isManualSyncing}
                     className="p-3 rounded-2xl bg-alice-blue border border-jet-black/10 text-jet-black font-mono text-xs font-bold flex items-center justify-center gap-2 cursor-pointer active:scale-98 transition-transform"
                   >
-                    <span className={isManualSyncing ? 'animate-spin' : ''}>🔄</span>
+                    <svg className={`w-4 h-4 ${isManualSyncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
                     <span>{isManualSyncing ? 'Syncing...' : 'Sync Database'}</span>
                   </button>
                 )}
@@ -3565,7 +3618,7 @@ function DashboardContent() {
               {/* All Views Grid */}
               <div className="space-y-1.5">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-grey font-bold">
-                  All Portals & Views
+                  All Portals &amp; Views
                 </span>
                 <div className="grid grid-cols-2 gap-2">
                   
@@ -3583,7 +3636,9 @@ function DashboardContent() {
                         : 'border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black'
                     }`}
                   >
-                    <span className="text-base">📋</span>
+                    <svg className="w-5 h-5 text-jet-black shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                    </svg>
                     <div className="truncate">
                       <div className="text-xs font-mono font-bold truncate">Task Board</div>
                       <div className="text-[10px] text-grey font-mono truncate">{tasks.length} deliverables</div>
@@ -3604,7 +3659,9 @@ function DashboardContent() {
                         : 'border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black'
                     }`}
                   >
-                    <span className="text-base">📌</span>
+                    <svg className="w-5 h-5 text-jet-black shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                    </svg>
                     <div className="truncate">
                       <div className="text-xs font-mono font-bold truncate">My Workbench</div>
                       <div className="text-[10px] text-orange font-mono font-bold truncate">{myAssignedCount} assigned</div>
@@ -3625,10 +3682,13 @@ function DashboardContent() {
                         : 'border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black'
                     }`}
                   >
-                    <span className="text-base">🏎️</span>
+                    <svg className="w-5 h-5 text-jet-black shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="9" strokeWidth="2" />
+                      <polygon points="16 8 13.5 13.5 8 16 10.5 10.5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                     <div className="truncate">
                       <div className="text-xs font-mono font-bold truncate">9 Subsystems</div>
-                      <div className="text-[10px] text-grey font-mono truncate">Squad leads & tasks</div>
+                      <div className="text-[10px] text-grey font-mono truncate">Squad leads &amp; tasks</div>
                     </div>
                   </button>
 
@@ -3646,7 +3706,9 @@ function DashboardContent() {
                         : 'border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black'
                     }`}
                   >
-                    <span className="text-base">🎥</span>
+                    <svg className="w-5 h-5 text-jet-black shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
                     <div className="truncate">
                       <div className="text-xs font-mono font-bold truncate">Video Archive</div>
                       <div className="text-[10px] text-grey font-mono truncate">{videoLogsCount} clips stream</div>
@@ -3666,7 +3728,9 @@ function DashboardContent() {
                         : 'border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black'
                     }`}
                   >
-                    <span className="text-base">⚡</span>
+                    <svg className="w-5 h-5 text-jet-black shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
                     <div className="truncate">
                       <div className="text-xs font-mono font-bold truncate">Live Moves Feed</div>
                       <div className="text-[10px] text-grey font-mono truncate">
@@ -3689,9 +3753,11 @@ function DashboardContent() {
                         : 'border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black'
                     }`}
                   >
-                    <span className="text-base">📊</span>
+                    <svg className="w-5 h-5 text-jet-black shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
                     <div className="truncate">
-                      <div className="text-xs font-mono font-bold truncate">Velocity & Metrics</div>
+                      <div className="text-xs font-mono font-bold truncate">Velocity &amp; Metrics</div>
                       <div className="text-[10px] text-grey font-mono truncate">{completedTasks}/{tasks.length} done</div>
                     </div>
                   </button>
@@ -3711,7 +3777,9 @@ function DashboardContent() {
                           : 'border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black'
                       }`}
                     >
-                      <span className="text-base">🔑</span>
+                      <svg className="w-5 h-5 text-jet-black shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                      </svg>
                       <div className="truncate">
                         <div className="text-xs font-mono font-bold truncate">Team Credentials</div>
                         <div className="text-[10px] text-orange font-mono font-bold truncate">Core Admin Only</div>
@@ -3729,10 +3797,12 @@ function DashboardContent() {
                       }}
                       className="p-3 rounded-xl border border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black text-left flex items-center gap-2.5 transition-all cursor-pointer"
                     >
-                      <span className="text-base">💾</span>
+                      <svg className="w-5 h-5 text-jet-black shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                      </svg>
                       <div className="truncate">
                         <div className="text-xs font-mono font-bold truncate">Backup / Sync</div>
-                        <div className="text-[10px] text-grey font-mono truncate">JSON export & reset</div>
+                        <div className="text-[10px] text-grey font-mono truncate">JSON export &amp; reset</div>
                       </div>
                     </button>
                   )}
@@ -3809,7 +3879,9 @@ function DashboardContent() {
                     }}
                     className="px-3 py-2 rounded-xl bg-jet-black text-alice-blue font-bold flex items-center gap-1.5 cursor-pointer"
                   >
-                    <span>📲</span>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
                     <span>Install Web App</span>
                   </button>
                 ) : (
@@ -3819,7 +3891,9 @@ function DashboardContent() {
                     disabled={isManualSyncing}
                     className="text-grey hover:text-jet-black flex items-center gap-1 cursor-pointer"
                   >
-                    <span className={isManualSyncing ? 'animate-spin' : ''}>🔄</span>
+                    <svg className={`w-3.5 h-3.5 ${isManualSyncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
                     <span>{isManualSyncing ? 'Syncing...' : 'Force Sync'}</span>
                   </button>
                 )}
@@ -3831,9 +3905,11 @@ function DashboardContent() {
                     await logout();
                     router.push('/login');
                   }}
-                  className="text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1 cursor-pointer py-1 px-2 rounded-lg hover:bg-rose-50"
+                  className="text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1.5 cursor-pointer py-1 px-2 rounded-lg hover:bg-rose-50"
                 >
-                  <span>🚪</span>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
                   <span>Sign Out</span>
                 </button>
               </div>

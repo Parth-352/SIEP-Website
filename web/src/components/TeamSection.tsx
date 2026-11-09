@@ -820,7 +820,7 @@ export default function TeamSection() {
               }}
               className="w-full bg-[#fafbfc] border border-jet-black/15 rounded-xl px-4 py-3 text-sm font-bold text-jet-black appearance-none pr-10 focus:outline-none focus:ring-2 focus:ring-orange cursor-pointer"
             >
-              <option value="all">⚡ Browse All 9 Teams</option>
+              <option value="all">Browse All 9 Teams</option>
               {NINE_MOBILE_TEAMS.map((team, idx) => (
                 <option key={team.id} value={team.id}>
                   {idx + 1}. {team.name} ({team.memberIds.length} {team.memberIds.length === 1 ? 'member' : 'members'})

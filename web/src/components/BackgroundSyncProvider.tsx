@@ -69,14 +69,14 @@ export function BackgroundSyncProvider({ children }: { children: React.ReactNode
 
     const handleOnline = () => {
       setIsOnline(true);
-      showToast('📶 Connection restored. Syncing offline changes...', 'success');
+      showToast('Connection restored. Syncing offline changes...', 'success');
       // Trigger background outbox draining
       processNextInQueue();
     };
 
     const handleOffline = () => {
       setIsOnline(false);
-      showToast('⚠️ Offline Mode: Changes will be saved locally and uploaded when connected.', 'info');
+      showToast('Offline Mode: Changes will be saved locally and uploaded when connected.', 'info');
     };
 
     window.addEventListener('online', handleOnline);
@@ -161,7 +161,7 @@ export function BackgroundSyncProvider({ children }: { children: React.ReactNode
 
         // Notify app
         window.dispatchEvent(new CustomEvent('siep_log_synced', { detail: data.log }));
-        showToast(`✓ Step #${data.log?.stepNumber || ''} published & synced!`, 'success');
+        showToast(`Step #${data.log?.stepNumber || ''} published & synced!`, 'success');
 
       } else if (item.type === 'COMPLETE_TASK_WITH_VIDEO') {
         // 1. Create completion log
@@ -187,7 +187,7 @@ export function BackgroundSyncProvider({ children }: { children: React.ReactNode
         });
 
         window.dispatchEvent(new CustomEvent('siep_task_synced', { detail: { taskId: item.payload.taskId } }));
-        showToast(`✓ Task completed & verified with video evidence!`, 'success');
+        showToast(`Task completed & verified with video evidence!`, 'success');
 
       } else if (item.type === 'UPDATE_TASK_STATUS') {
         await fetch('/api/tasks', {
@@ -276,9 +276,9 @@ export function BackgroundSyncProvider({ children }: { children: React.ReactNode
 
     showToast(
       videoFile 
-        ? `⚡ Uploading "${logData.stepTitle}" in background...`
+        ? `Uploading "${logData.stepTitle}" in background...`
         : navigator.onLine 
-          ? `⚡ Publishing log in background...` 
+          ? `Publishing log in background...` 
           : `Saved offline. Will upload when connected.`,
       'info'
     );
@@ -316,7 +316,7 @@ export function BackgroundSyncProvider({ children }: { children: React.ReactNode
     await addOutboxItem(outboxItem);
     setQueue((prev) => [...prev, outboxItem]);
 
-    showToast('⚡ Task completed! Syncing video verification in background...', 'info');
+    showToast('Task completed! Syncing video verification in background...', 'info');
 
     if (navigator.onLine) {
       setTimeout(() => processNextInQueue(), 100);
@@ -394,7 +394,7 @@ export function BackgroundSyncProvider({ children }: { children: React.ReactNode
               ? 'bg-red-950/90 text-red-200 border-red-500/40'
               : 'bg-jet-black/90 text-alice-blue border-orange/40'
           }`}>
-            <span>{notification.type === 'success' ? '✓' : notification.type === 'error' ? '✕' : 'ℹ'}</span>
+            <span className={`w-2 h-2 rounded-full shrink-0 ${notification.type === 'success' ? 'bg-emerald-400' : notification.type === 'error' ? 'bg-red-400' : 'bg-orange'}`} />
             <span>{notification.message}</span>
           </div>
         </div>
@@ -454,7 +454,7 @@ export function BackgroundSyncProvider({ children }: { children: React.ReactNode
               {/* Offline Warning Banner */}
               {!isOnline && (
                 <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-200 text-[11px] font-mono flex items-center gap-2">
-                  <span>📶</span>
+                  <span className="w-2 h-2 rounded-full bg-amber-400"></span>
                   <span>Currently offline. Files queued to upload automatically when signal returns.</span>
                 </div>
               )}
@@ -476,7 +476,7 @@ export function BackgroundSyncProvider({ children }: { children: React.ReactNode
                             {item.payload.stepTitle || item.fileName || 'Workshop Deliverable'}
                           </div>
                           <div className="text-[10px] text-grey truncate">
-                            {item.fileName ? `📁 ${item.fileName} • ` : ''}
+                            {item.fileName ? `${item.fileName} • ` : ''}
                             {item.statusMessage || (item.status === 'queued' ? 'Queued' : item.status)}
                           </div>
                         </div>

@@ -45,10 +45,22 @@ export async function GET(request: NextRequest) {
       session && (session.isCore || session.role === 'admin' || session.teamId === 'core')
     );
 
-    // If Core Leadership (admin), return full credential lists
-    if (isCoreAdmin) {
-      // 1. Team passwords
-      const allTeamPasswords: Record<string, { password: string; isCustom: boolean }> = {};
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized: Session required' },
+        { status: 401 }
+      );
+    }
+
+    if (!isCoreAdmin) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden: Central Core Leadership access required' },
+        { status: 403 }
+      );
+    }
+
+    // 1. Team passwords
+    const allTeamPasswords: Record<string, { password: string; isCustom: boolean }> = {};
       Object.values(TEAMS).forEach((team) => {
         const custom = customTeamPasswords[team.id];
         allTeamPasswords[team.id] = {
@@ -79,13 +91,6 @@ export async function GET(request: NextRequest) {
         passwords: allTeamPasswords,
         memberCredentials: allMemberCredentials,
       });
-    }
-
-    // For unauthenticated or normal members, return safe status flags only
-    return NextResponse.json({
-      success: true,
-      hasCustomPasswords: Object.keys(customMemberPasswords).length > 0,
-    });
   } catch (error) {
     console.error('Error fetching passwords:', error);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });

@@ -592,7 +592,7 @@ function LogPageContent() {
                       : 'bg-alice-blue/70 text-grey hover:text-jet-black'
                   }`}
                 >
-                  <span>📌 Assigned to Me</span>
+                  <span>Assigned to Me</span>
                   <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
                     taskViewMode === 'assigned' ? 'bg-white/25 text-white' : 'bg-jet-black/10 text-jet-black'
                   }`}>
@@ -705,7 +705,7 @@ function LogPageContent() {
                                   : 'bg-jet-black/5 hover:bg-orange hover:text-white border border-jet-black/10'
                               }`}
                             >
-                              {isAssigned ? '✓ Assigned' : '+ Claim'}
+                              {isAssigned ? 'Assigned' : '+ Claim'}
                             </button>
                           </div>
                         </div>
@@ -716,7 +716,7 @@ function LogPageContent() {
                             onClick={() => handleSelectTaskForLog(task)}
                             className="px-2.5 py-1.5 sm:py-1 bg-jet-black text-alice-blue hover:bg-orange rounded-lg text-[10px] font-mono font-bold uppercase transition-colors cursor-pointer w-full sm:w-auto min-h-[36px] sm:min-h-0 flex items-center justify-center"
                           >
-                            Log Work ✎
+                            Log Work
                           </button>
                           <div className="flex items-center gap-1.5 w-full sm:w-auto">
                             <button
@@ -728,7 +728,7 @@ function LogPageContent() {
                               className="px-2.5 py-1.5 sm:py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border border-emerald-300 rounded-lg text-[10px] font-mono font-bold transition-colors cursor-pointer flex-1 sm:flex-initial min-h-[36px] sm:min-h-0 flex items-center justify-center text-center"
                               title="Mark completed with video evidence"
                             >
-                              Done + Video ✓
+                              Done + Video
                             </button>
                             <button
                               type="button"
@@ -981,7 +981,7 @@ function LogPageContent() {
                     {videoUrlInput && (
                       <div className="text-xs font-mono">
                         {getEmbeddableVideoUrl(videoUrlInput) ? (
-                          <span className="text-emerald-600 font-medium">✓ Valid video link</span>
+                          <span className="text-emerald-600 font-medium">Valid video link</span>
                         ) : (
                           <span className="text-amber-600">Please enter a valid Google Drive or YouTube link</span>
                         )}

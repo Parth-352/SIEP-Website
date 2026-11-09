@@ -196,7 +196,7 @@ export default function TaskCompleteModal({
 
         {errorMessage && (
           <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 font-mono">
-            ⚠️ {errorMessage}
+            {errorMessage}
           </div>
         )}
 
@@ -220,7 +220,7 @@ export default function TaskCompleteModal({
               />
               {videoFile && (
                 <div className="text-[10px] font-mono text-emerald-700 font-bold flex items-center gap-1">
-                  <span>✓ Selected:</span>
+                  <span>Selected:</span>
                   <span className="truncate max-w-[200px]">{videoFile.name}</span>
                   <span>({(videoFile.size / (1024 * 1024)).toFixed(1)} MB)</span>
                 </div>
@@ -240,7 +240,7 @@ export default function TaskCompleteModal({
               />
               {videoUrlInput && getEmbeddableVideoUrl(videoUrlInput) && (
                 <div className="text-[10px] font-mono text-emerald-700 font-bold">
-                  ✓ Link detected
+                  Valid link detected
                 </div>
               )}
             </div>
@@ -390,7 +390,7 @@ export default function TaskCompleteModal({
                     <span>Publishing &amp; Completing...</span>
                   </>
                 ) : (
-                  <span>Attach Video &amp; Complete Task ✓</span>
+                  <span>Attach Video &amp; Complete Task</span>
                 )}
               </button>
             </div>

@@ -233,15 +233,15 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
             {/* Core Benefits */}
             <div className="p-3.5 rounded-2xl bg-alice-blue/60 border border-jet-black/5 space-y-2 text-xs font-mono">
               <div className="flex items-center gap-2 text-jet-black font-semibold">
-                <span className="text-orange">⚡</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-orange"></span>
                 <span>Instant Home Screen &amp; Dock Launch</span>
               </div>
               <div className="flex items-center gap-2 text-jet-black font-semibold">
-                <span className="text-emerald-600">✓</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
                 <span>Full-Screen Standalone Workspace</span>
               </div>
               <div className="flex items-center gap-2 text-jet-black font-semibold">
-                <span className="text-sky-600">📶</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-600"></span>
                 <span>Fast Offline Workshop Resiliency</span>
               </div>
             </div>
@@ -258,7 +258,7 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
                       1
                     </span>
                     <span>
-                      Tap the <strong>Share</strong> button at the bottom of Safari (<span className="text-base">⎋</span>)
+                      Tap the <strong>Share</strong> button at the bottom of Safari
                     </span>
                   </div>
                   <div className="flex items-center gap-3 p-3 rounded-xl bg-alice-blue/80 border border-jet-black/10">
