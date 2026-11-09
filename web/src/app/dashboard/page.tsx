@@ -186,6 +186,7 @@ function DashboardContent() {
   // Custom Delete Task Confirmation Modal state
   const [cardTaskToDelete, setCardTaskToDelete] = useState<Task | null>(null);
   const [isDeletingCardTask, setIsDeletingCardTask] = useState(false);
+  const [cardMenuTaskId, setCardMenuTaskId] = useState<string | null>(null);
 
   // New task form modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -269,11 +270,14 @@ function DashboardContent() {
     try {
       localStorage.removeItem('siep_tasks_cache_v1');
       localStorage.removeItem('siep_tasks_cache_v2');
+      localStorage.removeItem('siep_tasks_cache_v3');
       const cached = localStorage.getItem(TASKS_STORAGE_KEY);
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed)) {
-          setTasks(parsed);
+          const cleaned = parsed.filter((t: any) => !t.id?.startsWith('task-seed'));
+          setTasks(cleaned);
+          localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(cleaned));
         }
       }
     } catch (e) {
@@ -1336,19 +1340,19 @@ function DashboardContent() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-orange animate-pulse"></span>
-                    <h3 className="text-base sm:text-lg font-bold text-jet-black">
+                    <h3 className="text-base sm:text-lg font-bold font-sans text-jet-black">
                       Personal Action Workbench
                     </h3>
                   </div>
-                  <p className="text-xs font-mono text-grey mt-0.5">
-                    Managing {myAssignedCount} deliverables assigned to <strong className="text-jet-black">{user.displayName}</strong>
+                  <p className="text-xs font-sans text-zinc-600 mt-0.5">
+                    Managing {myAssignedCount} deliverables assigned to <strong className="text-jet-black font-semibold">{user.displayName}</strong>
                   </p>
                 </div>
 
                 {/* Personal Completion Metric */}
                 <div className="flex items-center gap-3">
-                  <div className="text-right font-mono">
-                    <div className="text-xs text-grey">Personal Progress</div>
+                  <div className="text-right font-sans">
+                    <div className="text-xs text-zinc-500">Personal Progress</div>
                     <div className="text-sm font-bold text-jet-black">
                       {myTasksBreakdown.done} / {myTasksBreakdown.total} completed ({myTasksBreakdown.completionPct}%)
                     </div>
@@ -1364,22 +1368,22 @@ function DashboardContent() {
 
               {/* Status Filter Pills for My Tasks */}
               <div className="pt-3 border-t border-jet-black/5 flex flex-wrap items-center gap-2">
-                <span className="text-[10px] font-mono uppercase text-grey font-bold shrink-0">
+                <span className="text-xs font-sans text-zinc-500 font-semibold shrink-0">
                   Filter Status:
                 </span>
 
                 <button
                   type="button"
                   onClick={() => setMyTasksTabStatusFilter('all')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-sans transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
                     myTasksTabStatusFilter === 'all'
-                      ? 'bg-jet-black text-alice-blue font-bold shadow-sm'
-                      : 'bg-alice-blue/60 text-grey hover:text-jet-black hover:bg-alice-blue'
+                      ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
+                      : 'bg-alice-blue/60 text-zinc-600 hover:text-jet-black hover:bg-alice-blue'
                   }`}
                 >
                   <span>All Assigned</span>
                   <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                    myTasksTabStatusFilter === 'all' ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-jet-black'
+                    myTasksTabStatusFilter === 'all' ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-zinc-700'
                   }`}>
                     {myAssignedTasks.length}
                   </span>
@@ -1393,16 +1397,16 @@ function DashboardContent() {
                       key={col.id}
                       type="button"
                       onClick={() => setMyTasksTabStatusFilter(col.id)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-sans transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
                         isSelected
-                          ? 'bg-jet-black text-alice-blue font-bold shadow-sm'
-                          : 'bg-alice-blue/60 text-grey hover:text-jet-black hover:bg-alice-blue'
+                          ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
+                          : 'bg-alice-blue/60 text-zinc-600 hover:text-jet-black hover:bg-alice-blue'
                       }`}
                     >
                       <span className={`w-2 h-2 rounded-full ${col.dotColor}`}></span>
                       <span>{col.label}</span>
                       <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                        isSelected ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-jet-black'
+                        isSelected ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-zinc-700'
                       }`}>
                         {count}
                       </span>
@@ -1444,26 +1448,26 @@ function DashboardContent() {
                   return (
                     <div
                       key={col.id}
-                      className="bg-white border border-jet-black/10 rounded-2xl p-5 flex flex-col min-h-[400px] shadow-sm"
+                      className="bg-white border border-jet-black/10 rounded-2xl p-4 sm:p-5 flex flex-col min-h-[180px] h-fit shadow-sm"
                     >
                       {/* Column Header */}
-                      <div className="flex items-center justify-between pb-3.5 mb-3.5 border-b border-jet-black/10">
+                      <div className="flex items-center justify-between pb-3 mb-3 border-b border-jet-black/10">
                         <div className="flex items-center gap-2">
                           <span className={`w-2.5 h-2.5 rounded-full ${col.dotColor}`}></span>
-                          <h4 className="text-xs font-mono uppercase font-black tracking-wider text-jet-black">
+                          <h4 className="text-sm font-sans font-bold text-zinc-800">
                             {col.label}
                           </h4>
                         </div>
-                        <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-alice-blue text-jet-black font-bold border border-jet-black/10">
+                        <span className="text-xs font-sans px-2.5 py-0.5 rounded-full bg-alice-blue text-zinc-700 font-bold border border-jet-black/10">
                           {columnTasks.length}
                         </span>
                       </div>
 
                       {/* Cards */}
-                      <div className="space-y-3.5 flex-1 overflow-y-auto pr-1">
+                      <div className="space-y-3 flex-1 overflow-y-auto pr-0.5">
                         {columnTasks.length === 0 ? (
-                          <div className="h-32 border-2 border-dashed border-jet-black/10 rounded-xl flex items-center justify-center text-center p-3">
-                            <span className="text-[11px] text-grey font-mono">
+                          <div className="py-6 px-3 border border-dashed border-zinc-200 rounded-xl flex items-center justify-center text-center">
+                            <span className="text-xs text-zinc-500 font-sans">
                               No tasks in {col.label}
                             </span>
                           </div>
@@ -1476,36 +1480,42 @@ function DashboardContent() {
                               <div
                                 key={task.id}
                                 onClick={() => handleOpenTaskDetail(task)}
-                                className="group bg-alice-blue/40 hover:bg-white border border-jet-black/10 hover:border-orange/60 rounded-xl p-4 shadow-2xs hover:shadow-md transition-all space-y-3 cursor-pointer"
+                                className="group bg-alice-blue/40 hover:bg-white border border-jet-black/10 hover:border-orange/60 rounded-xl p-3.5 sm:p-4 shadow-2xs hover:shadow-md transition-all space-y-3 cursor-pointer"
                               >
                                 <div className="flex items-center justify-between gap-2">
-                                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold border ${taskTeam?.badgeBg || 'bg-jet-black/5 text-jet-black'}`}>
-                                    [{taskTeam?.code}] {taskTeam?.shortName}
+                                  <span className={`px-2 py-0.5 rounded-md text-[11px] font-sans font-semibold border whitespace-nowrap flex-shrink-0 ${taskTeam?.badgeBg || 'bg-zinc-100 text-zinc-800 border-zinc-200'}`}>
+                                    {taskTeam?.shortName || task.teamId}
                                   </span>
-                                  <span className={`px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider font-bold ${priorityInfo.bg}`}>
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-sans font-bold uppercase tracking-wider whitespace-nowrap flex-shrink-0 ${priorityInfo.bg}`}>
                                     {priorityInfo.label}
                                   </span>
                                 </div>
 
                                 <div>
-                                  <h5 className="text-sm font-bold text-jet-black leading-snug group-hover:text-orange transition-colors">
+                                  <h5 className="text-sm font-sans font-semibold text-jet-black leading-snug group-hover:text-orange transition-colors">
                                     {task.title}
                                   </h5>
                                   {task.description && (
-                                    <p className="text-xs text-grey mt-1 font-light line-clamp-2 leading-relaxed">
+                                    <p className="text-xs text-zinc-600 mt-1 font-normal line-clamp-2 leading-relaxed">
                                       {task.description}
                                     </p>
                                   )}
                                 </div>
 
-                                <div className="pt-2 border-t border-jet-black/5 flex items-center justify-between text-[10px] font-mono text-grey">
-                                  {task.dueDate ? (
-                                    <span className="bg-white px-2 py-0.5 rounded border border-jet-black/10 text-jet-black font-semibold">
-                                      Due: {task.dueDate}
-                                    </span>
-                                  ) : (
-                                    <span className="italic text-grey/60">No due date</span>
-                                  )}
+                                <div className="pt-2 border-t border-jet-black/5 flex items-center justify-between text-xs font-sans text-zinc-500">
+                                  {(() => {
+                                    const dueInfo = formatRelativeDueDate(task.dueDate);
+                                    if (!dueInfo) return <span className="text-[11px] text-zinc-400 italic">No deadline</span>;
+                                    return (
+                                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-sans ${dueInfo.className}`}>
+                                        {dueInfo.isOverdue && <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span>}
+                                        {dueInfo.text}
+                                      </span>
+                                    );
+                                  })()}
+                                  <span className="text-[11px] text-zinc-400 font-sans">
+                                    {user.displayName.split(' ')[0]}
+                                  </span>
                                 </div>
 
                                 <div className="pt-2.5 border-t border-jet-black/5 flex items-center justify-between">
@@ -1518,7 +1528,7 @@ function DashboardContent() {
                                           if (prevIdx >= 0) handleMoveStatus(e, task.id, STATUS_COLUMNS[prevIdx].id);
                                         }}
                                         title="Move back"
-                                        className="px-2 py-1 text-[10px] font-mono bg-white hover:bg-jet-black/5 rounded-lg border border-jet-black/15 cursor-pointer font-bold transition-colors"
+                                        className="px-2 py-1 text-xs font-sans font-medium bg-white hover:bg-zinc-100 rounded-lg border border-zinc-200 text-zinc-600 cursor-pointer transition-colors"
                                       >
                                         ←
                                       </button>
@@ -1531,7 +1541,7 @@ function DashboardContent() {
                                           if (nextIdx < STATUS_COLUMNS.length) handleMoveStatus(e, task.id, STATUS_COLUMNS[nextIdx].id);
                                         }}
                                         title="Advance status"
-                                        className="px-2.5 py-1 text-[10px] font-mono bg-jet-black text-alice-blue hover:bg-orange rounded-lg font-bold transition-colors cursor-pointer"
+                                        className="px-2.5 py-1 text-xs font-sans font-medium border border-zinc-300 hover:border-orange hover:bg-orange/10 hover:text-orange text-zinc-700 bg-white rounded-lg transition-colors cursor-pointer"
                                       >
                                         Advance →
                                       </button>
@@ -1541,11 +1551,11 @@ function DashboardContent() {
                                   <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                                     <Link
                                       href={`/log?team=${task.teamId}&task=${encodeURIComponent(task.title)}`}
-                                      className="text-[10px] font-mono px-2 py-1 rounded-lg border border-orange/40 text-orange hover:bg-orange hover:text-white transition-all font-bold"
+                                      className="text-xs font-sans px-2 py-1 rounded-lg border border-orange/40 text-orange hover:bg-orange hover:text-white transition-all font-semibold"
                                     >
                                       Log
                                     </Link>
-                                    <span className="text-[10px] font-mono text-grey group-hover:text-orange font-bold transition-colors">
+                                    <span className="text-xs font-sans text-zinc-500 group-hover:text-orange font-semibold transition-colors">
                                       Details ↗
                                     </span>
                                   </div>
@@ -1583,16 +1593,17 @@ function DashboardContent() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
+                    placeholder="Search tasks by title, description, or squad..."
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-jet-black/15 text-xs sm:text-sm font-sans text-zinc-800 placeholder:text-zinc-400 focus:ring-2 focus:ring-orange focus:outline-none"
                   />
-                  <svg className="w-4 h-4 text-grey absolute left-3.5 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                   {searchQuery && (
                     <button
                       type="button"
                       onClick={() => setSearchQuery('')}
-                      className="absolute right-3.5 top-2.5 text-grey hover:text-jet-black text-xs font-mono"
+                      className="absolute right-3.5 top-2.5 text-zinc-400 hover:text-zinc-700 text-xs font-sans cursor-pointer"
                     >
                       ✕
                     </button>
@@ -1601,11 +1612,11 @@ function DashboardContent() {
 
                 {/* Priority Selector */}
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[11px] font-mono text-grey uppercase font-bold">Priority:</span>
+                  <span className="text-xs font-sans text-zinc-500 font-semibold">Priority:</span>
                   <select
                     value={selectedPriorityFilter}
                     onChange={(e) => setSelectedPriorityFilter(e.target.value)}
-                    className="px-3 py-2 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none bg-white cursor-pointer"
+                    className="px-3 py-2 rounded-xl border border-jet-black/15 text-xs sm:text-sm font-sans text-zinc-700 font-medium focus:ring-2 focus:ring-orange focus:outline-none bg-white cursor-pointer"
                   >
                     <option value="all">All Priorities</option>
                     <option value="urgent">Urgent</option>
@@ -1617,92 +1628,112 @@ function DashboardContent() {
 
               </div>
 
-              {/* Subsystem Filter Pills */}
-              <div className="pt-3 border-t border-jet-black/5 flex items-center gap-2 overflow-x-auto hide-scrollbar touch-pan-x overscroll-x-contain scroll-smooth">
-                <span className="text-[10px] font-mono uppercase text-grey font-bold shrink-0">
-                  Subsystem:
-                </span>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedSubsystemFilter('all');
-                    setAssignedToMeOnly(false);
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
-                    selectedSubsystemFilter === 'all' && !assignedToMeOnly
-                      ? 'bg-jet-black text-alice-blue font-bold shadow-sm'
-                      : 'bg-alice-blue/60 text-grey hover:text-jet-black hover:bg-alice-blue'
-                  }`}
-                >
-                  All Tasks ({tasks.length})
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    const nextVal = !assignedToMeOnly;
-                    setAssignedToMeOnly(nextVal);
-                    if (nextVal) {
-                      setSelectedSubsystemFilter('all');
-                    }
-                  }}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                    assignedToMeOnly
-                      ? 'bg-orange text-white font-bold shadow-md'
-                      : 'bg-alice-blue/60 text-grey hover:text-jet-black hover:bg-alice-blue'
-                  }`}
-                >
-                  <span>Assigned to Me</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                    assignedToMeOnly ? 'bg-white/30 text-white' : 'bg-jet-black/10 text-jet-black'
-                  }`}>
-                    {myAssignedCount}
+              {/* Subsystem Filter Pills with smooth horizontal scroll and right-edge gradient indicator */}
+              <div className="relative">
+                <div className="pt-3 border-t border-jet-black/5 flex items-center gap-2 overflow-x-auto hide-scrollbar touch-pan-x scroll-smooth pr-10">
+                  <span className="text-xs font-sans text-zinc-500 font-semibold shrink-0">
+                    Subsystem:
                   </span>
-                </button>
 
-                {TEAMS_LIST.map((team) => {
-                  const count = tasks.filter((t) => t.teamId === team.id).length;
-                  const isSelected = selectedSubsystemFilter === team.id && !assignedToMeOnly;
-                  return (
-                    <button
-                      key={team.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedSubsystemFilter(team.id);
-                        setAssignedToMeOnly(false);
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                        isSelected
-                          ? 'bg-jet-black text-alice-blue font-bold shadow-sm'
-                          : 'bg-alice-blue/60 text-grey hover:text-jet-black hover:bg-alice-blue'
-                      }`}
-                    >
-                      <span>[{team.code}]</span>
-                      <span>{team.shortName}</span>
-                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                        isSelected ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-jet-black'
-                      }`}>
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
-
-                {(selectedSubsystemFilter !== 'all' || selectedPriorityFilter !== 'all' || searchQuery || assignedToMeOnly) && (
                   <button
                     type="button"
                     onClick={() => {
                       setSelectedSubsystemFilter('all');
-                      setSelectedPriorityFilter('all');
-                      setSearchQuery('');
                       setAssignedToMeOnly(false);
                     }}
-                    className="ml-auto px-2.5 py-1 text-xs font-mono text-orange hover:underline font-bold whitespace-nowrap cursor-pointer"
+                    className={`px-3 py-1.5 rounded-xl text-xs font-sans transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                      selectedSubsystemFilter === 'all' && !assignedToMeOnly
+                        ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
+                        : 'bg-alice-blue/60 text-zinc-600 hover:text-jet-black hover:bg-alice-blue'
+                    }`}
                   >
-                    Reset Filters
+                    All Tasks ({tasks.length})
                   </button>
-                )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextVal = !assignedToMeOnly;
+                      setAssignedToMeOnly(nextVal);
+                      if (nextVal) {
+                        setSelectedSubsystemFilter('all');
+                      }
+                    }}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-sans transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 ${
+                      assignedToMeOnly
+                        ? 'bg-orange text-white font-semibold shadow-md'
+                        : 'bg-alice-blue/60 text-zinc-600 hover:text-jet-black hover:bg-alice-blue'
+                    }`}
+                  >
+                    <span>Assigned to Me</span>
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                      assignedToMeOnly ? 'bg-white/30 text-white' : 'bg-jet-black/10 text-zinc-700'
+                    }`}>
+                      {myAssignedCount}
+                    </span>
+                  </button>
+
+                  {TEAMS_LIST.map((team) => {
+                    const count = tasks.filter((t) => t.teamId === team.id).length;
+                    const isSelected = selectedSubsystemFilter === team.id && !assignedToMeOnly;
+                    return (
+                      <button
+                        key={team.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedSubsystemFilter(team.id);
+                          setAssignedToMeOnly(false);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-sans transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 ${
+                          isSelected
+                            ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
+                            : 'bg-alice-blue/60 text-zinc-600 hover:text-jet-black hover:bg-alice-blue'
+                        }`}
+                      >
+                        <span className="font-medium">{team.shortName}</span>
+                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                          isSelected ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-zinc-700'
+                        }`}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+
+                  {specialDeadlineFilter !== 'all' && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-orange/15 border border-orange/30 text-orange text-xs font-sans font-semibold whitespace-nowrap shrink-0">
+                      <span>
+                        Filter: {specialDeadlineFilter === 'due_week' ? 'Due This Week' : specialDeadlineFilter === 'overdue' ? 'Overdue' : 'Review Queue'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setSpecialDeadlineFilter('all')}
+                        className="hover:text-jet-black font-bold ml-0.5 cursor-pointer"
+                        title="Clear deadline filter"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+
+                  {(selectedSubsystemFilter !== 'all' || selectedPriorityFilter !== 'all' || searchQuery || assignedToMeOnly || specialDeadlineFilter !== 'all') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedSubsystemFilter('all');
+                        setSelectedPriorityFilter('all');
+                        setSearchQuery('');
+                        setAssignedToMeOnly(false);
+                        setSpecialDeadlineFilter('all');
+                      }}
+                      className="ml-auto px-2.5 py-1 text-xs font-sans text-orange hover:underline font-semibold whitespace-nowrap cursor-pointer shrink-0"
+                    >
+                      Reset Filters
+                    </button>
+                  )}
+                </div>
+                {/* Right subtle fade indicator for mobile/narrow horizontal scroll */}
+                <div className="absolute right-0 top-3 bottom-0 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none md:hidden" />
               </div>
 
             </div>
@@ -1715,29 +1746,32 @@ function DashboardContent() {
                 return (
                   <div
                     key={col.id}
-                    className="bg-white border border-jet-black/10 rounded-2xl p-5 flex flex-col min-h-[500px] shadow-sm"
+                    className="bg-white border border-jet-black/10 rounded-2xl p-4 sm:p-5 flex flex-col min-h-[200px] h-fit shadow-sm"
                   >
                     {/* Column Header */}
-                    <div className="flex items-center justify-between pb-4 mb-4 border-b border-jet-black/10">
+                    <div className="flex items-center justify-between pb-3.5 mb-3.5 border-b border-jet-black/10">
                       <div className="flex items-center gap-2">
                         <span className={`w-2.5 h-2.5 rounded-full ${col.dotColor}`}></span>
-                        <h3 className="text-xs font-mono uppercase font-black tracking-wider text-jet-black">
+                        <h3 className="text-sm font-sans font-bold text-zinc-800">
                           {col.label}
                         </h3>
                       </div>
-                      <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-alice-blue text-jet-black font-bold border border-jet-black/10">
+                      <span className="text-xs font-sans px-2.5 py-0.5 rounded-full bg-alice-blue text-zinc-700 font-bold border border-jet-black/10">
                         {columnTasks.length}
                       </span>
                     </div>
 
                     {/* Cards List */}
-                    <div className="space-y-4 flex-1 overflow-y-auto pr-1">
+                    <div className="space-y-3.5 flex-1 overflow-y-auto pr-0.5">
                       {columnTasks.length === 0 ? (
-                        <div className="h-44 border-2 border-dashed border-jet-black/10 rounded-xl flex items-center justify-center text-center p-4">
-                          <span className="text-xs text-grey font-mono">
-                            {filteredTasks.length === 0 && (selectedSubsystemFilter !== 'all' || searchQuery)
-                              ? 'No tasks match filter'
+                        <div className="py-8 px-4 border border-dashed border-zinc-200 rounded-xl flex flex-col items-center justify-center text-center">
+                          <span className="text-xs font-sans text-zinc-500 font-medium">
+                            {filteredTasks.length === 0 && (selectedSubsystemFilter !== 'all' || searchQuery || specialDeadlineFilter !== 'all')
+                              ? 'No matching deliverables'
                               : `No tasks in ${col.label}`}
+                          </span>
+                          <span className="text-[11px] font-sans text-zinc-400 mt-1">
+                            Drag or advance deliverables here
                           </span>
                         </div>
                       ) : (
@@ -1751,21 +1785,21 @@ function DashboardContent() {
                             <div
                               key={task.id}
                               onClick={() => handleOpenTaskDetail(task)}
-                              className="group bg-alice-blue/40 hover:bg-white border border-jet-black/10 hover:border-orange/60 rounded-xl p-4 shadow-sm hover:shadow-md transition-all space-y-3 cursor-pointer"
+                              className="group bg-alice-blue/40 hover:bg-white border border-jet-black/10 hover:border-orange/60 rounded-xl p-3.5 sm:p-4 shadow-2xs hover:shadow-md transition-all space-y-3 cursor-pointer relative"
                             >
                               {/* Team & Priority Row */}
                               <div className="flex items-center justify-between gap-2">
-                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold border ${taskTeam?.badgeBg || 'bg-jet-black/5 text-jet-black'}`}>
-                                  [{taskTeam?.code}] {taskTeam?.shortName}
+                                <span className={`px-2 py-0.5 rounded-md text-[11px] font-sans font-semibold border whitespace-nowrap flex-shrink-0 ${taskTeam?.badgeBg || 'bg-zinc-100 text-zinc-800 border-zinc-200'}`}>
+                                  {taskTeam?.shortName || task.teamId}
                                 </span>
 
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-1.5 whitespace-nowrap flex-shrink-0">
                                   {task.isBlocked && (
-                                    <span className="px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-500/30 text-rose-700 text-[9px] font-mono font-bold flex items-center gap-1" title={task.blockerReason || 'Blocked deliverable'}>
+                                    <span className="px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-500/30 text-rose-700 text-[10px] font-sans font-bold flex items-center gap-1" title={task.blockerReason || 'Blocked deliverable'}>
                                       <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Blocked
                                     </span>
                                   )}
-                                  <span className={`px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider font-bold ${priorityInfo.bg}`}>
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-sans font-bold uppercase tracking-wider ${priorityInfo.bg}`}>
                                     {priorityInfo.label}
                                   </span>
                                 </div>
@@ -1773,11 +1807,11 @@ function DashboardContent() {
 
                               {/* Title & Desc */}
                               <div>
-                                <h4 className="text-sm font-bold text-jet-black leading-snug group-hover:text-orange transition-colors">
+                                <h4 className="text-sm font-sans font-semibold text-jet-black leading-snug group-hover:text-orange transition-colors">
                                   {task.title}
                                 </h4>
                                 {task.description && (
-                                  <p className="text-xs text-grey mt-1.5 font-light line-clamp-2 leading-relaxed">
+                                  <p className="text-xs text-zinc-600 mt-1 font-normal line-clamp-2 leading-relaxed">
                                     {task.description}
                                   </p>
                                 )}
@@ -1786,9 +1820,9 @@ function DashboardContent() {
                               {/* Subtasks Progress Bar */}
                               {task.subtasks && task.subtasks.length > 0 && (
                                 <div className="space-y-1 pt-0.5">
-                                  <div className="flex items-center justify-between text-[10px] font-mono text-grey">
+                                  <div className="flex items-center justify-between text-[11px] font-sans text-zinc-500">
                                     <span>Checklist</span>
-                                    <span className="font-semibold text-jet-black">
+                                    <span className="font-semibold text-zinc-800">
                                       {task.subtasks.filter((st) => st.completed).length}/{task.subtasks.length}
                                     </span>
                                   </div>
@@ -1803,58 +1837,76 @@ function DashboardContent() {
                                 </div>
                               )}
 
-                              {/* Assignees & Due Date + Quick Self-Assign Button */}
-                              <div className="pt-2.5 border-t border-jet-black/5 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-grey">
-                                <div className="flex items-center gap-2 max-w-[170px] truncate">
+                              {/* Assignees & Relative Due Date */}
+                              <div className="pt-2.5 border-t border-jet-black/5 flex items-center justify-between gap-2">
+                                {/* Assignee Avatar Circles */}
+                                <div className="flex items-center gap-1.5">
                                   {task.assignedMembers && task.assignedMembers.length > 0 ? (
-                                    <span className="text-jet-black font-semibold truncate">
-                                      {Array.isArray(task.assignedMembers) ? task.assignedMembers.join(', ') : task.assignedMembers}
-                                    </span>
+                                    <div className="flex items-center -space-x-1.5" title={Array.isArray(task.assignedMembers) ? task.assignedMembers.join(', ') : task.assignedMembers}>
+                                      {(Array.isArray(task.assignedMembers) ? task.assignedMembers : [task.assignedMembers]).slice(0, 3).map((member, idx) => (
+                                        <span
+                                          key={idx}
+                                          className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold border-2 border-white shadow-2xs ${getAvatarColorClass(member)}`}
+                                          title={member}
+                                        >
+                                          {getMemberInitials(member)}
+                                        </span>
+                                      ))}
+                                      {Array.isArray(task.assignedMembers) && task.assignedMembers.length > 3 && (
+                                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[9px] font-bold bg-zinc-200 text-zinc-700 border-2 border-white">
+                                          +{task.assignedMembers.length - 3}
+                                        </span>
+                                      )}
+                                    </div>
                                   ) : (
-                                    <span className="italic text-grey/60">Unassigned</span>
+                                    <span className="inline-flex items-center gap-1 text-[11px] text-zinc-400 italic font-sans">
+                                      <span className="w-5 h-5 rounded-full border border-dashed border-zinc-300 flex items-center justify-center text-[9px] text-zinc-400">?</span>
+                                      Unassigned
+                                    </span>
                                   )}
+
+                                  {/* Comments & Hours info */}
                                   {task.comments && task.comments.length > 0 && (
-                                    <span className="px-1.5 py-0.5 rounded bg-white border border-jet-black/10 text-grey font-bold flex items-center gap-1 text-[9px]">
-                                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                      </svg>
-                                      {task.comments.length}
+                                    <span className="px-1.5 py-0.5 rounded bg-white border border-jet-black/10 text-zinc-500 font-bold flex items-center gap-0.5 text-[10px]">
+                                      💬 {task.comments.length}
                                     </span>
                                   )}
                                   {Boolean(task.actualHours) && (
-                                    <span className="px-1.5 py-0.5 rounded bg-white border border-jet-black/10 text-grey font-bold flex items-center gap-0.5 text-[9px]">
+                                    <span className="px-1.5 py-0.5 rounded bg-white border border-jet-black/10 text-zinc-500 font-medium text-[10px]">
                                       {task.actualHours}h
                                     </span>
                                   )}
-                                </div>
 
-                                <div className="flex items-center gap-1.5">
-                                  {isTaskAssignedToMe ? (
-                                    <span className="px-1.5 py-0.5 rounded bg-orange/15 text-orange font-bold text-[9px] flex items-center gap-0.5">
-                                      Assigned
-                                    </span>
-                                  ) : (
+                                  {!isTaskAssignedToMe && (
                                     <button
                                       type="button"
                                       onClick={(e) => handleQuickAssignToMe(e, task)}
-                                      className="px-2 py-0.5 rounded bg-jet-black/5 hover:bg-orange hover:text-white border border-jet-black/10 text-[9px] font-mono font-bold transition-all cursor-pointer"
+                                      className="px-2 py-0.5 rounded-md bg-zinc-100 hover:bg-orange hover:text-white border border-zinc-200 text-[10px] font-sans font-medium text-zinc-600 transition-all cursor-pointer"
                                       title="Assign this task to yourself"
                                     >
                                       + Claim
                                     </button>
                                   )}
+                                </div>
 
-                                  {task.dueDate && (
-                                    <span className="bg-white px-2 py-0.5 rounded border border-jet-black/10">
-                                      Due: {task.dueDate}
-                                    </span>
-                                  )}
+                                {/* Relative Due Date badge */}
+                                <div>
+                                  {(() => {
+                                    const dueInfo = formatRelativeDueDate(task.dueDate);
+                                    if (!dueInfo) return <span className="text-[11px] font-sans text-zinc-400 italic">No deadline</span>;
+                                    return (
+                                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-sans ${dueInfo.className}`}>
+                                        {dueInfo.isOverdue && <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span>}
+                                        {dueInfo.text}
+                                      </span>
+                                    );
+                                  })()}
                                 </div>
                               </div>
 
-                              {/* Quick Move Status Controls & Open Details */}
+                              {/* Quick Move Status Controls & Open Details / More Menu */}
                               <div className="pt-2.5 border-t border-jet-black/5 flex items-center justify-between">
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                                   {col.id !== 'todo' && (
                                     <button
                                       type="button"
@@ -1864,7 +1916,7 @@ function DashboardContent() {
                                         if (prevIdx >= 0) handleMoveStatus(e, task.id, STATUS_COLUMNS[prevIdx].id);
                                       }}
                                       title="Move back"
-                                      className="px-2.5 py-2 sm:py-1 text-[10px] font-mono bg-white hover:bg-jet-black/5 rounded-lg border border-jet-black/15 cursor-pointer font-bold transition-colors disabled:opacity-40"
+                                      className="px-2 py-1 text-xs font-sans font-medium bg-white hover:bg-zinc-100 rounded-lg border border-zinc-200 text-zinc-600 cursor-pointer transition-colors disabled:opacity-40"
                                     >
                                       ←
                                     </button>
@@ -1878,26 +1930,80 @@ function DashboardContent() {
                                         if (nextIdx < STATUS_COLUMNS.length) handleMoveStatus(e, task.id, STATUS_COLUMNS[nextIdx].id);
                                       }}
                                       title="Move forward"
-                                      className="px-3 py-2 sm:py-1 text-[10px] font-mono bg-jet-black text-alice-blue hover:bg-orange rounded-lg font-bold transition-colors cursor-pointer disabled:opacity-40"
+                                      className="px-2.5 py-1 text-xs font-sans font-medium border border-zinc-300 hover:border-orange hover:bg-orange/10 hover:text-orange text-zinc-700 bg-white rounded-lg transition-colors cursor-pointer disabled:opacity-40"
                                     >
                                       Advance →
                                     </button>
                                   )}
                                 </div>
 
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[10px] font-mono text-grey group-hover:text-orange font-bold transition-colors">
+                                <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenTaskDetail(task)}
+                                    className="text-xs font-sans text-zinc-500 hover:text-orange font-semibold transition-colors px-1.5 py-1 cursor-pointer"
+                                  >
                                     Details ↗
-                                  </span>
+                                  </button>
+
                                   {canManageThisTask && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => promptDeleteTask(e, task)}
-                                      title="Delete task"
-                                      className="text-xs text-grey hover:text-red-500 font-mono p-2 sm:p-1 cursor-pointer transition-colors"
-                                    >
-                                      ✕
-                                    </button>
+                                    <div className="relative">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setCardMenuTaskId(cardMenuTaskId === task.id ? null : task.id);
+                                        }}
+                                        className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 transition-colors text-xs cursor-pointer font-bold"
+                                        title="Task options"
+                                      >
+                                        ···
+                                      </button>
+
+                                      {cardMenuTaskId === task.id && (
+                                        <>
+                                          <div
+                                            className="fixed inset-0 z-20"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setCardMenuTaskId(null);
+                                            }}
+                                          />
+                                          <div className="absolute right-0 bottom-full mb-1 w-40 bg-white border border-zinc-200 rounded-xl shadow-xl py-1 z-30 animate-in fade-in zoom-in-95">
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setCardMenuTaskId(null);
+                                                handleOpenTaskDetail(task);
+                                              }}
+                                              className="w-full text-left px-3 py-1.5 text-xs font-sans text-zinc-700 hover:bg-zinc-50 flex items-center gap-2 cursor-pointer"
+                                            >
+                                              <span>Task Details</span>
+                                            </button>
+                                            <Link
+                                              href={`/log?team=${task.teamId}&task=${encodeURIComponent(task.title)}`}
+                                              onClick={() => setCardMenuTaskId(null)}
+                                              className="w-full text-left px-3 py-1.5 text-xs font-sans text-zinc-700 hover:bg-zinc-50 flex items-center gap-2 cursor-pointer"
+                                            >
+                                              <span>Log Build Step</span>
+                                            </Link>
+                                            <div className="border-t border-zinc-100 my-1"></div>
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setCardMenuTaskId(null);
+                                                promptDeleteTask(e, task);
+                                              }}
+                                              className="w-full text-left px-3 py-1.5 text-xs font-sans text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium cursor-pointer"
+                                            >
+                                              <span>Delete Task...</span>
+                                            </button>
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
                                   )}
                                 </div>
                               </div>
@@ -1941,7 +2047,7 @@ function DashboardContent() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-[11px] font-mono uppercase px-2 py-0.5 rounded bg-jet-black/5 text-jet-black font-bold">
-                            [{team.code}]
+                            {team.code}
                           </span>
                           <h4 className="text-base font-bold text-jet-black leading-tight">{team.name}</h4>
                         </div>
@@ -2526,24 +2632,24 @@ function DashboardContent() {
           <div className="bg-white border border-jet-black/10 rounded-2xl overflow-hidden shadow-sm space-y-0">
             <div className="p-6 sm:p-8 border-b border-jet-black/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-lg font-bold text-jet-black">
+                <h3 className="text-lg font-bold text-jet-black font-sans">
                   SIEP Access &amp; Credential Directory
                 </h3>
-                <p className="text-xs text-grey mt-0.5">
+                <p className="text-xs text-zinc-600 font-sans mt-0.5">
                   Core Leadership master control: View member 6-digit PINs, roles, and access tiers
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
                 {/* View Mode Toggle */}
-                <div className="p-1 rounded-xl bg-alice-blue border border-jet-black/10 flex items-center gap-1 text-xs font-mono">
+                <div className="p-1 rounded-xl bg-alice-blue border border-jet-black/10 flex items-center gap-1 text-xs font-sans">
                   <button
                     type="button"
                     onClick={() => setAccountsViewMode('members')}
-                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
                       accountsViewMode === 'members'
                         ? 'bg-jet-black text-alice-blue shadow-sm'
-                        : 'text-grey hover:text-jet-black'
+                        : 'text-zinc-600 hover:text-jet-black'
                     }`}
                   >
                     Members ({ROSTER_MEMBERS.length})
@@ -2551,10 +2657,10 @@ function DashboardContent() {
                   <button
                     type="button"
                     onClick={() => setAccountsViewMode('teams')}
-                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
                       accountsViewMode === 'teams'
                         ? 'bg-jet-black text-alice-blue shadow-sm'
-                        : 'text-grey hover:text-jet-black'
+                        : 'text-zinc-600 hover:text-jet-black'
                     }`}
                   >
                     Squads ({ALL_TEAMS.length})
@@ -2564,7 +2670,7 @@ function DashboardContent() {
                 <button
                   type="button"
                   onClick={loadCredentials}
-                  className="text-xs font-mono px-3 py-2 bg-alice-blue text-jet-black hover:bg-jet-black hover:text-white border border-jet-black/10 rounded-xl font-bold transition-all cursor-pointer"
+                  className="text-xs font-sans px-3 py-2 bg-alice-blue text-jet-black hover:bg-jet-black hover:text-white border border-jet-black/10 rounded-xl font-semibold transition-all cursor-pointer"
                   title="Reload from Google Cloud Firestore"
                 >
                   Refresh
@@ -2572,10 +2678,23 @@ function DashboardContent() {
                 <button
                   type="button"
                   onClick={() => setShowCredentialsPasswords(!showCredentialsPasswords)}
-                  className="text-xs font-mono px-3.5 py-2 bg-alice-blue text-jet-black hover:bg-jet-black hover:text-white border border-jet-black/10 rounded-xl font-bold transition-all cursor-pointer"
+                  className="text-xs font-sans px-3.5 py-2 bg-alice-blue text-jet-black hover:bg-jet-black hover:text-white border border-jet-black/10 rounded-xl font-semibold transition-all cursor-pointer"
                 >
                   {showCredentialsPasswords ? 'Mask PINs' : 'Show PINs'}
                 </button>
+              </div>
+            </div>
+
+            {/* Enterprise Security Notice */}
+            <div className="mx-6 sm:mx-8 my-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
+              <span className="text-amber-600 text-base">🔒</span>
+              <div className="space-y-1 text-xs font-sans">
+                <p className="font-semibold text-jet-black">
+                  Protected Core Credential Vault (Server-Side Verified)
+                </p>
+                <p className="text-zinc-600 leading-relaxed">
+                  Access is strictly authorized server-side on <code className="bg-amber-100/80 px-1 py-0.5 rounded text-[11px] font-mono">/api/passwords</code>. Plaintext is never exposed publicly and credentials are encrypted in transit. Recommended practice: synchronize shared team credentials with <a href="https://bitwarden.com" target="_blank" rel="noopener noreferrer" className="text-orange hover:underline font-semibold">Bitwarden Vault</a>.
+                </p>
               </div>
             </div>
 
@@ -2610,7 +2729,7 @@ function DashboardContent() {
                             </td>
                             <td className="py-4 px-6">
                               <span className="font-semibold text-jet-black">{m.role}</span>
-                              <span className="text-[10px] text-grey ml-1.5 font-mono">[{m.teamId.toUpperCase()}]</span>
+                              <span className="text-[10px] text-zinc-500 ml-1.5 font-mono">{m.teamId.toUpperCase()}</span>
                             </td>
                             <td className="py-4 px-6">
                               {m.isCore ? (
@@ -2677,7 +2796,7 @@ function DashboardContent() {
                         </div>
                         <div className="text-xs font-mono text-grey break-all select-all">{m.email}</div>
                         <div className="text-xs text-jet-black">
-                          {m.role} <span className="text-grey font-mono">[{m.teamId.toUpperCase()}]</span>
+                          {m.role} <span className="text-zinc-500 font-mono text-[11px]">{m.teamId.toUpperCase()}</span>
                         </div>
                         <div className="flex items-center justify-between bg-white rounded-xl px-3 py-2 border border-jet-black/10">
                           <span className="text-[10px] font-mono uppercase text-grey">6-Digit PIN:</span>
@@ -3156,6 +3275,34 @@ function DashboardContent() {
             </div>
 
           </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          FLOATING UNDO ACTION TOAST
+          Appears when a task status is advanced or moved, allowing quick 1-click reversal
+         ========================================================================= */}
+      {undoState && (
+        <div className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-[300] bg-jet-black text-white px-4 py-3 rounded-2xl shadow-2xl border border-white/10 flex items-center gap-3.5 text-xs font-sans animate-in fade-in slide-in-from-bottom-3 duration-200">
+          <span className="w-2 h-2 rounded-full bg-orange animate-pulse"></span>
+          <span className="max-w-[240px] sm:max-w-md truncate text-zinc-200 font-medium">
+            {undoState.message}
+          </span>
+          <button
+            type="button"
+            onClick={handleUndoMoveStatus}
+            className="px-3 py-1.5 rounded-lg bg-orange text-jet-black font-bold hover:bg-amber-400 active:scale-95 transition-all cursor-pointer text-xs"
+          >
+            Undo
+          </button>
+          <button
+            type="button"
+            onClick={() => setUndoState(null)}
+            className="text-zinc-400 hover:text-white p-1 cursor-pointer transition-colors text-xs"
+            title="Dismiss"
+          >
+            ✕
+          </button>
         </div>
       )}
 

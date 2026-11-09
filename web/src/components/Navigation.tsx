@@ -288,7 +288,7 @@ export default function Navigation() {
                         href="/dashboard"
                         className="h-9 px-3.5 rounded-xl bg-jet-black text-alice-blue text-xs font-sans font-bold uppercase tracking-wider hover:bg-orange transition-all inline-flex items-center gap-2 shadow-sm"
                       >
-                        <span className="text-[10px] text-orange font-mono font-bold">[{currentTeam?.code || user.teamId.toUpperCase()}]</span>
+                        <span className="text-[10px] text-orange font-mono font-bold">{currentTeam?.code || user.teamId.toUpperCase()}</span>
                         <span>Portal →</span>
                       </Link>
                       <button
@@ -338,7 +338,7 @@ export default function Navigation() {
           <div className="flex md:hidden items-center gap-3">
             {isMounted && user && (
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-jet-black text-alice-blue font-bold">
-                [{currentTeam?.code || user.teamId.toUpperCase()}]
+                {currentTeam?.code || user.teamId.toUpperCase()}
               </span>
             )}
             <button
@@ -439,7 +439,7 @@ export default function Navigation() {
 
                 <div className="w-full text-center py-2 flex flex-col items-center justify-center gap-2">
                   <div className="text-xs font-mono uppercase px-3 py-1.5 rounded-full bg-jet-black text-alice-blue flex items-center gap-2">
-                    <span className="text-orange">[{currentTeam?.code || user.teamId.toUpperCase()}]</span>
+                    <span className="text-orange">{currentTeam?.code || user.teamId.toUpperCase()}</span>
                     <span>{user.displayName}</span>
                   </div>
                   <button

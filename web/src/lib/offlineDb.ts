@@ -255,21 +255,44 @@ export async function getOfflineCachedTasks(): Promise<Task[]> {
     return new Promise((resolve) => {
       req.onsuccess = () => {
         if (req.result && req.result.length > 0) {
-          resolve(req.result);
+          const cleaned = req.result.filter((t: Task) => !t.id?.startsWith('task-seed'));
+          resolve(cleaned);
         } else {
           const fallback = localStorage.getItem('siep_tasks_cache_v3');
-          resolve(fallback ? JSON.parse(fallback) : []);
+          if (fallback) {
+            try {
+              const parsed = JSON.parse(fallback);
+              resolve(Array.isArray(parsed) ? parsed.filter((t: Task) => !t.id?.startsWith('task-seed')) : []);
+            } catch {
+              resolve([]);
+            }
+          } else {
+            resolve([]);
+          }
         }
       };
       req.onerror = () => {
         const fallback = localStorage.getItem('siep_tasks_cache_v3');
-        resolve(fallback ? JSON.parse(fallback) : []);
+        if (fallback) {
+          try {
+            const parsed = JSON.parse(fallback);
+            resolve(Array.isArray(parsed) ? parsed.filter((t: Task) => !t.id?.startsWith('task-seed')) : []);
+          } catch {
+            resolve([]);
+          }
+        } else {
+          resolve([]);
+        }
       };
     });
   } catch {
     try {
       const fallback = localStorage.getItem('siep_tasks_cache_v3');
-      return fallback ? JSON.parse(fallback) : [];
+      if (fallback) {
+        const parsed = JSON.parse(fallback);
+        return Array.isArray(parsed) ? parsed.filter((t: Task) => !t.id?.startsWith('task-seed')) : [];
+      }
+      return [];
     } catch {
       return [];
     }
