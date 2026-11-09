@@ -37,7 +37,7 @@ function DashboardContent() {
   const searchParams = useSearchParams();
   const restrictedNotice = searchParams.get('restricted') === 'log';
 
-  const { user, loading: authLoading, isAdmin, isCore, isLead, tier } = useAuth();
+  const { user, loading: authLoading, isAdmin, isCore, isLead, tier, logout } = useAuth();
   const { isInstalled, installApp } = usePwaInstall();
   const { enqueueTaskStatusUpdate, isOnline } = useBackgroundSync();
   const isCoreAdmin = Boolean(isCore || isAdmin || (user && user.teamId === 'core'));
@@ -46,6 +46,11 @@ function DashboardContent() {
 
   // Active view tab
   const [activeTab, setActiveTab] = useState<'my_tasks' | 'kanban' | 'teams' | 'videos' | 'accounts'>('kanban');
+
+  // Mobile All-in-One Bottom Menu & Keyboard states
+  const [isMobileQuickMenuOpen, setIsMobileQuickMenuOpen] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  const [isManualSyncing, setIsManualSyncing] = useState(false);
 
   // Main data state
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -292,6 +297,35 @@ function DashboardContent() {
     try {
       localStorage.setItem('siep_last_read_activity', String(now));
     } catch {}
+  };
+
+  // Keyboard avoidance for mobile bottom navigation
+  useEffect(() => {
+    const handleFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+        setIsInputFocused(true);
+      }
+    };
+    const handleFocusOut = () => {
+      setIsInputFocused(false);
+    };
+    window.addEventListener('focusin', handleFocusIn);
+    window.addEventListener('focusout', handleFocusOut);
+    return () => {
+      window.removeEventListener('focusin', handleFocusIn);
+      window.removeEventListener('focusout', handleFocusOut);
+    };
+  }, []);
+
+  // Manual fast sync trigger for mobile bottom hub
+  const handleManualSync = async () => {
+    setIsManualSyncing(true);
+    try {
+      await loadDashboardData();
+    } finally {
+      setTimeout(() => setIsManualSyncing(false), 600);
+    }
   };
 
   // Handle default new task team selection based on user
@@ -599,7 +633,7 @@ function DashboardContent() {
   const videoLogsCount = logs.filter((l) => Boolean(l.videoUrl)).length;
 
   return (
-    <main className="min-h-screen bg-alice-blue text-jet-black pt-20 sm:pt-24 pb-16 sm:pb-24 px-3 sm:px-6 lg:px-8 font-sans">
+    <main className="min-h-screen bg-alice-blue text-jet-black pt-20 sm:pt-24 pb-32 sm:pb-24 px-3 sm:px-6 lg:px-8 font-sans">
       
       {/* Background CAD accent */}
       <div className="fixed inset-0 opacity-[0.02] pointer-events-none bg-[radial-gradient(#2B303A_1px,transparent_1px)] [background-size:24px_24px]"></div>
@@ -2745,6 +2779,517 @@ function DashboardContent() {
               >
                 Mark Read ✓
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          FLOATING QUICK FILTER PILL: MY TASKS (Mobile Kanban view only)
+         ========================================================================= */}
+      {activeTab === 'kanban' && !isMobileQuickMenuOpen && !isActivityDrawerOpen && !isInputFocused && user && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-30 md:hidden pointer-events-auto">
+          <button
+            type="button"
+            onClick={() => setAssignedToMeOnly(!assignedToMeOnly)}
+            className={`px-4 py-2 rounded-full text-xs font-mono font-bold shadow-lg transition-all flex items-center gap-2 border active:scale-95 cursor-pointer ${
+              assignedToMeOnly
+                ? 'bg-orange text-white border-orange shadow-orange/30'
+                : 'bg-white/95 backdrop-blur-md text-jet-black border-jet-black/15 shadow-black/10 hover:border-orange'
+            }`}
+          >
+            <span>{assignedToMeOnly ? '✓' : '👤'}</span>
+            <span>{assignedToMeOnly ? 'Showing: My Deliverables' : `Filter: My Tasks (${myAssignedCount})`}</span>
+            {assignedToMeOnly && (
+              <span className="text-[10px] opacity-90 underline ml-0.5">Show All</span>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MOBILE ALL-IN-ONE BOTTOM APP BAR (md:hidden)
+          Persistent, ergonomic 1-thumb operations bar fixed at bottom
+         ========================================================================= */}
+      {user && (
+        <nav
+          aria-label="Mobile Navigation"
+          className={`md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-jet-black/10 shadow-[0_-4px_25px_rgba(0,0,0,0.08)] px-2 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] transition-transform duration-300 ${
+            isInputFocused ? 'translate-y-full pointer-events-none' : 'translate-y-0'
+          }`}
+        >
+          <div className="flex items-center justify-around max-w-lg mx-auto relative">
+            
+            {/* Tab 1: Board */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('kanban');
+                setIsActivityDrawerOpen(false);
+                setIsMobileQuickMenuOpen(false);
+              }}
+              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all cursor-pointer ${
+                activeTab === 'kanban' && !isActivityDrawerOpen && !isMobileQuickMenuOpen
+                  ? 'text-orange font-bold'
+                  : 'text-grey hover:text-jet-black'
+              }`}
+            >
+              <div className="relative">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                </svg>
+                {tasks.length > 0 && (
+                  <span className="absolute -top-1 -right-2 px-1 py-0.2 bg-jet-black/10 text-jet-black text-[9px] font-mono rounded-full font-bold">
+                    {tasks.length}
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] font-mono tracking-tight mt-1">Board</span>
+            </button>
+
+            {/* Tab 2: My Tasks */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('my_tasks');
+                setIsActivityDrawerOpen(false);
+                setIsMobileQuickMenuOpen(false);
+              }}
+              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all cursor-pointer ${
+                activeTab === 'my_tasks' && !isActivityDrawerOpen && !isMobileQuickMenuOpen
+                  ? 'text-orange font-bold'
+                  : 'text-grey hover:text-jet-black'
+              }`}
+            >
+              <div className="relative">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+                {myAssignedCount > 0 && (
+                  <span className="absolute -top-1 -right-2 px-1.5 py-0.2 bg-orange text-white text-[9px] font-mono rounded-full font-bold">
+                    {myAssignedCount}
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] font-mono tracking-tight mt-1">My Tasks</span>
+            </button>
+
+            {/* Center Action Hub Button [ + ] */}
+            <div className="flex flex-col items-center justify-center flex-1 -mt-6">
+              <button
+                type="button"
+                onClick={() => setIsMobileQuickMenuOpen(!isMobileQuickMenuOpen)}
+                className={`w-13 h-13 rounded-2xl flex items-center justify-center shadow-lg transition-transform active:scale-95 cursor-pointer border-3 border-white ${
+                  isMobileQuickMenuOpen
+                    ? 'bg-jet-black text-white shadow-jet-black/30 rotate-45'
+                    : 'bg-gradient-to-tr from-orange to-amber-500 text-white shadow-orange/40 hover:brightness-105'
+                }`}
+                title="Quick Operations & Hub"
+              >
+                <svg className="w-6 h-6 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+              <span className="text-[9px] font-mono font-bold tracking-tight mt-1 text-jet-black">
+                {isMobileQuickMenuOpen ? 'Close' : 'Hub'}
+              </span>
+            </div>
+
+            {/* Tab 3: Squads */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('teams');
+                setIsActivityDrawerOpen(false);
+                setIsMobileQuickMenuOpen(false);
+              }}
+              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all cursor-pointer ${
+                activeTab === 'teams' && !isActivityDrawerOpen && !isMobileQuickMenuOpen
+                  ? 'text-orange font-bold'
+                  : 'text-grey hover:text-jet-black'
+              }`}
+            >
+              <div className="relative">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <span className="text-[10px] font-mono tracking-tight mt-1">Squads</span>
+            </button>
+
+            {/* Tab 4: Moves (Activity Drawer) */}
+            <button
+              type="button"
+              onClick={() => {
+                handleOpenActivityDrawer();
+                setIsMobileQuickMenuOpen(false);
+              }}
+              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all cursor-pointer ${
+                isActivityDrawerOpen
+                  ? 'text-orange font-bold'
+                  : 'text-grey hover:text-jet-black'
+              }`}
+            >
+              <div className="relative">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                {unreadActivitiesCount > 0 && (
+                  <span className="absolute -top-1 -right-2 px-1.5 py-0.2 bg-orange text-white text-[9px] font-mono rounded-full font-bold animate-pulse">
+                    {unreadActivitiesCount}
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] font-mono tracking-tight mt-1">Moves</span>
+            </button>
+
+          </div>
+        </nav>
+      )}
+
+      {/* =========================================================================
+          MOBILE ALL-IN-ONE OPERATIONS HUB BOTTOM SHEET (md:hidden)
+          Every dashboard feature and action accessible directly in 1 thumb sheet
+         ========================================================================= */}
+      {isMobileQuickMenuOpen && user && (
+        <div className="fixed inset-0 z-50 md:hidden flex flex-col justify-end">
+          {/* Backdrop */}
+          <div
+            onClick={() => setIsMobileQuickMenuOpen(false)}
+            className="fixed inset-0 bg-jet-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+          />
+
+          {/* Bottom Sheet Modal */}
+          <div className="relative bg-white rounded-t-3xl max-h-[85vh] flex flex-col shadow-2xl border-t border-jet-black/10 z-10 animate-in slide-in-from-bottom duration-200 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            {/* Handle & Header */}
+            <div className="pt-3 pb-2.5 px-5 flex flex-col items-center border-b border-jet-black/10">
+              <div className="w-12 h-1.5 bg-jet-black/20 rounded-full mb-3" />
+              <div className="w-full flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-orange animate-pulse" />
+                  <h3 className="text-sm font-mono font-bold uppercase tracking-wider text-jet-black">
+                    Operations Hub
+                  </h3>
+                  {isOnline ? (
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
+                      LIVE
+                    </span>
+                  ) : (
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 font-bold border border-amber-200">
+                      OFFLINE ({pendingQueueCount})
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileQuickMenuOpen(false)}
+                  className="w-7 h-7 rounded-full bg-alice-blue flex items-center justify-center text-grey hover:text-jet-black font-bold text-xs cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="w-full mt-2 flex items-center justify-between text-[11px] font-mono text-grey">
+                <span>Signed in: <strong className="text-jet-black">{user.displayName}</strong></span>
+                <span className="px-1.5 py-0.5 rounded bg-jet-black/5 text-jet-black font-bold uppercase">
+                  {user.teamId}
+                </span>
+              </div>
+            </div>
+
+            {/* Sheet Content Scrollable Area */}
+            <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(85vh-100px)]">
+
+              {/* Primary Action Buttons */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileQuickMenuOpen(false);
+                    setIsCreateModalOpen(true);
+                  }}
+                  className="p-3 rounded-2xl bg-orange text-white font-mono text-xs font-bold shadow-md shadow-orange/20 flex items-center justify-center gap-2 cursor-pointer active:scale-98 transition-transform"
+                >
+                  <span className="text-base leading-none">➕</span>
+                  <span>New Deliverable</span>
+                </button>
+
+                {(isCore || isLead) ? (
+                  <Link
+                    href="/log"
+                    onClick={() => setIsMobileQuickMenuOpen(false)}
+                    className="p-3 rounded-2xl bg-jet-black text-alice-blue font-mono text-xs font-bold shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-98 transition-transform"
+                  >
+                    <span>📝 Open Build Log</span>
+                    <span>→</span>
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleManualSync}
+                    disabled={isManualSyncing}
+                    className="p-3 rounded-2xl bg-alice-blue border border-jet-black/10 text-jet-black font-mono text-xs font-bold flex items-center justify-center gap-2 cursor-pointer active:scale-98 transition-transform"
+                  >
+                    <span className={isManualSyncing ? 'animate-spin' : ''}>🔄</span>
+                    <span>{isManualSyncing ? 'Syncing...' : 'Sync Database'}</span>
+                  </button>
+                )}
+              </div>
+
+              {/* All Views Grid */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-grey font-bold">
+                  All Portals & Views
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  
+                  {/* Task Board */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('kanban');
+                      setIsActivityDrawerOpen(false);
+                      setIsMobileQuickMenuOpen(false);
+                    }}
+                    className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                      activeTab === 'kanban' && !isActivityDrawerOpen
+                        ? 'border-orange bg-orange/5 text-jet-black font-bold'
+                        : 'border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black'
+                    }`}
+                  >
+                    <span className="text-base">📋</span>
+                    <div className="truncate">
+                      <div className="text-xs font-mono font-bold truncate">Task Board</div>
+                      <div className="text-[10px] text-grey font-mono truncate">{tasks.length} deliverables</div>
+                    </div>
+                  </button>
+
+                  {/* My Tasks */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('my_tasks');
+                      setIsActivityDrawerOpen(false);
+                      setIsMobileQuickMenuOpen(false);
+                    }}
+                    className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                      activeTab === 'my_tasks' && !isActivityDrawerOpen
+                        ? 'border-orange bg-orange/5 text-jet-black font-bold'
+                        : 'border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black'
+                    }`}
+                  >
+                    <span className="text-base">📌</span>
+                    <div className="truncate">
+                      <div className="text-xs font-mono font-bold truncate">My Workbench</div>
+                      <div className="text-[10px] text-orange font-mono font-bold truncate">{myAssignedCount} assigned</div>
+                    </div>
+                  </button>
+
+                  {/* Squads */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('teams');
+                      setIsActivityDrawerOpen(false);
+                      setIsMobileQuickMenuOpen(false);
+                    }}
+                    className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                      activeTab === 'teams' && !isActivityDrawerOpen
+                        ? 'border-orange bg-orange/5 text-jet-black font-bold'
+                        : 'border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black'
+                    }`}
+                  >
+                    <span className="text-base">🏎️</span>
+                    <div className="truncate">
+                      <div className="text-xs font-mono font-bold truncate">9 Subsystems</div>
+                      <div className="text-[10px] text-grey font-mono truncate">Squad leads & tasks</div>
+                    </div>
+                  </button>
+
+                  {/* Master Video Gallery */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('videos');
+                      setIsActivityDrawerOpen(false);
+                      setIsMobileQuickMenuOpen(false);
+                    }}
+                    className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                      activeTab === 'videos' && !isActivityDrawerOpen
+                        ? 'border-orange bg-orange/5 text-jet-black font-bold'
+                        : 'border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black'
+                    }`}
+                  >
+                    <span className="text-base">🎥</span>
+                    <div className="truncate">
+                      <div className="text-xs font-mono font-bold truncate">Video Archive</div>
+                      <div className="text-[10px] text-grey font-mono truncate">{videoLogsCount} clips stream</div>
+                    </div>
+                  </button>
+
+                  {/* Live Moves Feed */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleOpenActivityDrawer();
+                      setIsMobileQuickMenuOpen(false);
+                    }}
+                    className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                      isActivityDrawerOpen
+                        ? 'border-orange bg-orange/5 text-jet-black font-bold'
+                        : 'border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black'
+                    }`}
+                  >
+                    <span className="text-base">⚡</span>
+                    <div className="truncate">
+                      <div className="text-xs font-mono font-bold truncate">Live Moves Feed</div>
+                      <div className="text-[10px] text-grey font-mono truncate">
+                        {unreadActivitiesCount > 0 ? `${unreadActivitiesCount} unread` : `${activities.length} moves`}
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Core Admin Credentials */}
+                  {isCoreAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('accounts');
+                        setIsActivityDrawerOpen(false);
+                        setIsMobileQuickMenuOpen(false);
+                      }}
+                      className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                        activeTab === 'accounts' && !isActivityDrawerOpen
+                          ? 'border-orange bg-orange/5 text-jet-black font-bold'
+                          : 'border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black'
+                      }`}
+                    >
+                      <span className="text-base">🔑</span>
+                      <div className="truncate">
+                        <div className="text-xs font-mono font-bold truncate">Team Credentials</div>
+                        <div className="text-[10px] text-orange font-mono font-bold truncate">Core Admin Only</div>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Core Admin Backup & Sync */}
+                  {isCoreAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMobileQuickMenuOpen(false);
+                        setIsBackupModalOpen(true);
+                      }}
+                      className="p-3 rounded-xl border border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black text-left flex items-center gap-2.5 transition-all cursor-pointer"
+                    >
+                      <span className="text-base">💾</span>
+                      <div className="truncate">
+                        <div className="text-xs font-mono font-bold truncate">Backup / Sync</div>
+                        <div className="text-[10px] text-grey font-mono truncate">JSON export & reset</div>
+                      </div>
+                    </button>
+                  )}
+
+                </div>
+              </div>
+
+              {/* Instant Subsystem Filter Row */}
+              <div className="space-y-1.5 pt-1 border-t border-jet-black/10">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-grey font-bold">
+                    Instant Squad Filter on Board
+                  </span>
+                  {selectedSubsystemFilter !== 'all' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedSubsystemFilter('all');
+                        setActiveTab('kanban');
+                        setIsMobileQuickMenuOpen(false);
+                      }}
+                      className="text-[10px] font-mono text-orange font-bold cursor-pointer underline"
+                    >
+                      Clear Filter
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 hide-scrollbar">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedSubsystemFilter('all');
+                      setActiveTab('kanban');
+                      setIsMobileQuickMenuOpen(false);
+                    }}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-mono whitespace-nowrap cursor-pointer transition-all ${
+                      selectedSubsystemFilter === 'all'
+                        ? 'bg-jet-black text-white font-bold'
+                        : 'bg-alice-blue text-jet-black border border-jet-black/10'
+                    }`}
+                  >
+                    All Squads
+                  </button>
+                  {TEAMS_LIST.map((tm) => (
+                    <button
+                      key={tm.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedSubsystemFilter(tm.id);
+                        setActiveTab('kanban');
+                        setIsMobileQuickMenuOpen(false);
+                      }}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-mono whitespace-nowrap cursor-pointer transition-all flex items-center gap-1 ${
+                        selectedSubsystemFilter === tm.id
+                          ? 'bg-orange text-white font-bold'
+                          : 'bg-alice-blue text-jet-black border border-jet-black/10'
+                      }`}
+                    >
+                      <span>[{tm.code}]</span>
+                      <span>{tm.shortName}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Mobile Utilities & Sign Out */}
+              <div className="pt-2 border-t border-jet-black/10 flex items-center justify-between gap-3 text-xs font-mono">
+                {!isInstalled && installApp ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      installApp();
+                      setIsMobileQuickMenuOpen(false);
+                    }}
+                    className="px-3 py-2 rounded-xl bg-jet-black text-alice-blue font-bold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>📲</span>
+                    <span>Install Web App</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleManualSync}
+                    disabled={isManualSyncing}
+                    className="text-grey hover:text-jet-black flex items-center gap-1 cursor-pointer"
+                  >
+                    <span className={isManualSyncing ? 'animate-spin' : ''}>🔄</span>
+                    <span>{isManualSyncing ? 'Syncing...' : 'Force Sync'}</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsMobileQuickMenuOpen(false);
+                    await logout();
+                    router.push('/login');
+                  }}
+                  className="text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1 cursor-pointer py-1 px-2 rounded-lg hover:bg-rose-50"
+                >
+                  <span>🚪</span>
+                  <span>Sign Out</span>
+                </button>
+              </div>
+
             </div>
           </div>
         </div>
