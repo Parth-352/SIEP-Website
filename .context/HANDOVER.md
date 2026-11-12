@@ -6,30 +6,27 @@
 ---
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
-- **Git Head:** In-flight commit for Build Log Mobile UI Rework.
+- **Git Head:** `898c9e1` - `fix(log): convert work status tiles from horizontal scroll to responsive grid`.
 - **TypeScript Verification:** ✅ Clean (`cd web && npx tsc --noEmit` passes with 0 errors).
 - **Production Build:** ✅ Next.js 16.4.5 Turbopack build (`npm run build`) compiles successfully (20/20 static pages generated, 0 errors).
 - **Architecture Synchronization:** ✅ ADR-013 recorded in `.context/DECISIONS.md`.
-- **Vercel Production Deployment:** ✅ Live at `https://ridersbay.vercel.app` (Deployment `web-l4h2ck6uv-parths-projects-421c4665.vercel.app`).
+- **Vercel Production Deployment:** ✅ Live at `https://ridersbay.vercel.app` (Deployment `web-hebmudv2r-parths-projects-421c4665.vercel.app`).
 
 ---
 
 ## 🛠️ 2. RECENT ACCOMPLISHMENTS & TEST VERIFICATIONS
 
-### A. Build Log Mobile Rework (`web/src/app/log/page.tsx`)
-1. **Mockup Fidelity (`media_1794510271459_0a6999fe.jpg`):**
-   - **Hero Header Card**: `SIEP 2026–27` badge, camera icon container, `Build Log`, description, and motorcycle watermark.
-   - **Prominent "+ Add Build Log" Button**: Full-width dark button opening the build log creation modal with work status selector.
-   - **5 Work Status KPI Tiles**: Live dynamic counts and matching icons for `▷ In Progress`, `⚗ Testing`, `✓ Completed`, `⏸ On Hold`, `👁 Needs Review`.
-   - **Section Header**: `Recent Logs` with single team selector dropdown (`All Teams ⌵`).
-   - **Search & Status Filters**: Unified search bar with clear button + horizontal status filter chips.
-   - **Chronological Feed**: Vertical timeline track guide with aligned dots `•`, 16:10 video thumbnail previews with play overlays and timestamp badges, domain short codes (`MECH`, `E&E`, `SOFT`, etc.), work status badges, formatted dates (`12 Nov`, etc.), and chevron `>`.
-   - **Slide-up Detail Drawer**: Video player embed, full step notes, contributors, edit/delete actions.
-   - **No Deliverables Terminology**: Deliverables widget completely removed from mobile view per user requirement.
-2. **Desktop Preservation (`hidden md:block`):**
-   - Full engineering logbook console, deliverables widget, desktop form, and large embed players remain completely untouched on desktop.
-3. **Bottom Dock Synchronization (`Navigation.tsx`):**
-   - Dynamic highlighting for the center `Log` button when active on `/log`.
+### A. Build Log 5 Status Tiles Grid Rework (`web/src/app/log/page.tsx`)
+1. **Removed Horizontal Scroll:**
+   - Replaced `overflow-x-auto hide-scrollbar -mx-1 px-1` with a responsive 2-row grid (`grid grid-cols-6 sm:grid-cols-5 gap-2`).
+2. **Optimal Grid Hierarchy:**
+   - **Row 1 (Active Progression):** 3 tiles (`col-span-2 sm:col-span-1` each): `▷ In Progress`, `⚗ Testing`, `✓ Completed`.
+   - **Row 2 (Attention / Review):** 2 tiles (`col-span-3 sm:col-span-1` each): `⏸ On Hold`, `👁 Needs Review`.
+   - **Tablet / Large Screens (`sm:`):** Automatically expands into a 5-column single-row layout (`sm:grid-cols-5 sm:col-span-1`).
+3. **Card Ergonomics:**
+   - Top row pairs status vector icon (`w-7 h-7 rounded-lg`) directly with large bold count (`text-base font-black`).
+   - Bottom row displays legible status label (`text-[11px] font-medium truncate mt-2`) without text clipping or horizontal overflow.
+   - Preserves click-to-filter toggles and active highlight ring styling (`border-orange ring-2 ring-orange/30 bg-orange/5`).
 
 ### B. Mobile UI Rework — PRD v1.0 Implementation
 1. **Uniform '+' Create Action Sheet (`BottomNav.tsx`):**
