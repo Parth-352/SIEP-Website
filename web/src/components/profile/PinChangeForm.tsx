@@ -5,11 +5,12 @@ import { UserProfile } from '@/lib/types';
 
 interface PinChangeFormProps {
   user?: UserProfile;
+  embedded?: boolean;
 }
 
 type OtpStep = 'request' | 'verify' | 'new_pin' | 'done';
 
-export default function PinChangeForm({ user }: PinChangeFormProps) {
+export default function PinChangeForm({ user, embedded = false }: PinChangeFormProps) {
   // Direct PIN Change state
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
@@ -218,16 +219,18 @@ export default function PinChangeForm({ user }: PinChangeFormProps) {
   };
 
   return (
-    <div className="bg-white border border-jet-black/10 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
-      <div>
-        <h3 className="text-sm font-bold text-jet-black font-sans flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-          Security &amp; 6-Digit PIN
-        </h3>
-        <p className="text-xs text-zinc-500 font-sans mt-0.5">
-          Change your 6-digit numeric sign-in PIN directly. If you don&apos;t remember your current PIN, you can reset it via email OTP.
-        </p>
-      </div>
+    <div className={embedded ? "space-y-4 pt-1" : "bg-white border border-jet-black/10 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4"}>
+      {!embedded && (
+        <div>
+          <h3 className="text-sm font-bold text-jet-black font-sans flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+            Security &amp; 6-Digit PIN
+          </h3>
+          <p className="text-xs text-zinc-500 font-sans mt-0.5">
+            Change your 6-digit numeric sign-in PIN directly. If you don&apos;t remember your current PIN, you can reset it via email OTP.
+          </p>
+        </div>
+      )}
 
       {success && (
         <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-sans flex items-center gap-2 animate-in fade-in">

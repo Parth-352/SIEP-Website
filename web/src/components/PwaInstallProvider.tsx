@@ -146,54 +146,6 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
     >
       {children}
 
-      {/* Floating Bottom Mobile Install Banner (Raised above bottom dock on mobile) */}
-      {showBanner && !isInstalled && (
-        <div className="fixed bottom-20 left-3 right-3 sm:bottom-6 sm:left-auto sm:right-6 sm:w-96 z-[999] animate-fade-in pointer-events-auto">
-          <div className="bg-jet-black/95 backdrop-blur-md text-alice-blue p-4 rounded-2xl shadow-xl border border-orange/40 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-orange/20 border border-orange/40 flex items-center justify-center shrink-0 overflow-hidden">
-                <Image
-                  src="/icons/icon-192.png"
-                  alt="SIEP Log System"
-                  width={36}
-                  height={36}
-                  className="rounded-lg object-contain"
-                />
-              </div>
-              <div className="space-y-0.5">
-                <h4 className="text-xs font-bold font-sans text-white flex items-center gap-1.5">
-                  <span>SIEP Log System</span>
-                  <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-orange text-jet-black font-extrabold uppercase">
-                    APP
-                  </span>
-                </h4>
-                <p className="text-[11px] font-mono text-grey line-clamp-1">
-                  Install for offline logs & background uploads
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={installApp}
-                className="px-3.5 py-1.5 rounded-xl bg-orange hover:bg-orange/90 text-jet-black font-sans font-extrabold text-xs uppercase tracking-wider transition-all shadow-sm cursor-pointer whitespace-nowrap"
-              >
-                Install
-              </button>
-              <button
-                type="button"
-                onClick={dismissBanner}
-                className="w-7 h-7 rounded-lg text-grey hover:text-white flex items-center justify-center text-xs font-mono transition-colors cursor-pointer"
-                title="Dismiss"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* iOS & Browser Install Instructions Modal */}
       {isInstallModalOpen && (
         <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">

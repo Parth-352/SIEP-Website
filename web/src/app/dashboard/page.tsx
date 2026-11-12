@@ -794,24 +794,26 @@ function DashboardContent() {
       <div className="fixed inset-0 opacity-[0.02] pointer-events-none bg-[radial-gradient(#2B303A_1px,transparent_1px)] [background-size:24px_24px]" />
 
       <div className="max-w-7xl mx-auto relative z-10 space-y-5 sm:space-y-8">
-        {/* Header */}
-        <DashboardHeader
-          user={user}
-          isCore={isCore}
-          isCoreAdmin={isCoreAdmin}
-          isOnline={isOnline}
-          pendingQueueCount={pendingQueueCount}
-          unreadActivitiesCount={unreadActivitiesCount}
-          isMoreMenuOpen={isMoreMenuOpen}
-          setIsMoreMenuOpen={setIsMoreMenuOpen}
-          handleOpenActivityDrawer={handleOpenActivityDrawer}
-          setIsBackupModalOpen={setIsBackupModalOpen}
-          setIsCreateModalOpen={setIsCreateModalOpen}
-          isInstalled={isInstalled}
-          installApp={installApp}
-          restrictedNotice={restrictedNotice}
-          dismissRestrictedNotice={() => router.replace('/dashboard')}
-        />
+        {/* Header (hidden on profile view to provide full dedicated profile screen) */}
+        {activeTab !== 'profile' && (
+          <DashboardHeader
+            user={user}
+            isCore={isCore}
+            isCoreAdmin={isCoreAdmin}
+            isOnline={isOnline}
+            pendingQueueCount={pendingQueueCount}
+            unreadActivitiesCount={unreadActivitiesCount}
+            isMoreMenuOpen={isMoreMenuOpen}
+            setIsMoreMenuOpen={setIsMoreMenuOpen}
+            handleOpenActivityDrawer={handleOpenActivityDrawer}
+            setIsBackupModalOpen={setIsBackupModalOpen}
+            setIsCreateModalOpen={setIsCreateModalOpen}
+            isInstalled={isInstalled}
+            installApp={installApp}
+            restrictedNotice={restrictedNotice}
+            dismissRestrictedNotice={() => router.replace('/dashboard')}
+          />
+        )}
 
         {/* Actionable KPI Ribbon (shown across dashboard and task views, hidden on dedicated profile) */}
         {activeTab !== 'profile' && (
