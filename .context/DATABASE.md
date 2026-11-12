@@ -1,7 +1,9 @@
 # 🗄️ RIDERS BAY DATABASE & DATA PERSISTENCE SPECIFICATION
 > **Cloud Firestore Schemas, Collections, and Local Fallback Architecture**  
 > *Project: Riders Bay Smart Scrambler E-Bike | SIEP Season 7.0 (ISIEINDIA)*  
-> *Last Synced:* Daily Codebase Context Sync
+> *Institution: SNJB's KBJ College of Engineering, Chandwad*  
+> *Companion Documents:* [.context/ARCHITECTURE.md](file://.context/ARCHITECTURE.md) | [.context/CONTEXT.md](file://.context/CONTEXT.md) | [.context/HANDOVER.md](file://.context/HANDOVER.md)  
+> *Last Synced:* 2026-11-12 (Daily Codebase Context Sync)
 
 ---
 
@@ -74,6 +76,23 @@ Records engineering moves, milestone logs, workshop test runs, and CAD updates.
 
 ---
 
+### Collection: `member_profiles`
+Stores personalized member identity customizations including display names, custom portrait photos (compressed via HTML5 Canvas), and personal engineering bios.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| *(Doc ID)* | `string` | Sanitized member email (e.g. `cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')`) |
+| `email` | `string` | Normalized lowercase email address |
+| `displayName` | `string` | User-configured display name (overrides static roster default) |
+| `photoUrl` | `string \| null` | Lightweight compressed image data URL (~20–35 KB WebP/JPEG) or storage URL |
+| `bio` | `string \| null` | Member's short engineering bio or focus summary |
+| `updatedAt` | `number` | Epoch timestamp when the profile was last modified |
+
+- **Service Functions:** `getFirestoreMemberProfiles()` and `saveFirestoreMemberProfile(email, profile)` in `web/src/lib/firestoreService.ts`.
+- **API Endpoint:** `/api/profile` (GET all profiles, POST updates for authenticated member).
+
+---
+
 ### Collection: `member_passwords`
 Individual member authentication PIN storage for the frictionless workshop auth model.
 
@@ -100,5 +119,6 @@ Legacy squad-level PIN collection maintained for backward-compatibility.
 
 ## 🛡️ 3. SECURITY & ACCESS PRINCIPLES
 - **No Mock Tasks in Production:** Seed / mock task injection is disabled; all tasks originate from authenticated squad members.
-- **PIN Sanitation:** Email document IDs are sanitized with regex `/[^a-zA-Z0-9]/g` to ensure clean Firestore paths.
+- **PIN & Email Key Sanitation:** Document IDs for email-keyed collections (`member_passwords`, `member_profiles`) are sanitized with regex `/[^a-zA-Z0-9]/g` to ensure clean Firestore paths.
+- **Client-Side Compression:** Images are compressed via HTML5 Canvas before persisting to Firestore, preventing document size bloat and staying within Firestore's 1MB document limit.
 - **Fail-Safe Fallback:** If Firestore connection fails or environment credentials are missing, API routes transparently fallback to in-memory state without crashing UI or throwing 500 errors to client.

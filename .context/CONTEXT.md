@@ -2,7 +2,7 @@
 > **High-Level Project Context, Engineering Squads & Active Repository State**  
 > *Project: Riders Bay Smart Scrambler E-Bike | SIEP Season 7.0 (ISIEINDIA)*  
 > *Institution: SNJB's KBJ College of Engineering, Chandwad, Nashik*  
-> *Last Synced:* Daily Codebase Context Sync
+> *Last Synced:* 2026-11-12 (Daily Codebase Context Sync)
 
 ---
 
@@ -11,7 +11,7 @@ Riders Bay is an electric vehicle development initiative designing and fabricati
 
 - **Vehicle Architecture:** High-strength Chromoly steel spaceframe, 72V 40Ah swappable Li-ion battery pack with smart BMS, 5 kW mid-drive powertrain, and an ESP32 CAN 2.0B telemetry unit.
 - **Digital Twin:** Real-time 3D web inspection model with component explosion, stress-test overlays, and CAD download portal.
-- **Web Application:** Real-time engineering dashboard, Kanban sprint board, workshop daily log tracking, and public landing page.
+- **Web Application:** Real-time engineering dashboard, Kanban sprint board, workshop daily log tracking, dedicated member profile identity hub, and public showcase.
 
 ---
 
@@ -33,11 +33,12 @@ Riders Bay is an electric vehicle development initiative designing and fabricati
 ---
 
 ## 📜 3. RECENT GIT COMMITS & REPOSITORY ACTIVITY
+- `872dce4` - `feat(profile): rework mobile profile matching reference design, remove PWA banners, add collapsible domains & photo action sheet`
+- `2f850bc` - `docs(handover): update production deployment confirmation and status`
+- `af6266f` - `chore(pwa): bump service worker cache version to v2 to auto-purge stale client caches`
+- `c864cfa` - `feat(profile): implement profile identity, inline name editor, photo upload, dual PIN security & team sync`
+- `2115c7e` - `feat(dashboard): modularize dashboard architecture, implement actionable KPI ribbon & mobile Instagram dock`
 - `1a7f4f4` - `fix(tasks): completely remove all mock/seed tasks from database and cache`
-- `7ee8283` - `feat(ui): clean up all emojis across app and streamline bottom navigation`
-- `2d806b7` - `feat(navigation): ensure unconditional Instagram bottom dock across all pages including login`
-- `087e858` - `feat(navigation): implement global Instagram-style bottom menu dock and Tab 4 team velocity leaderboard`
-- `8297510` - `feat(mobile): implement all-in-one bottom app bar and quick operations hub sheet`
 
 ---
 
@@ -48,13 +49,18 @@ SIEP Website/
 │   ├── ARCHITECTURE.md            # System architecture, stack & UI topology
 │   ├── DATABASE.md                # Firestore database schemas & access models
 │   ├── CONTEXT.md                 # Project mission, squads & git activity
+│   ├── DECISIONS.md               # Architecture Decision Records (ADRs)
 │   └── HANDOVER.md                # Active tasks & agent pickup points
 ├── web/                           # Next.js 16 + React 19 Web Application
-│   ├── public/                    # 3D assets (moto.glb, chassis.glb), media
+│   ├── public/                    # 3D assets (moto.glb, chassis.glb), PWA sw.js, media
 │   ├── src/
-│   │   ├── app/                   # App Router pages (/dashboard, /journey, /cad, /team)
-│   │   │   └── api/               # API routes (passwords, tasks, logs, drive)
+│   │   ├── app/                   # App Router pages (/dashboard, /about, /bike, /competition, /log)
+│   │   │   └── api/               # API routes (profile, change-password, forgot-password, tasks, logs)
 │   │   ├── components/            # React 19 UI components & Three.js 3D viewers
+│   │   │   ├── profile/           # ProfileView.tsx, PinChangeForm.tsx
+│   │   │   ├── dashboard/         # MyWorkbenchTab.tsx, VelocityMetricsTab.tsx, KanbanBoard.tsx
+│   │   │   ├── navigation/        # BottomNav.tsx (Instagram dock), Navigation.tsx
+│   │   │   └── shared/            # CreateTaskModal.tsx, TaskDetailModal.tsx
 │   │   ├── context/               # AuthContext.tsx (PIN auth & multi-squad roles)
 │   │   └── lib/                   # Firestore service, store, types, roster
 │   └── package.json               # Dependencies & scripts
@@ -68,7 +74,9 @@ SIEP Website/
 ---
 
 ## ⚡ 5. KEY RUNTIME CONSTRAINTS & CONVENTIONS
-- **PIN Authentication:** Universal fallback PIN `935200`. Custom PINs stored per member in Firestore `member_passwords`.
+- **PIN Authentication:** Universal fallback PIN `935200`. Custom PINs stored per member in Firestore `member_passwords/{cleanEmail}`.
+- **Member Profile Identity:** Names and compressed avatars persisted to Firestore `member_profiles` and dynamically synced across dashboard, navigation, and team pages.
+- **PWA Service Worker:** Versioned as `siep-pwa-v2` with client-side cache auto-purge. Floating banners suppressed to prevent docking collision.
 - **Three.js WebGL:** All 3D canvases must use dynamic imports with `ssr: false` to avoid hydration mismatches.
 - **Large Uploads (>5MB):** Handled via Google Drive resumable sessions (`/api/drive/resumable-session`) to bypass serverless payload limits.
 - **Compilation Check:** Always verify with `cd web && npx tsc --noEmit`.

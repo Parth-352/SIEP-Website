@@ -1,88 +1,61 @@
 # 📋 ACTIVE SESSION HANDOVER & STATE
-> **Last Updated:** 2026-11-12 | **Branch:** `main` (commit `af6266f`)  
+> **Last Updated:** 2026-11-12 | **Branch:** `main` (commit `872dce4`)  
 > **Production Live URL:** `https://web-black-delta-34.vercel.app`  
 > *This document is the single source of truth for in-flight work across breaks. Agents and developers must read this before starting and update it before stopping.*
 
 ---
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
-- **GitHub Remote:** ✅ Pushed to `origin/main` (`af6266f`).
-- **Vercel Production Deployment:** ✅ Live at `https://web-black-delta-34.vercel.app` (Deployment `web-d6euynimt-parths-projects-421c4665.vercel.app`).
-- **Cache Invalidation:** ✅ Service worker cache bumped to `siep-pwa-v2` to force automatic client-side purge of stale caches.
+- **GitHub Remote:** ✅ Pushed to `origin/main` (`872dce4`).
+- **Vercel Production Deployment:** ✅ Live at `https://web-black-delta-34.vercel.app` (Deployment `web-hgrhnoi3d-parths-projects-421c4665.vercel.app`).
 - **Compilation Status:** ✅ TypeScript compiles clean (`cd web && npx tsc --noEmit` passes with 0 errors).
-- **Production Build:** ✅ Next.js production build (`npm run build`) compiles successfully in 1036ms with 0 errors.
+- **Production Build:** ✅ Next.js production build (`npm run build`) compiles successfully in 641ms with 0 errors.
 - **Dev Server Status:** ✅ Next.js 16.4.5 (Turbopack) active on `http://localhost:3000`.
-- **Automated Verification:** ✅ Verified across mobile (390×844) and desktop (1280×800) using Chrome CDP headless browser automation.
-- **Production Deployment Ready:** ✅ All changes tested against Cloud Firestore `member_profiles` collection.
+- **Automated Verification:** ✅ Verified across mobile (390×844) using Chrome CDP headless browser automation.
 
 ---
 
-## 🛠️ 2. TEST FLOW & VERIFICATION RESULTS
+## 🛠️ 2. MOBILE PROFILE REWORK SUMMARY (1:1 Match with User Reference Image)
 
-### A. Dedicated Profile & Member Identity View
-1. **Hero Identity Card (`ProfileView.tsx`):**
-   - Displays avatar (custom photo or CAD monogram initials fallback).
-   - Camera icon badge triggers square cropping and HTML5 Canvas compression (`compressProfileImage`), converting images to lightweight WebP/JPEG data URLs (~20–35 KB).
-   - Inline Display Name editor allows editing display name in 1 click with Save/Cancel buttons and immediate UI feedback.
-   - Verified Gmail chip with 1-click copy button.
-   - Member tier badge (e.g. `TIER 1 • CORE LEADERSHIP`), assigned squads, and 1-click sign-out.
-2. **Personal Engineering KPIs:**
-   - Assigned Deliverables counter with direct link to Workbench (`Open Workbench →`).
-   - Workshop Hours Logged counter calculated from verified build logs.
-   - Build Steps Authored counter with video proof badges.
-3. **Engineering Domain Badges:**
-   - Highlights Primary Domain (e.g. `Software`) with domain description.
-   - Displays all Secondary Assigned Domains (`Core`, `Sponsorship`, `Documentation`).
+### A. Elements Removed
+1. **PWA Card:** Completely removed the `SIEP Progressive Web App (PWA)` device card from `ProfileView.tsx`.
+2. **PWA Floating Install Banner:** Removed the bottom floating install banner ("SIEP Log System APP INSTALL") from `PwaInstallProvider.tsx`.
+3. **Redundant Dashboard Header:** Hidden `DashboardHeader` on `activeTab === 'profile'` so the hero card starts cleanly right below the top navigation bar.
 
-### B. PIN Change & Security Protocol
-1. **Direct PIN Change (Known PIN):**
-   - Direct form fields for `Current PIN` + `New 6-Digit PIN` + `Confirm New PIN`.
-   - Real-time strength meter, 6-digit numeric validation, visibility toggle (`Show PIN characters`).
-   - Submits directly to `/api/change-password` without requiring an OTP.
-2. **Email OTP Recovery (Forgot PIN):**
-   - "Forgot PIN?" trigger opens an in-page modal (`Reset PIN via Email OTP`).
-   - Automatically pre-fills the member's registered Gmail address.
-   - Step 1: Dispatches 6-digit OTP code to the member's Gmail via Google Apps Script relay.
-   - Step 2: 6-digit code verification with 60-second countdown cooldown.
-   - Step 3: Sets new PIN using one-time cryptographic reset token.
-
-### C. Live Avatar & Name Synchronization
-1. **Instagram Bottom Dock (`BottomNav.tsx`):**
-   - 5th icon renders the member's custom profile photo or monogram circle with active tab indicator.
-2. **Global Navigation (`Navigation.tsx`):**
-   - Mobile and desktop navigation docks reflect the custom avatar and name.
-3. **Public Team / About Page (`/about#team` & `TeamSection.tsx`):**
-   - Desktop Grid (`MemberCard`) and Mobile Accordion (`MobilePlayerCard`) fetch `/api/profile` and map member names to official roster emails.
-   - Custom portraits and updated display names replace generic initials seamlessly.
+### B. Mobile Profile Redesign (`ProfileView.tsx`)
+1. **Hero Profile Card:**
+   - Soft golden/amber wave banner accent across the top.
+   - Large centered circular profile photo (`w-24 h-24` / `w-28 h-28`) with white border and drop shadow.
+   - Circular camera badge overlay on the bottom-right corner.
+   - **Clicking the Profile Photo:** Opens an action sheet with options:
+     - **"View Full Photo"** (opens high-resolution lightbox modal)
+     - **"Upload New Photo"** (triggers client-side square crop and canvas compression)
+     - **"Remove Photo"** (resets to CAD monogram initials)
+     - **"Cancel"**
+   - Centered member name (`Parth Kshirsagar`) with inline editing pencil.
+   - Centered verified Gmail chip with green live dot (`• parthkshirsagrr@gmail.com`) and copy icon button.
+   - Subtitle: `admin • Software` (with primary squad highlighted in orange).
+2. **Three Action Pills in 1 Row:**
+   - `Tasks >` (blue checklist icon)
+   - `Build Steps >` (purple layers icon)
+   - `Workshop >` (green clock icon)
+   - Optimized for mobile viewports with zero text truncation.
+3. **Collapsible "My Domains" Accordion:**
+   - Card with orange layered cards icon and chevron toggle.
+   - Expands to reveal Primary Domain (`Software` with description and badge) and all Secondary Domains (`Core`, `Sponsorship`, `Documentation`).
+4. **Collapsible "Reset PIN" Accordion:**
+   - Card with green shield icon, title `Reset PIN`, and subtitle `Update your 6-digit sign-in PIN`.
+   - Expands to reveal the direct 6-digit PIN change form (`Current PIN`, `New PIN`, `Confirm PIN`) and the "Forgot PIN?" trigger for Email OTP recovery.
+5. **Horizontal Red Sign Out Button:**
+   - Full-width pill placed horizontally at the bottom with red outline, red logout icon, and bold red text.
 
 ---
 
-## 📁 3. MODIFIED & CREATED FILES
-1. `web/src/app/api/profile/route.ts` [NEW]:
-   - `GET`: Returns all custom member profiles from Cloud Firestore.
-   - `POST`: Validates member session, saves updates (`displayName`, `photoUrl`, `bio`) to Firestore `member_profiles`, and issues updated session cookie.
-2. `web/src/lib/types.ts`:
-   - Added `photoUrl?: string; bio?: string;` to `UserProfile`.
-   - Exported `MemberProfileData` interface.
-3. `web/src/lib/firestoreService.ts`:
-   - Added `getFirestoreMemberProfiles()` and `saveFirestoreMemberProfile()`.
-4. `web/src/lib/session.ts`:
-   - Updated `encodeSession()` to accept `UserProfile | SessionData` or custom profile objects with `photoUrl` and `displayName`.
-5. `web/src/context/AuthContext.tsx`:
-   - Added `updateUserProfile()` method.
-   - Added background synchronization effect fetching `/api/profile` to keep avatar and name up-to-date across page reloads.
-6. `web/src/components/profile/ProfileView.tsx`:
-   - Redesigned dedicated Profile View with Hero identity card, inline name editor, canvas photo compression, KPI stats, domain chips, and direct PIN change card.
-7. `web/src/components/profile/PinChangeForm.tsx`:
-   - Direct PIN change form with "Forgot PIN?" modal integration.
-8. `web/src/components/navigation/BottomNav.tsx`:
-   - Updated 5th item to render `userPhotoUrl` thumbnail.
-9. `web/src/components/Navigation.tsx`:
-   - Updated mobile bottom dock profile icon to display `user.photoUrl`.
-10. `web/src/components/TeamSection.tsx`:
-    - Updated desktop `MemberCard` and mobile `MobilePlayerCard` / `MobileTeamAccordion` with custom profile synchronization.
-11. `.context/DECISIONS.md`:
-    - Added ADR-007 documenting profile identity architecture, canvas compression, and dual security flow.
+## 📁 3. MODIFIED FILES
+1. `web/src/components/profile/ProfileView.tsx`: Complete mobile redesign matching reference image, photo action sheet + lightbox, collapsible domain & PIN accordions, horizontal red sign-out.
+2. `web/src/components/profile/PinChangeForm.tsx`: Added `embedded?: boolean` mode to embed inside the Reset PIN accordion.
+3. `web/src/components/PwaInstallProvider.tsx`: Removed the floating mobile install banner.
+4. `web/src/app/dashboard/page.tsx`: Configured `DashboardHeader` to hide on `activeTab === 'profile'`.
 
 ---
 
