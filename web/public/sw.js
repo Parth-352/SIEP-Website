@@ -1,5 +1,5 @@
 // SIEP Riders Bay Workshop-Optimized Service Worker
-const CACHE_NAME = 'siep-pwa-v1';
+const CACHE_NAME = 'siep-pwa-v2';
 const PRECACHE_ASSETS = [
   '/',
   '/offline.html',
