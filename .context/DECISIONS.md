@@ -184,3 +184,23 @@
 - **Consequences:**
   - Fast, intuitive build logging workflow for workshop members on mobile.
   - Zero disruption to desktop operations or database records.
+
+---
+
+## 🏛️ ADR-014: Strict Domain-Scoped Task Isolation & 4-Tile Status Uniformity
+- **Date:** 2026-11-13
+- **Status:** Accepted & Implemented
+- **Context:**
+  - Members viewing "Team Tasks" and "My Tasks / Assigned" on mobile previously saw tasks across irrelevant domains or could pick foreign squads from dropdowns.
+  - Furthermore, Team Tasks only had 3 KPI summary tiles (`Total`, `In Progress`, `Completed`), missing the `Under Review` metric, while My Tasks had 4 tiles labeled with inconsistent nomenclature ("Review" vs "Under Review").
+- **Decisions:**
+  1. **Strict Assigned Domain Scoping:**
+     - Both `filteredTasks` (Team Tasks) and `myAssignedTasks` (Assigned Tasks) are strictly scoped to the active member's assigned domains (`memberDomainIds = [user.teamId, ...(user.secondaryTeams || [])]`), verified against the canonical 23-member roster.
+     - Squad and domain dropdown filters in both tabs only display the member's assigned squads (`availableSquads`), eliminating cross-domain leakage.
+  2. **4-Tile KPI Summary Grid Unification:**
+     - Both `TeamTasksTab` and `MyWorkbenchTab` now feature an identical 4-tile summary row: `Total`, `In Progress`, `Under Review`, and `Completed`.
+     - Tiles use identical container styling (`w-7 h-7` pastel vector icons, `text-base font-black` counts, `text-[10px]` labels, and active selection highlight rings).
+     - Clicking any KPI tile switches the active single-status list view dynamically.
+- **Consequences:**
+  - Complete privacy and relevance for domain members; zero distraction from other squads' workloads.
+  - 100% visual and interactive parity between Team Tasks and Personal Tasks on mobile.

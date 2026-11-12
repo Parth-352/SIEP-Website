@@ -6,27 +6,29 @@
 ---
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
-- **Git Head:** `898c9e1` - `fix(log): convert work status tiles from horizontal scroll to responsive grid`.
+- **Git Head:** `d9291ff` - `feat(tasks): enforce domain-only task scoping, add Under Review KPI tiles, and unify task dashboards`.
 - **TypeScript Verification:** ✅ Clean (`cd web && npx tsc --noEmit` passes with 0 errors).
 - **Production Build:** ✅ Next.js 16.4.5 Turbopack build (`npm run build`) compiles successfully (20/20 static pages generated, 0 errors).
-- **Architecture Synchronization:** ✅ ADR-013 recorded in `.context/DECISIONS.md`.
-- **Vercel Production Deployment:** ✅ Live at `https://ridersbay.vercel.app` (Deployment `web-hebmudv2r-parths-projects-421c4665.vercel.app`).
+- **Architecture Synchronization:** ✅ ADR-014 recorded in `.context/DECISIONS.md`.
+- **Vercel Production Deployment:** ✅ Live at `https://ridersbay.vercel.app` (Deployment `web-d8szou3j4-parths-projects-421c4665.vercel.app`).
 
 ---
 
 ## 🛠️ 2. RECENT ACCOMPLISHMENTS & TEST VERIFICATIONS
 
-### A. Build Log 5 Status Tiles Grid Rework (`web/src/app/log/page.tsx`)
-1. **Removed Horizontal Scroll:**
-   - Replaced `overflow-x-auto hide-scrollbar -mx-1 px-1` with a responsive 2-row grid (`grid grid-cols-6 sm:grid-cols-5 gap-2`).
-2. **Optimal Grid Hierarchy:**
-   - **Row 1 (Active Progression):** 3 tiles (`col-span-2 sm:col-span-1` each): `▷ In Progress`, `⚗ Testing`, `✓ Completed`.
-   - **Row 2 (Attention / Review):** 2 tiles (`col-span-3 sm:col-span-1` each): `⏸ On Hold`, `👁 Needs Review`.
-   - **Tablet / Large Screens (`sm:`):** Automatically expands into a 5-column single-row layout (`sm:grid-cols-5 sm:col-span-1`).
-3. **Card Ergonomics:**
-   - Top row pairs status vector icon (`w-7 h-7 rounded-lg`) directly with large bold count (`text-base font-black`).
-   - Bottom row displays legible status label (`text-[11px] font-medium truncate mt-2`) without text clipping or horizontal overflow.
-   - Preserves click-to-filter toggles and active highlight ring styling (`border-orange ring-2 ring-orange/30 bg-orange/5`).
+### A. Team Tasks & Assigned Tasks Domain Scoping & Uniformity
+1. **Under Review Added & 4-Tile Grid Parity:**
+   - Both `TeamTasksTab.tsx` and `MyWorkbenchTab.tsx` now share an identical 4-tile KPI summary: `Total`, `In Progress`, `Under Review`, `Completed`.
+   - Replaced previous 3-tile grid on Team Tasks; updated label from "Review" to "Under Review" on My Tasks.
+   - Interactive tap-to-filter capability on KPI tiles with active status highlight rings.
+2. **Strict Assigned Domain Task Isolation:**
+   - In **Team Tasks**: Only tasks belonging to the member's assigned domains (`memberDomainIds = [user.teamId, ...(user.secondaryTeams || [])]`) are visible. Subsystem filter dropdown only presents their assigned squads.
+   - In **Assigned Tasks** (`myAssignedTasks`): Only tasks that both belong to the member's assigned domain AND are assigned to the member are shown.
+   - Cross-domain task leakage completely eliminated.
+3. **Design & Nomenclature Uniformity:**
+   - Exact matching search bar placeholders (`Search team tasks...` / `Search my tasks...`), clear buttons, and icons.
+   - Filter dropdowns unified with `All Assigned Squads` and identical priority options (`All Priorities`, `Urgent`, `High`, `Medium`, `Low`).
+   - Identical status chip pills with dynamic counts and badges.
 
 ### B. Mobile UI Rework — PRD v1.0 Implementation
 1. **Uniform '+' Create Action Sheet (`BottomNav.tsx`):**
