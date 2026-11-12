@@ -6,10 +6,14 @@
 ---
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
-- **Git Head:** ✅ `c524690` (`feat(navigation): limit bottom navigation dock strictly to standalone mobile web app`).
+- **Git Head:** ✅ `d148962` (`docs(handover): record commit c524690 and clean sync with origin/main`).
 - **GitHub Remote:** ✅ Up to date with `origin/main`.
 - **TypeScript Verification:** ✅ Clean (`cd web && npx tsc --noEmit` passes with 0 errors).
 - **Production Build:** ✅ Next.js 16.4.5 Turbopack build (`npm run build`) compiles successfully (20/20 static pages generated, 0 errors).
+- **Vercel Production Deployment:** ✅ Deployed live to production:
+  - Deployment: `https://web-k9xn8a0f3-parths-projects-421c4665.vercel.app`
+  - Aliases: `https://ridersbay.vercel.app` and `https://riders-bay.vercel.app`
+  - Verified: Zero bottom navigation dock in live browser response on both home (`/`) and `/dashboard`.
 - **Architecture Synchronization:** ✅ ADR-011 recorded in `.context/DECISIONS.md`.
 
 ---
