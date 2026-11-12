@@ -22,6 +22,40 @@ export default function Navigation() {
 
   const isPortalPage = isPortalOnly || isStandalone || pathname.startsWith('/log') || pathname.startsWith('/dashboard');
 
+  // Track active dashboard tab from URL search parameters for active pill highlight
+  const [currentTab, setCurrentTab] = useState<string>('dashboard');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const updateTabFromUrl = () => {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab') || 'dashboard';
+      setCurrentTab(tab);
+    };
+    updateTabFromUrl();
+    window.addEventListener('popstate', updateTabFromUrl);
+    return () => window.removeEventListener('popstate', updateTabFromUrl);
+  }, [pathname]);
+
+  const handleNavClick = (tabId?: string) => {
+    closeMenu();
+    if (tabId) {
+      setCurrentTab(tabId);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('siep_tab_change', { detail: tabId }));
+      }
+    }
+  };
+
+  const isDashboard = pathname === '/dashboard';
+  const isLog = pathname.startsWith('/log');
+
+  const isDashboardActive = isDashboard && (currentTab === 'dashboard' || !currentTab);
+  const isTeamTasksActive = isDashboard && currentTab === 'team_tasks';
+  const isBuildLogActive = isLog;
+  const isAssignedActive = isDashboard && currentTab === 'my_tasks';
+  const isProfileActive = isDashboard && currentTab === 'profile';
+
   // Close mobile menu on route change
   const [prevPath, setPrevPath] = useState(pathname);
   if (pathname !== prevPath) {
@@ -293,152 +327,474 @@ export default function Navigation() {
           </div>
 
           {/* Mobile Hamburger Button */}
-          <div className="flex md:hidden items-center gap-3">
+          <div className="flex md:hidden items-center gap-2.5">
             {isMounted && user && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-jet-black text-alice-blue font-bold">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-jet-black text-alice-blue font-bold uppercase tracking-wider">
                 {currentTeam?.code || user.teamId.toUpperCase()}
               </span>
             )}
             <button
               onClick={toggleMenu}
-              className="text-jet-black focus:outline-none p-2 rounded-lg hover:bg-jet-black/5"
+              className="w-10 h-10 rounded-xl bg-zinc-100/90 hover:bg-zinc-200 text-jet-black focus:outline-none flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs"
               aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
               aria-expanded={isMobileMenuOpen}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {isMobileMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
           </div>
         </div>
       </nav>
 
-      {/* Mobile Drawer Menu */}
+      {/* =========================================================================
+          SLIDE-OVER BURGER MENU (Matching Reference Design)
+          - Sliding in smoothly from right
+          - Crisp white card with rounded left edge (rounded-l-3xl)
+          - Dimmed blurred backdrop overlay
+          - Riders Bay. logo + Close button (✕)
+          - 4 uniform card items: Dashboard, Team Tasks, Build Log, Assigned
+          - Profile item (if authenticated)
+          - Soft red Log Out card at bottom
+         ========================================================================= */}
       <div 
-        className={`md:hidden fixed inset-0 w-full h-[100dvh] bg-alice-blue z-[90] transition-all duration-300 ease-in-out flex flex-col justify-center items-center overflow-y-auto font-sans ${
+        className={`fixed inset-0 z-[250] font-sans transition-all duration-300 ${
           isMobileMenuOpen 
-            ? 'opacity-100 pointer-events-auto' 
-            : 'opacity-0 pointer-events-none'
+            ? 'opacity-100 pointer-events-auto visible' 
+            : 'opacity-0 pointer-events-none invisible'
         }`}
         aria-hidden={!isMobileMenuOpen}
       >
-        <div className="flex flex-col items-center space-y-4 text-2xl uppercase tracking-widest font-bold text-jet-black w-full px-8 py-20 max-w-sm">
-          {!isPortalPage && !isStandalone && (
-            <>
-              <Link 
-                href="/" 
-                onClick={closeMenu} 
-                className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center"
-              >
-                Home
-              </Link>
-              <Link 
-                href="/about" 
-                onClick={closeMenu} 
-                className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center"
-              >
-                About
-              </Link>
-              <Link 
-                href="/competition" 
-                onClick={closeMenu} 
-                className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center"
-              >
-                Competition
-              </Link>
-              <Link 
-                href="/bike" 
-                onClick={closeMenu} 
-                className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center"
-              >
-                The Bike
-              </Link>
-              <Link 
-                href="/contact" 
-                onClick={closeMenu} 
-                className="hover:text-orange transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center"
-              >
-                Contact
-              </Link>
-            </>
-          )}
+        {/* Dark Frosted Glass Backdrop Overlay */}
+        <div 
+          onClick={closeMenu}
+          className={`absolute inset-0 bg-jet-black/50 backdrop-blur-sm transition-opacity duration-300 ${
+            isMobileMenuOpen ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
 
-          {/* Authenticated Links in Mobile */}
-          {isMounted && (
-            user ? (
-              <>
-                {/* Dashboard: Accessible to all authenticated members */}
+        {/* Slide-over Drawer Card */}
+        <aside
+          className={`absolute top-0 right-0 h-full w-[85%] max-w-[360px] sm:max-w-[400px] bg-white rounded-l-[32px] sm:rounded-l-[40px] shadow-2xl z-10 flex flex-col justify-between p-6 sm:p-7 overflow-y-auto hide-scrollbar transition-transform duration-300 ease-out ${
+            isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          {/* Top Section */}
+          <div className="space-y-6">
+            {/* Header: Brand Logo & Close Button */}
+            <div className="flex items-center justify-between pb-2">
+              <Link
+                href={isPortalPage ? "/dashboard" : "/"}
+                onClick={closeMenu}
+                className="text-2xl font-black text-jet-black tracking-tighter"
+              >
+                Riders Bay<span className="text-orange">.</span>
+              </Link>
+
+              <button
+                type="button"
+                onClick={closeMenu}
+                className="w-10 h-10 rounded-2xl bg-zinc-100 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs"
+                aria-label="Close menu"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Menu Navigation Items */}
+            {user ? (
+              <div className="space-y-2.5">
+                {/* 1. Dashboard */}
                 <Link
-                  href="/dashboard"
-                  onClick={closeMenu}
-                  className={`transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center font-bold ${
-                    pathname === '/dashboard' ? 'text-orange font-bold' : 'hover:text-orange text-jet-black'
+                  href="/dashboard?tab=dashboard"
+                  onClick={() => handleNavClick('dashboard')}
+                  className={`w-full rounded-2xl p-3 sm:p-3.5 flex items-center justify-between gap-3.5 transition-all text-left ${
+                    isDashboardActive
+                      ? 'bg-amber-50/90 border border-amber-200/80 shadow-2xs'
+                      : 'bg-white hover:bg-zinc-50 border border-zinc-100/90 hover:border-zinc-200/80'
                   }`}
                 >
-                  Dashboard
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div
+                      className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        isDashboardActive
+                          ? 'bg-amber-100/80 border border-amber-200/70 text-amber-500'
+                          : 'bg-zinc-100/80 border border-zinc-200/50 text-zinc-700'
+                      }`}
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="3" y="3" width="7.5" height="7.5" rx="2" />
+                        <rect x="13.5" y="3" width="7.5" height="7.5" rx="2" />
+                        <rect x="3" y="13.5" width="7.5" height="7.5" rx="2" />
+                        <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2" />
+                      </svg>
+                    </div>
+                    <span className="text-[15px] sm:text-base font-bold text-zinc-900 tracking-tight">
+                      Dashboard
+                    </span>
+                  </div>
+                  <svg
+                    className={`w-5 h-5 shrink-0 transition-transform ${
+                      isDashboardActive ? 'text-amber-500' : 'text-zinc-400'
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                  </svg>
                 </Link>
 
-                {/* Build Log: Restricted strictly to Core Leadership & Domain Leads */}
-                {(isCore || isLead) && (
-                  <Link
-                    href="/log"
-                    onClick={closeMenu}
-                    className={`transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center font-bold ${
-                      pathname === '/log' ? 'text-orange font-bold' : 'hover:text-orange text-jet-black'
-                    }`}
-                  >
-                    Build Log
-                  </Link>
-                )}
-
-                <div className="w-full text-center py-2 flex flex-col items-center justify-center gap-2">
-                  <div className="text-xs font-mono uppercase px-3 py-1.5 rounded-full bg-jet-black text-alice-blue flex items-center gap-2">
-                    <span className="text-orange">{currentTeam?.code || user.teamId.toUpperCase()}</span>
-                    <span>{user.displayName}</span>
+                {/* 2. Team Tasks */}
+                <Link
+                  href="/dashboard?tab=team_tasks"
+                  onClick={() => handleNavClick('team_tasks')}
+                  className={`w-full rounded-2xl p-3 sm:p-3.5 flex items-center justify-between gap-3.5 transition-all text-left ${
+                    isTeamTasksActive
+                      ? 'bg-amber-50/90 border border-amber-200/80 shadow-2xs'
+                      : 'bg-white hover:bg-zinc-50 border border-zinc-100/90 hover:border-zinc-200/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div
+                      className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        isTeamTasksActive
+                          ? 'bg-amber-100/80 border border-amber-200/70 text-amber-500'
+                          : 'bg-zinc-100/80 border border-zinc-200/50 text-zinc-700'
+                      }`}
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                      </svg>
+                    </div>
+                    <span className="text-[15px] sm:text-base font-bold text-zinc-900 tracking-tight">
+                      Team Tasks
+                    </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      logout();
-                      closeMenu();
-                    }}
-                    className="text-xs font-mono text-red-500 underline min-h-[44px] flex items-center px-2 cursor-pointer"
+                  <svg
+                    className={`w-5 h-5 shrink-0 transition-transform ${
+                      isTeamTasksActive ? 'text-amber-500' : 'text-zinc-400'
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                   >
-                    Logout from Portal
-                  </button>
-                </div>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+
+                {/* 3. Build Log */}
+                <Link
+                  href="/log"
+                  onClick={closeMenu}
+                  className={`w-full rounded-2xl p-3 sm:p-3.5 flex items-center justify-between gap-3.5 transition-all text-left ${
+                    isBuildLogActive
+                      ? 'bg-amber-50/90 border border-amber-200/80 shadow-2xs'
+                      : 'bg-white hover:bg-zinc-50 border border-zinc-100/90 hover:border-zinc-200/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div
+                      className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        isBuildLogActive
+                          ? 'bg-amber-100/80 border border-amber-200/70 text-amber-500'
+                          : 'bg-zinc-100/80 border border-zinc-200/50 text-zinc-700'
+                      }`}
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="9" strokeWidth="2" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v8m-4-4h8" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0 flex items-center gap-2">
+                      <span className="text-[15px] sm:text-base font-bold text-zinc-900 tracking-tight">
+                        Build Log
+                      </span>
+                      {!(isCore || isLead) && (
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-zinc-200 text-zinc-600 uppercase">
+                          Leads Only
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <svg
+                    className={`w-5 h-5 shrink-0 transition-transform ${
+                      isBuildLogActive ? 'text-amber-500' : 'text-zinc-400'
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+
+                {/* 4. Assigned */}
+                <Link
+                  href="/dashboard?tab=my_tasks"
+                  onClick={() => handleNavClick('my_tasks')}
+                  className={`w-full rounded-2xl p-3 sm:p-3.5 flex items-center justify-between gap-3.5 transition-all text-left ${
+                    isAssignedActive
+                      ? 'bg-amber-50/90 border border-amber-200/80 shadow-2xs'
+                      : 'bg-white hover:bg-zinc-50 border border-zinc-100/90 hover:border-zinc-200/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div
+                      className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        isAssignedActive
+                          ? 'bg-amber-100/80 border border-amber-200/70 text-amber-500'
+                          : 'bg-zinc-100/80 border border-zinc-200/50 text-zinc-700'
+                      }`}
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <span className="text-[15px] sm:text-base font-bold text-zinc-900 tracking-tight">
+                      Assigned
+                    </span>
+                  </div>
+                  <svg
+                    className={`w-5 h-5 shrink-0 transition-transform ${
+                      isAssignedActive ? 'text-amber-500' : 'text-zinc-400'
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+
+                {/* 5. Profile */}
+                <Link
+                  href="/dashboard?tab=profile"
+                  onClick={() => handleNavClick('profile')}
+                  className={`w-full rounded-2xl p-3 sm:p-3.5 flex items-center justify-between gap-3.5 transition-all text-left ${
+                    isProfileActive
+                      ? 'bg-amber-50/90 border border-amber-200/80 shadow-2xs'
+                      : 'bg-white hover:bg-zinc-50 border border-zinc-100/90 hover:border-zinc-200/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div
+                      className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        isProfileActive
+                          ? 'bg-amber-100/80 border border-amber-200/70 text-amber-500'
+                          : 'bg-zinc-100/80 border border-zinc-200/50 text-zinc-700'
+                      }`}
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                    <span className="text-[15px] sm:text-base font-bold text-zinc-900 tracking-tight">
+                      Profile
+                    </span>
+                  </div>
+                  <svg
+                    className={`w-5 h-5 shrink-0 transition-transform ${
+                      isProfileActive ? 'text-amber-500' : 'text-zinc-400'
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {/* Public Website Navigation */}
+                <Link
+                  href="/"
+                  onClick={closeMenu}
+                  className={`w-full rounded-2xl p-3 sm:p-3.5 flex items-center justify-between gap-3.5 transition-all text-left ${
+                    pathname === '/'
+                      ? 'bg-amber-50/90 border border-amber-200/80 shadow-2xs'
+                      : 'bg-white hover:bg-zinc-50 border border-zinc-100/90 hover:border-zinc-200/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-11 h-11 rounded-xl bg-zinc-100/80 border border-zinc-200/50 flex items-center justify-center shrink-0 text-zinc-700">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                      </svg>
+                    </div>
+                    <span className="text-[15px] sm:text-base font-bold text-zinc-900 tracking-tight">Home</span>
+                  </div>
+                  <svg className="w-5 h-5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+
+                <Link
+                  href="/bike"
+                  onClick={closeMenu}
+                  className={`w-full rounded-2xl p-3 sm:p-3.5 flex items-center justify-between gap-3.5 transition-all text-left ${
+                    pathname === '/bike'
+                      ? 'bg-amber-50/90 border border-amber-200/80 shadow-2xs'
+                      : 'bg-white hover:bg-zinc-50 border border-zinc-100/90 hover:border-zinc-200/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-11 h-11 rounded-xl bg-zinc-100/80 border border-zinc-200/50 flex items-center justify-center shrink-0 text-zinc-700">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
+                    </div>
+                    <span className="text-[15px] sm:text-base font-bold text-zinc-900 tracking-tight">The Bike</span>
+                  </div>
+                  <svg className="w-5 h-5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+
+                <Link
+                  href="/competition"
+                  onClick={closeMenu}
+                  className={`w-full rounded-2xl p-3 sm:p-3.5 flex items-center justify-between gap-3.5 transition-all text-left ${
+                    pathname === '/competition'
+                      ? 'bg-amber-50/90 border border-amber-200/80 shadow-2xs'
+                      : 'bg-white hover:bg-zinc-50 border border-zinc-100/90 hover:border-zinc-200/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-11 h-11 rounded-xl bg-zinc-100/80 border border-zinc-200/50 flex items-center justify-center shrink-0 text-zinc-700">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                      </svg>
+                    </div>
+                    <span className="text-[15px] sm:text-base font-bold text-zinc-900 tracking-tight">Competition</span>
+                  </div>
+                  <svg className="w-5 h-5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+
+                <Link
+                  href="/about"
+                  onClick={closeMenu}
+                  className={`w-full rounded-2xl p-3 sm:p-3.5 flex items-center justify-between gap-3.5 transition-all text-left ${
+                    pathname === '/about'
+                      ? 'bg-amber-50/90 border border-amber-200/80 shadow-2xs'
+                      : 'bg-white hover:bg-zinc-50 border border-zinc-100/90 hover:border-zinc-200/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-11 h-11 rounded-xl bg-zinc-100/80 border border-zinc-200/50 flex items-center justify-center shrink-0 text-zinc-700">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    </div>
+                    <span className="text-[15px] sm:text-base font-bold text-zinc-900 tracking-tight">About Us</span>
+                  </div>
+                  <svg className="w-5 h-5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+
+                <Link
+                  href="/contact"
+                  onClick={closeMenu}
+                  className={`w-full rounded-2xl p-3 sm:p-3.5 flex items-center justify-between gap-3.5 transition-all text-left ${
+                    pathname === '/contact'
+                      ? 'bg-amber-50/90 border border-amber-200/80 shadow-2xs'
+                      : 'bg-white hover:bg-zinc-50 border border-zinc-100/90 hover:border-zinc-200/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-11 h-11 rounded-xl bg-zinc-100/80 border border-zinc-200/50 flex items-center justify-center shrink-0 text-zinc-700">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                    </div>
+                    <span className="text-[15px] sm:text-base font-bold text-zinc-900 tracking-tight">Contact</span>
+                  </div>
+                  <svg className="w-5 h-5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Actions: Log Out / Login & Install */}
+          <div className="pt-4 mt-4 border-t border-zinc-100 space-y-2.5">
+            {user ? (
+              <>
+                {/* Secondary Showcase Website Link */}
+                <Link
+                  href="/"
+                  onClick={closeMenu}
+                  className="w-full text-xs font-sans text-zinc-500 hover:text-orange font-semibold py-2 px-3 flex items-center justify-between rounded-xl hover:bg-zinc-50 transition-colors"
+                >
+                  <span>Explore Showcase Website</span>
+                  <span>↗</span>
+                </Link>
+
+                {/* Log Out Button (Matching Reference Photo) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    logout();
+                    closeMenu();
+                  }}
+                  className="w-full rounded-2xl p-3 sm:p-3.5 flex items-center gap-3.5 bg-red-50/80 hover:bg-red-100/80 border border-red-100 text-red-600 transition-all cursor-pointer active:scale-[0.99] shadow-2xs"
+                >
+                  <div className="w-11 h-11 rounded-xl bg-red-100/70 border border-red-200/40 flex items-center justify-center shrink-0 text-red-600">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                  </div>
+                  <span className="text-[15px] sm:text-base font-bold text-red-600 font-sans tracking-tight">
+                    Log Out
+                  </span>
+                </button>
               </>
             ) : (
               <Link
                 href="/login"
                 onClick={closeMenu}
-                className="text-orange hover:text-jet-black transition-colors w-full text-center border-b border-jet-black/10 py-3.5 min-h-[48px] flex items-center justify-center font-sans font-bold uppercase tracking-wider text-xl"
+                className="w-full rounded-2xl p-3 sm:p-3.5 flex items-center justify-between gap-3.5 bg-orange/10 hover:bg-orange/20 border border-orange/30 text-orange font-bold transition-all shadow-2xs"
               >
-                Portal Login →
+                <div className="flex items-center gap-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-orange/20 flex items-center justify-center text-orange">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                    </svg>
+                  </div>
+                  <span className="text-[15px] sm:text-base font-bold text-orange">Portal Login</span>
+                </div>
+                <svg className="w-5 h-5 text-orange" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                </svg>
               </Link>
-            )
-          )}
-          
-          {!isInstalled && (
-            <button
-              type="button"
-              onClick={() => {
-                installApp();
-                closeMenu();
-              }}
-              className="w-full text-center py-3.5 min-h-[48px] flex items-center justify-center gap-2 font-sans font-bold text-sm uppercase tracking-wider text-orange hover:text-jet-black border-b border-jet-black/10 cursor-pointer"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              <span>Install Web App</span>
-            </button>
-          )}
-        </div>
+            )}
+
+            {/* Install Web App Button */}
+            {!isInstalled && (
+              <button
+                type="button"
+                onClick={() => {
+                  installApp();
+                  closeMenu();
+                }}
+                className="w-full rounded-2xl p-2.5 sm:p-3 flex items-center justify-center gap-2 text-xs font-sans font-bold text-zinc-500 hover:text-zinc-900 transition-colors cursor-pointer"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                <span>Install Web App</span>
+              </button>
+            )}
+          </div>
+        </aside>
       </div>
 
       {/* =========================================================================

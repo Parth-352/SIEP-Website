@@ -86,6 +86,30 @@ function DashboardContent() {
     }
   }, [searchParams]);
 
+  // Handle immediate tab change dispatched from Burger Menu or Global Nav
+  useEffect(() => {
+    const handleCustomTab = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (
+        detail &&
+        [
+          'dashboard',
+          'team_tasks',
+          'my_tasks',
+          'profile',
+          'teams',
+          'videos',
+          'metrics',
+          'accounts',
+        ].includes(detail)
+      ) {
+        setActiveTab(detail as DashboardTab);
+      }
+    };
+    window.addEventListener('siep_tab_change', handleCustomTab);
+    return () => window.removeEventListener('siep_tab_change', handleCustomTab);
+  }, []);
+
   // Instagram-style Create Action Sheet for center [+] button
   const [isCreateActionSheetOpen, setIsCreateActionSheetOpen] = useState(false);
 

@@ -6,17 +6,32 @@
 ---
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
-- **Git Head:** `f73624c` - `feat(hierarchy): restrict task completion under review to Leads and Core members`.
+- **Git Head:** In progress (staged for commit) - `feat(nav): implement modern slide-over burger menu matching reference design`.
 - **TypeScript Verification:** ✅ Clean (`cd web && npx tsc --noEmit` passes with 0 errors).
 - **Production Build:** ✅ Next.js 16.4.5 Turbopack build (`npm run build`) compiles successfully (20/20 static pages generated, 0 errors).
-- **Architecture Synchronization:** ✅ ADR-014 and ADR-015 recorded in `.context/DECISIONS.md`.
-- **Vercel Production Deployment:** ✅ Live at `https://ridersbay.vercel.app` (Deployment `web-rnhwktbg4-parths-projects-421c4665.vercel.app`).
+- **Architecture Synchronization:** ✅ ADR-014, ADR-015, and ADR-016 recorded in `.context/DECISIONS.md`.
 
 ---
 
 ## 🛠️ 2. RECENT ACCOMPLISHMENTS & TEST VERIFICATIONS
 
-### A. Hierarchy-Gated Task Completion & Review Observation (ADR-015)
+### A. Modern Slide-Over Burger Menu Redesign (ADR-016)
+1. **Slide-Over Panel Architecture:**
+   - Redesigned the burger menu from an old full-screen centered text menu to a modern right slide-over card drawer (`rounded-l-[32px] sm:rounded-l-[40px]`, `w-[85%] max-w-[360px] sm:max-w-[400px]`, `bg-white`, `shadow-2xl`) over a frosted glass backdrop (`bg-jet-black/50 backdrop-blur-sm`).
+   - Clean top header with brand logo (`Riders Bay.`) and a rounded-2xl close button (`✕`).
+2. **Matching Reference Design Cards:**
+   - 4 primary uniform card items:
+     - **Dashboard:** 4-square grid icon (`2x2` rounded rectangles), active warm pastel styling (`bg-amber-50/90 border-amber-200/80`).
+     - **Team Tasks:** Clipboard checkmark icon.
+     - **Build Log:** Plus in circle `⊕` icon.
+     - **Assigned:** Person silhouette outline `👤` icon.
+     - **Profile:** Settings gear / badge icon for credential & PIN management.
+   - Individual rounded containers, chevrons (`>`), bold typography, and soft active highlight rings.
+   - Distinctive soft red **Log Out** card (`bg-red-50/80 border-red-100 text-red-600`) with door exit arrow icon at the bottom.
+3. **Instant Tab Synchronization:**
+   - Clicking tabs from the burger menu immediately triggers `siep_tab_change` custom events for instantaneous tab transitions without page reloads.
+
+### B. Hierarchy-Gated Task Completion & Review Observation (ADR-015)
 1. **Under Review Hierarchy Protection:**
    - Tasks under review (`task.status === 'review'`) can **only** be marked as Completed (`status === 'done'`) by **Squad Leads** (`isLead: true`) or **Core Leadership** (`isCore: true`, `teamId === 'core'`, or `isAdmin: true`).
    - Regular team members cannot bypass review or directly complete deliverables, maintaining supervisory observation and team hierarchy.

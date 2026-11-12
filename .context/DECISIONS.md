@@ -231,3 +231,30 @@
 - **Consequences:**
   - Strict organizational hierarchy preserved across all client touchpoints and server APIs.
   - Quality assurance and video evidence requirements enforced under lead observation.
+
+---
+
+## 🏛️ ADR-016: Modern Slide-Over Burger Menu & Navigation Parity
+- **Date:** 2026-11-13
+- **Status:** Accepted & Implemented
+- **Context:**
+  - The previous mobile drawer was a legacy full-screen centered text menu that did not match the modern card aesthetic of the redesigned Dashboard, Team Tasks, and Build Log pages.
+  - The user provided a reference visual (`media_1794516873830_735ab195.jpg`) specifying a sleek right-sliding card with rounded left borders, individual rounded navigation cards, pastel active states, and a styled soft red logout button.
+- **Decisions:**
+  1. **Slide-Over Panel Architecture:**
+     - Drawer card slides in from right (`rounded-l-[32px] sm:rounded-l-[40px]`, `w-[85%] max-w-[360px] sm:max-w-[400px]`, `bg-white`, `shadow-2xl`) over a frosted glass backdrop (`bg-jet-black/50 backdrop-blur-sm`).
+     - Includes top header with brand logo (`Riders Bay.`) and a rounded-2xl close button (`✕`).
+  2. **Uniform Card Navigation Items:**
+     - 4 core items matching reference:
+       1. **Dashboard:** 4-square grid icon (`2x2` rounded rectangles).
+       2. **Team Tasks:** Clipboard checkmark icon.
+       3. **Build Log:** Plus in circle `⊕` icon.
+       4. **Assigned:** Person silhouette outline `👤` icon.
+       5. **Profile:** Settings gear / badge icon for credential & PIN management.
+     - **Active State Parity:** Active tab/route displays a soft warm cream/amber card (`bg-amber-50/90 border border-amber-200/80`), amber icon container (`bg-amber-100/80 text-amber-500`), bold dark text, and amber chevron `>`.
+     - **Log Out Card:** Styled in soft red (`bg-red-50/80 border border-red-100 text-red-600`), exit door arrow icon, and bold red typography.
+  3. **Instant Tab Synchronization:**
+     - URL query sync and custom `siep_tab_change` event listeners in `page.tsx` allow instant tab switching from the burger menu without page reloads.
+- **Consequences:**
+  - 100% visual parity with user's reference mockup and app-wide design system.
+  - Flawless navigation on both mobile web browsers and standalone installed PWA.
