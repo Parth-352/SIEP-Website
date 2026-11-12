@@ -17,19 +17,34 @@ export interface SessionData {
 }
 
 /**
- * Encodes a user profile into a signed/formatted session string
+ * Encodes a user profile or session into a signed/formatted session string
  */
-export function encodeSession(profile: UserProfile): string {
+export function encodeSession(profile: UserProfile | SessionData | {
+  email: string;
+  teamId: TeamId;
+  displayName?: string;
+  name?: string;
+  isCore?: boolean;
+  isLead?: boolean;
+  tier?: 1 | 2 | 3;
+  memberId?: string;
+  photoUrl?: string;
+}): string {
   const member = getMemberByEmail(profile.email);
   const isCore = Boolean(profile.isCore || (member && member.isCore) || profile.teamId === 'core');
   const isLead = Boolean(profile.isLead || (member && (member.isLead || member.isCore)) || isCore);
   const tier = (profile.tier || (isCore ? 1 : isLead ? 2 : 3)) as 1 | 2 | 3;
+  const displayName = ('displayName' in profile && profile.displayName)
+    ? profile.displayName
+    : ('name' in profile && profile.name)
+    ? profile.name
+    : member?.name || profile.email.split('@')[0];
 
   const data: SessionData = {
     teamId: profile.teamId,
     role: isCore ? 'admin' : 'team',
     email: profile.email,
-    name: profile.displayName,
+    name: displayName,
     timestamp: Date.now(),
     isCore,
     isLead,

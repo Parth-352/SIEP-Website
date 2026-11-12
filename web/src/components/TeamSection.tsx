@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import TeamGallerySlider from './TeamGallerySlider';
+import { ROSTER_MEMBERS } from '@/lib/members';
 
 export type DomainId = 
   | 'software'
@@ -285,15 +286,19 @@ const TEAM_MEMBERS_DATA: TeamMember[] = [
 
 function MemberCard({ 
   member, 
-  activeCategory 
+  activeCategory,
+  customProfile,
 }: { 
   member: TeamMember; 
   activeCategory: string; 
+  customProfile?: { displayName?: string; photoUrl?: string };
 }) {
   const [imgError, setImgError] = useState(false);
+  const displayName = customProfile?.displayName || member.name;
+  const displayImage = customProfile?.photoUrl || member.image;
 
   // Compute initials for clean CAD monogram fallback
-  const initials = member.name
+  const initials = displayName
     .split(' ')
     .filter(n => !n.startsWith('Prof.'))
     .map(n => n[0])
@@ -337,11 +342,11 @@ function MemberCard({
         <div className="absolute bottom-3 left-3 text-[10px] text-white/20 font-mono select-none">+</div>
         <div className="absolute bottom-3 right-3 text-[10px] text-white/20 font-mono select-none">+</div>
 
-        {member.image && !imgError ? (
+        {displayImage && !imgError ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={member.image}
-            alt={member.name}
+            src={displayImage}
+            alt={displayName}
             onError={() => setImgError(true)}
             className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
           />
@@ -370,8 +375,8 @@ function MemberCard({
       {/* Info Body */}
       <div className="p-5 flex flex-col justify-between flex-1 bg-white">
         <div>
-          <h3 className="text-base sm:text-lg font-bold tracking-tight text-jet-black group-hover:text-orange transition-colors line-clamp-1" title={member.name}>
-            {member.name}
+          <h3 className="text-base sm:text-lg font-bold tracking-tight text-jet-black group-hover:text-orange transition-colors line-clamp-1" title={displayName}>
+            {displayName}
           </h3>
           <div className="mt-1.5 flex items-center gap-2">
             <span className={`text-[10px] font-mono uppercase tracking-wider font-semibold px-2 py-0.5 rounded ${
@@ -535,15 +540,19 @@ function MobilePlayerCard({
   role,
   isLead,
   isMentor,
+  customProfile,
 }: {
   member: TeamMember;
   role: string;
   isLead?: boolean;
   isMentor?: boolean;
+  customProfile?: { displayName?: string; photoUrl?: string };
 }) {
   const [imgError, setImgError] = useState(false);
+  const displayName = customProfile?.displayName || member.name;
+  const displayImage = customProfile?.photoUrl || member.image;
 
-  const initials = member.name
+  const initials = displayName
     .split(' ')
     .filter((n) => !n.startsWith('Prof.'))
     .map((n) => n[0])
@@ -555,11 +564,11 @@ function MobilePlayerCard({
     <div className="flex items-center gap-3.5 p-3 rounded-xl bg-white border border-jet-black/5 hover:border-orange/30 transition-all shadow-xs">
       {/* Avatar / Monogram */}
       <div className="relative w-12 h-12 rounded-xl bg-gradient-to-b from-[#1b222d] via-jet-black to-[#151a22] overflow-hidden shrink-0 flex items-center justify-center border border-jet-black/10 shadow-xs">
-        {member.image && !imgError ? (
+        {displayImage && !imgError ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={member.image}
-            alt={member.name}
+            src={displayImage}
+            alt={displayName}
             onError={() => setImgError(true)}
             className="w-full h-full object-cover object-center"
           />
@@ -574,7 +583,7 @@ function MobilePlayerCard({
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <h4 className="text-sm font-bold text-jet-black truncate">
-            {member.name}
+            {displayName}
           </h4>
           <span
             className={`text-[9px] font-mono uppercase tracking-wider font-bold px-2 py-0.5 rounded shrink-0 ${
@@ -602,12 +611,14 @@ function MobileTeamAccordion({
   isOpen,
   onToggle,
   memberLookup,
+  getProfileForMember,
 }: {
   team: MobileTeamGroup;
   index: number;
   isOpen: boolean;
   onToggle: () => void;
   memberLookup: Map<string, TeamMember>;
+  getProfileForMember: (m: TeamMember) => { displayName?: string; photoUrl?: string } | undefined;
 }) {
   return (
     <div
@@ -681,6 +692,7 @@ function MobileTeamAccordion({
                   role={item.role}
                   isLead={item.isLead}
                   isMentor={item.isMentor}
+                  customProfile={getProfileForMember(member)}
                 />
               );
             })}
@@ -694,6 +706,24 @@ function MobileTeamAccordion({
 export default function TeamSection() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [openTeamId, setOpenTeamId] = useState<string | null>(null);
+  const [customProfiles, setCustomProfiles] = useState<Record<string, { displayName?: string; photoUrl?: string }>>({});
+
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/api/profile')
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && data.success && data.profiles) {
+          setCustomProfiles(data.profiles);
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not fetch custom team profiles:', err);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Quick lookup map for members
   const memberLookup = useMemo(() => {
@@ -701,6 +731,15 @@ export default function TeamSection() {
     TEAM_MEMBERS_DATA.forEach((m) => map.set(m.id, m));
     return map;
   }, []);
+
+  const getProfileForMember = (m: TeamMember) => {
+    const cleanMemName = m.name.toLowerCase().trim();
+    const roster = ROSTER_MEMBERS.find((r) => {
+      const rName = r.name.toLowerCase().trim();
+      return rName === cleanMemName || cleanMemName.includes(rName) || rName.includes(cleanMemName);
+    });
+    return roster ? customProfiles[roster.email.toLowerCase()] : undefined;
+  };
 
   // Filter members strictly based on domain selection for desktop view
   const filteredMembers = useMemo(() => {
@@ -847,6 +886,7 @@ export default function TeamSection() {
                 setOpenTeamId(openTeamId === team.id ? null : team.id)
               }
               memberLookup={memberLookup}
+              getProfileForMember={getProfileForMember}
             />
           ))}
         </div>
@@ -855,7 +895,12 @@ export default function TeamSection() {
       {/* Desktop Grid - Preserved */}
       <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
         {filteredMembers.map((member) => (
-          <MemberCard key={member.id} member={member} activeCategory={activeCategory} />
+          <MemberCard
+            key={member.id}
+            member={member}
+            activeCategory={activeCategory}
+            customProfile={getProfileForMember(member)}
+          />
         ))}
       </div>
 

@@ -561,10 +561,14 @@ export default function Navigation() {
                   title="My Profile & Security"
                   className="flex flex-col items-center justify-center py-1 px-2.5 transition-all group text-grey hover:text-jet-black"
                 >
-                  <div className="w-7 h-7 rounded-full border-2 border-jet-black/40 group-hover:border-jet-black bg-alice-blue/80 flex items-center justify-center">
-                    <span className="text-[10px] font-mono font-bold uppercase text-jet-black">
-                      {user.displayName ? user.displayName.slice(0, 2).toUpperCase() : 'ME'}
-                    </span>
+                  <div className="w-7 h-7 rounded-full border-2 border-jet-black/40 group-hover:border-jet-black bg-alice-blue/80 flex items-center justify-center overflow-hidden">
+                    {user.photoUrl ? (
+                      <img src={user.photoUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[10px] font-mono font-bold uppercase text-jet-black">
+                        {user.displayName ? user.displayName.slice(0, 2).toUpperCase() : 'ME'}
+                      </span>
+                    )}
                   </div>
                   <span className="text-[10px] font-mono tracking-tight mt-0.5">Profile</span>
                 </Link>

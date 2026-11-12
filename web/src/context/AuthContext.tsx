@@ -29,6 +29,7 @@ interface AuthContextType {
   userTeams: TeamId[];
   login: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
+  updateUserProfile: (updates: { displayName?: string; photoUrl?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -42,6 +43,7 @@ const AuthContext = createContext<AuthContextType>({
   userTeams: [],
   login: async () => ({ success: false }),
   logout: async () => {},
+  updateUserProfile: async () => {},
 });
 
 const STORAGE_KEY = 'siep_auth_user_v2';
@@ -65,7 +67,8 @@ function getSavedUser(): UserProfile | null {
     // Re-verify against authoritative roster
     const member = getMemberByEmail(profile.email);
     if (member) {
-      profile.displayName = member.name;
+      profile.displayName = profile.displayName || member.name;
+      profile.photoUrl = profile.photoUrl || undefined;
       profile.isCore = member.isCore;
       profile.isLead = member.isLead;
       profile.tier = getMemberTier(member.email);
@@ -128,6 +131,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return () => unsubscribe();
     }
   }, []);
+
+  // Synchronize profile updates (displayName, photoUrl) from server / Firestore
+  useEffect(() => {
+    if (!user?.email) return;
+    let isMounted = true;
+    fetch('/api/profile')
+      .then((res) => res.json())
+      .then((data) => {
+        if (!isMounted || !data.success || !data.profiles) return;
+        const myProfile = data.profiles[user.email.toLowerCase().trim()];
+        if (myProfile) {
+          setUser((prev) => {
+            if (!prev) return null;
+            const needsUpdate =
+              (myProfile.displayName && myProfile.displayName !== prev.displayName) ||
+              (myProfile.photoUrl !== undefined && myProfile.photoUrl !== prev.photoUrl);
+            if (needsUpdate) {
+              const updated: UserProfile = {
+                ...prev,
+                ...(myProfile.displayName ? { displayName: myProfile.displayName } : {}),
+                ...(myProfile.photoUrl !== undefined ? { photoUrl: myProfile.photoUrl } : {}),
+              };
+              try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+                syncSessionCookie(updated);
+              } catch (e) {
+                console.warn('Storage sync error:', e);
+              }
+              return updated;
+            }
+            return prev;
+          });
+        }
+      })
+      .catch((err) => console.warn('Could not sync user profile:', err));
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.email]);
 
   // Login handler
   async function login(email: string, pass: string): Promise<{ success: boolean; error?: string }> {
@@ -246,6 +289,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     syncSessionCookie(null);
   }
 
+  const updateUserProfile = async (updates: { displayName?: string; photoUrl?: string }) => {
+    if (!user) return;
+    const updated: UserProfile = {
+      ...user,
+      ...(updates.displayName ? { displayName: updates.displayName } : {}),
+      ...(updates.photoUrl !== undefined ? { photoUrl: updates.photoUrl } : {}),
+    };
+    setUser(updated);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      syncSessionCookie(updated);
+    } catch (e) {
+      console.warn('Storage sync error:', e);
+    }
+  };
+
   const isCore = Boolean(user?.isCore || user?.teamId === 'core');
   const isLead = Boolean(user?.isLead || isCore);
   const isAdmin = isCore;
@@ -268,6 +327,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         userTeams,
         login,
         logout,
+        updateUserProfile,
       }}
     >
       {children}

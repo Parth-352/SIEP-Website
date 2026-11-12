@@ -75,3 +75,18 @@
   - On resumption, agents execute the wake-up protocol (git status, typecheck, handover review).
 - **Consequences:**
   - Zero context loss across weeks of downtime. Instant continuity for any AI assistant.
+
+---
+
+## 📌 ADR-007: Member Profile Customization, Canvas Image Compression & Roster Sync
+
+- **Context:** Team members needed the ability to personalize their display names and profile pictures from the dashboard settings, while having those updates automatically appear on the public team page (`/about#team`), the bottom navigation dock, and throughout the portal. Furthermore, security requirements dictated that if a user already knows their current PIN, they should be able to change it directly without waiting for an OTP, whereas users who forget their PIN can trigger a secure 6-digit email OTP dispatch to their registered college Gmail.
+- **Decision:**
+  - **Direct PIN Change vs. OTP Recovery:** Implemented a dual security flow in `PinChangeForm.tsx`. Direct changes verify `currentPin` -> `newPin` -> `confirmPin` via `/api/change-password`. Forgotten PIN triggers an in-page modal calling `/api/forgot-password` (`request` -> `verify` -> `reset`).
+  - **Client-Side Canvas Compression:** Avatar uploads are cropped to square and compressed via HTML5 Canvas into lightweight WebP/JPEG data URLs (~20–35 KB). This eliminates unnecessary third-party bucket storage costs and guarantees sub-second rendering.
+  - **Cloud Firestore Storage (`member_profiles`):** Custom profile data (`displayName`, `photoUrl`, `bio`, `updatedAt`) is keyed by member email (`member_profiles/${cleanEmail}`) and synchronized across sessions.
+  - **Public Team Sync (`TeamSection.tsx`):** Both Desktop `MemberCard` and Mobile `MobileTeamAccordion` dynamically fetch `/api/profile` and map member names to official roster emails, seamlessly replacing static initials with custom portraits and updated display names.
+- **Consequences:**
+  - Instant avatar and name reflection across all views without hard-reloading.
+  - Zero storage quota bloat on serverless hosting.
+  - Smooth user experience with no OTP friction for routine PIN adjustments.

@@ -948,6 +948,9 @@ function DashboardContent() {
             logout={logout}
             isInstalled={isInstalled}
             installApp={installApp}
+            tasks={tasks}
+            logs={logs}
+            setActiveTab={setActiveTab}
           />
         )}
       </div>
@@ -1083,6 +1086,7 @@ function DashboardContent() {
         isCore={isCore}
         isLead={isLead}
         userDisplayName={user.displayName}
+        userPhotoUrl={user.photoUrl}
         isInputFocused={isInputFocused}
         isCreateActionSheetOpen={isCreateActionSheetOpen}
         setIsCreateActionSheetOpen={setIsCreateActionSheetOpen}

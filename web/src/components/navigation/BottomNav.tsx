@@ -12,6 +12,7 @@ interface BottomNavProps {
   isCore: boolean;
   isLead: boolean;
   userDisplayName?: string;
+  userPhotoUrl?: string;
   isInputFocused: boolean;
   isCreateActionSheetOpen: boolean;
   setIsCreateActionSheetOpen: (open: boolean) => void;
@@ -28,6 +29,7 @@ export default function BottomNav({
   isCore,
   isLead,
   userDisplayName,
+  userPhotoUrl,
   isInputFocused,
   isCreateActionSheetOpen,
   setIsCreateActionSheetOpen,
@@ -217,15 +219,19 @@ export default function BottomNav({
           >
             <div className="relative">
               <div
-                className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
+                className={`w-7 h-7 rounded-full border-2 overflow-hidden flex items-center justify-center transition-all ${
                   activeTab === 'profile' && !isCreateActionSheetOpen
                     ? 'border-orange ring-2 ring-orange/30 bg-orange/10'
                     : 'border-jet-black/40 group-hover:border-jet-black bg-alice-blue/80'
                 }`}
               >
-                <span className="text-[10px] font-mono font-bold uppercase text-jet-black">
-                  {userDisplayName ? userDisplayName.slice(0, 2).toUpperCase() : 'ME'}
-                </span>
+                {userPhotoUrl ? (
+                  <img src={userPhotoUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-[10px] font-mono font-bold uppercase text-jet-black">
+                    {userDisplayName ? userDisplayName.slice(0, 2).toUpperCase() : 'ME'}
+                  </span>
+                )}
               </div>
             </div>
             <span

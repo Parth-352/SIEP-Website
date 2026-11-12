@@ -6,7 +6,7 @@ import {
   setDoc, 
   deleteDoc, 
 } from 'firebase/firestore';
-import { Task, WorkLog, TeamId, TaskStatus, TaskPriority } from './types';
+import { Task, WorkLog, TeamId, TaskStatus, TaskPriority, MemberProfileData } from './types';
 
 // ======================== TASKS FIRESTORE ========================
 
@@ -250,6 +250,58 @@ export async function saveFirestoreMemberPassword(email: string, password: strin
     return true;
   } catch (err) {
     console.warn('Firestore saveMemberPassword error:', err);
+    return false;
+  }
+}
+
+// ======================== MEMBER PROFILES FIRESTORE ========================
+
+export async function getFirestoreMemberProfiles(): Promise<Record<string, MemberProfileData>> {
+  if (!isFirebaseConfigured() || !db) return {};
+  try {
+    const col = collection(db, 'member_profiles');
+    const snapshot = await getDocs(col);
+    const profiles: Record<string, MemberProfileData> = {};
+    snapshot.forEach((d) => {
+      const data = d.data();
+      if (data.email) {
+        profiles[data.email.toLowerCase()] = {
+          email: data.email.toLowerCase(),
+          displayName: data.displayName || '',
+          photoUrl: data.photoUrl || undefined,
+          bio: data.bio || undefined,
+          updatedAt: data.updatedAt || Date.now(),
+        };
+      }
+    });
+    return profiles;
+  } catch (err) {
+    console.warn('Firestore getMemberProfiles error:', err);
+    return {};
+  }
+}
+
+export async function saveFirestoreMemberProfile(
+  email: string,
+  profile: Partial<MemberProfileData>
+): Promise<boolean> {
+  if (!isFirebaseConfigured() || !db) return false;
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    const docId = cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
+    const docRef = doc(db, 'member_profiles', docId);
+    await setDoc(
+      docRef,
+      {
+        ...profile,
+        email: cleanEmail,
+        updatedAt: Date.now(),
+      },
+      { merge: true }
+    );
+    return true;
+  } catch (err) {
+    console.warn('Firestore saveMemberProfile error:', err);
     return false;
   }
 }

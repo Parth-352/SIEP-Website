@@ -30,6 +30,8 @@ export interface UserProfile {
   uid: string;
   email: string;
   displayName: string;
+  photoUrl?: string;
+  bio?: string;
   role: UserRole;
   teamId: TeamId;
   secondaryTeams?: TeamId[];
@@ -38,6 +40,14 @@ export interface UserProfile {
   isLead?: boolean;
   memberId?: string;
   tier?: 1 | 2 | 3;
+}
+
+export interface MemberProfileData {
+  email: string;
+  displayName: string;
+  photoUrl?: string;
+  bio?: string;
+  updatedAt: number;
 }
 
 export interface InAppNotification {
