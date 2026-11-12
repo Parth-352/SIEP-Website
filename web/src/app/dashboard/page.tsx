@@ -796,55 +796,61 @@ function DashboardContent() {
       <div className="fixed inset-0 opacity-[0.02] pointer-events-none bg-[radial-gradient(#2B303A_1px,transparent_1px)] [background-size:24px_24px]" />
 
       <div className="max-w-7xl mx-auto relative z-10 space-y-5 sm:space-y-8">
-        {/* Header (hidden on profile view to provide full dedicated profile screen) */}
+        {/* Header (Desktop only; on mobile, each view features its dedicated purpose-built header matching PRD) */}
         {activeTab !== 'profile' && (
-          <DashboardHeader
-            user={user}
-            isCore={isCore}
-            isCoreAdmin={isCoreAdmin}
-            isOnline={isOnline}
-            pendingQueueCount={pendingQueueCount}
-            unreadActivitiesCount={unreadActivitiesCount}
-            isMoreMenuOpen={isMoreMenuOpen}
-            setIsMoreMenuOpen={setIsMoreMenuOpen}
-            handleOpenActivityDrawer={handleOpenActivityDrawer}
-            setIsBackupModalOpen={setIsBackupModalOpen}
-            setIsCreateModalOpen={setIsCreateModalOpen}
-            isInstalled={isInstalled}
-            installApp={installApp}
-            restrictedNotice={restrictedNotice}
-            dismissRestrictedNotice={() => router.replace('/dashboard')}
-          />
+          <div className="hidden md:block">
+            <DashboardHeader
+              user={user}
+              isCore={isCore}
+              isCoreAdmin={isCoreAdmin}
+              isOnline={isOnline}
+              pendingQueueCount={pendingQueueCount}
+              unreadActivitiesCount={unreadActivitiesCount}
+              isMoreMenuOpen={isMoreMenuOpen}
+              setIsMoreMenuOpen={setIsMoreMenuOpen}
+              handleOpenActivityDrawer={handleOpenActivityDrawer}
+              setIsBackupModalOpen={setIsBackupModalOpen}
+              setIsCreateModalOpen={setIsCreateModalOpen}
+              isInstalled={isInstalled}
+              installApp={installApp}
+              restrictedNotice={restrictedNotice}
+              dismissRestrictedNotice={() => router.replace('/dashboard')}
+            />
+          </div>
         )}
 
-        {/* Actionable KPI Ribbon (shown across dashboard and task views, hidden on dedicated profile) */}
+        {/* Actionable KPI Ribbon (Desktop only; mobile views have their dedicated KPI blocks per PRD) */}
         {activeTab !== 'profile' && (
-          <ActionableKpiRibbon
-            totalTasksCount={tasks.length}
-            activeTasksCount={inProgressTasks}
-            dueThisWeekCount={dueThisWeekTasksList.length}
-            overdueCount={overdueTasksList.length}
-            underReviewCount={underReviewTasksList.length}
-            setSpecialDeadlineFilter={setSpecialDeadlineFilter}
-            setSelectedSubsystemFilter={setSelectedSubsystemFilter}
-            setAssignedToMeOnly={setAssignedToMeOnly}
-            setActiveTab={setActiveTab}
-          />
+          <div className="hidden md:block">
+            <ActionableKpiRibbon
+              totalTasksCount={tasks.length}
+              activeTasksCount={inProgressTasks}
+              dueThisWeekCount={dueThisWeekTasksList.length}
+              overdueCount={overdueTasksList.length}
+              underReviewCount={underReviewTasksList.length}
+              setSpecialDeadlineFilter={setSpecialDeadlineFilter}
+              setSelectedSubsystemFilter={setSelectedSubsystemFilter}
+              setAssignedToMeOnly={setAssignedToMeOnly}
+              setActiveTab={setActiveTab}
+            />
+          </div>
         )}
 
-        {/* Elevated View Tabs */}
+        {/* Elevated View Tabs (Desktop only; on mobile, persistent bottom navigation is the single source) */}
         {activeTab !== 'profile' && (
-          <DashboardTabBar
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            filteredTasksCount={filteredTasks.length}
-            myAssignedCount={myAssignedCount}
-            teamsCount={TEAMS_LIST.length}
-            videoLogsCount={videoLogsCount}
-            completedTasksCount={completedTasks}
-            totalTasksCount={tasks.length}
-            isCore={isCore}
-          />
+          <div className="hidden md:block">
+            <DashboardTabBar
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              filteredTasksCount={filteredTasks.length}
+              myAssignedCount={myAssignedCount}
+              teamsCount={TEAMS_LIST.length}
+              videoLogsCount={videoLogsCount}
+              completedTasksCount={completedTasks}
+              totalTasksCount={tasks.length}
+              isCore={isCore}
+            />
+          </div>
         )}
 
         {/* Tab 1: Dashboard Overview */}

@@ -153,3 +153,20 @@
 - **Consequences:**
   - Pristine, native-feeling website browsing in Chrome on mobile and desktop without invasive bottom floating docks.
   - Retains the full app-like Instagram navigation dock, safe-area inset padding, and thumb-friendly controls exclusively when launched as an installed Mobile Web App from the device home screen.
+
+---
+
+## 🏛️ ADR-012: Mobile UI Rework — Single Responsibility Operational Views (Dashboard, Team Tasks, Assigned & Uniform '+' Create)
+- **Date:** 2026-11-12
+- **Status:** Accepted & Implemented
+- **Context:** The mobile web app previously displayed overlapping information across operations pages: project-level KPIs appeared repeatedly on Team Tasks and Assigned, secondary page tabs duplicated the persistent bottom dock, search and filters appeared in unnecessary places, and the 4-column Kanban board stacked into 4 tall vertical columns on mobile screens. Furthermore, the '+' Create action sheet had mismatched card styles, unequal heights, and different backgrounds.
+- **Decision:** Implemented the single-responsibility architecture defined in *Riders Bay Mobile UI Rework PRD v1.0*:
+  1. **Core Principle:** Dashboard = Observe. Team Tasks = Manage. Assigned = Execute.
+  2. **Uniform '+' Create Menu (`BottomNav.tsx`):** Unified both *Log Build Step* and *New Deliverable* cards with equal heights, light amber borders (`border-amber-200/80 bg-amber-50/30`), matching icon containers, and right arrows.
+  3. **Dashboard (Observe) (`DashboardOverviewTab.tsx`):** Mobile view features the compact project header (`SIEP E-Bike 2026-27`), 2x2 project KPI grid (`Total`, `Completed`, `Due Soon`, `Overdue`), compact subsystem progress bars, and recent activity timeline feed with real data.
+  4. **Team Tasks (Manage) (`TeamTasksTab.tsx`):** Features 3-tile task summary (Total, In Progress, Completed), search, squad/priority filters, 4 status chips (`To Do`, `In Progress`, `Under Review`, `Completed`), and single-status task list showing scannable cards with domain short codes (`MECH`, `POW`, `BATT`, `E&E`, `SOFT`, `DOCS`).
+  5. **Assigned (Execute) (`MyWorkbenchTab.tsx`):** Features 4 personal KPI tiles, personal search and domain/priority filters, status tabs, and cards strictly scoped to the logged-in user.
+  6. **Desktop Invariant:** All changes are strictly scoped to mobile breakpoints (`md:hidden`). Desktop screens (`hidden md:block`) retain the full 4-column drag-and-drop Kanban board, top `DashboardTabBar`, and existing layout with zero regression.
+- **Consequences:**
+  - High signal-to-noise ratio on mobile with no repeated KPIs or duplicate tab bars.
+  - Native mobile app feel on small viewports while preserving complete desktop operations tooling.

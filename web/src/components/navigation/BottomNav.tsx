@@ -242,6 +242,7 @@ export default function BottomNav({
       {/* =========================================================================
           INSTAGRAM CREATE ACTION SHEET (Leads & Core Only)
           Smooth slide-up sheet triggered by the center [+] button.
+          Matching action cards with equal height, icon containers, and typography.
          ========================================================================= */}
       {isCreateActionSheetOpen && canCreate && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end sm:items-center sm:justify-center p-0 sm:p-4">
@@ -255,46 +256,60 @@ export default function BottomNav({
           <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md flex flex-col shadow-2xl border border-jet-black/15 z-10 animate-in slide-in-from-bottom duration-200 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
             {/* Header */}
             <div className="pt-3 pb-3 px-5 flex flex-col items-center border-b border-jet-black/10">
-              <div className="w-12 h-1.5 bg-jet-black/20 rounded-full mb-3" />
+              <div className="w-12 h-1.5 bg-zinc-300 rounded-full mb-3" />
               <div className="w-full flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-orange" />
-                  <h3 className="text-sm font-sans font-bold uppercase tracking-wider text-jet-black">
-                    Create
-                  </h3>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-orange/10 flex items-center justify-center shrink-0">
+                    <svg className="w-5 h-5 text-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-sans font-bold text-jet-black leading-tight">
+                      Create
+                    </h3>
+                    <p className="text-xs font-sans text-zinc-500">
+                      Choose what you want to add
+                    </p>
+                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsCreateActionSheetOpen(false)}
-                  className="w-7 h-7 rounded-full bg-alice-blue flex items-center justify-center text-grey hover:text-jet-black font-bold text-xs cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-600 hover:text-jet-black font-bold text-xs transition-colors cursor-pointer"
+                  title="Close"
                 >
                   ✕
                 </button>
               </div>
             </div>
 
-            {/* Actions List */}
+            {/* Actions List (Unified Matching Action Cards) */}
             <div className="p-4 space-y-3">
               {/* Option 1: Log Build Step */}
               <Link
                 href="/log"
                 onClick={() => setIsCreateActionSheetOpen(false)}
-                className="group flex items-start gap-3.5 p-3.5 rounded-2xl border-2 border-jet-black bg-jet-black text-alice-blue hover:bg-orange hover:border-orange transition-all shadow-md active:scale-98"
+                className="group flex items-center justify-between p-4 rounded-2xl border border-amber-200/80 bg-amber-50/30 hover:bg-amber-50/70 hover:border-amber-400 transition-all active:scale-[0.98] cursor-pointer shadow-xs"
               >
-                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0 group-hover:bg-white/20 transition-colors">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-sans font-bold text-white flex items-center justify-between">
-                    <span>Log Build Step</span>
-                    <span>→</span>
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <svg className="w-6 h-6 text-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
                   </div>
-                  <p className="text-xs text-alice-blue/75 font-sans mt-0.5 leading-snug">
-                    Upload video proof
-                  </p>
+                  <div className="min-w-0">
+                    <div className="text-sm font-sans font-bold text-jet-black">
+                      Log Build Step
+                    </div>
+                    <p className="text-xs text-zinc-500 font-sans mt-0.5">
+                      Upload video proof
+                    </p>
+                  </div>
                 </div>
+                <svg className="w-5 h-5 text-orange shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
               </Link>
 
               {/* Option 2: New Deliverable */}
@@ -304,29 +319,33 @@ export default function BottomNav({
                   setIsCreateActionSheetOpen(false);
                   openCreateModal();
                 }}
-                className="w-full group flex items-start gap-3.5 p-3.5 rounded-2xl border border-jet-black/15 bg-white hover:border-orange hover:bg-orange/5 transition-all text-left active:scale-98 cursor-pointer shadow-xs"
+                className="w-full group flex items-center justify-between p-4 rounded-2xl border border-amber-200/80 bg-amber-50/30 hover:bg-amber-50/70 hover:border-amber-400 transition-all text-left active:scale-[0.98] cursor-pointer shadow-xs"
               >
-                <div className="w-10 h-10 rounded-xl bg-orange/10 border border-orange/30 flex items-center justify-center shrink-0 group-hover:bg-orange/20 transition-colors">
-                  <svg className="w-5 h-5 text-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-sans font-bold text-jet-black flex items-center justify-between">
-                    <span>New Deliverable</span>
-                    <span className="text-orange font-bold">+</span>
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <svg className="w-6 h-6 text-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v12m6-6H6" />
+                    </svg>
                   </div>
-                  <p className="text-xs text-grey font-sans mt-0.5 leading-snug">
-                    Add to subsystem board
-                  </p>
+                  <div className="min-w-0">
+                    <div className="text-sm font-sans font-bold text-jet-black">
+                      New Deliverable
+                    </div>
+                    <p className="text-xs text-zinc-500 font-sans mt-0.5">
+                      Add to subsystem board
+                    </p>
+                  </div>
                 </div>
+                <svg className="w-5 h-5 text-orange shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
               </button>
 
-              {/* Cancel */}
+              {/* Cancel Button */}
               <button
                 type="button"
                 onClick={() => setIsCreateActionSheetOpen(false)}
-                className="w-full py-2.5 rounded-xl border border-jet-black/10 bg-alice-blue/60 text-grey hover:text-jet-black font-sans text-xs font-semibold text-center transition-colors cursor-pointer"
+                className="w-full py-3 rounded-2xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-sans text-sm font-semibold text-center transition-colors cursor-pointer mt-1"
               >
                 Cancel
               </button>

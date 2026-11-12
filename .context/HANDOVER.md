@@ -6,73 +6,53 @@
 ---
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
-- **Git Head:** ✅ `d148962` (`docs(handover): record commit c524690 and clean sync with origin/main`).
-- **GitHub Remote:** ✅ Up to date with `origin/main`.
+- **Git Head:** ✅ In-flight commit for Mobile UI Rework (PRD v1.0).
 - **TypeScript Verification:** ✅ Clean (`cd web && npx tsc --noEmit` passes with 0 errors).
 - **Production Build:** ✅ Next.js 16.4.5 Turbopack build (`npm run build`) compiles successfully (20/20 static pages generated, 0 errors).
-- **Vercel Production Deployment:** ✅ Deployed live to production:
-  - Deployment: `https://web-k9xn8a0f3-parths-projects-421c4665.vercel.app`
-  - Aliases: `https://ridersbay.vercel.app` and `https://riders-bay.vercel.app`
-  - Verified: Zero bottom navigation dock in live browser response on both home (`/`) and `/dashboard`.
-- **Architecture Synchronization:** ✅ ADR-011 recorded in `.context/DECISIONS.md`.
+- **Architecture Synchronization:** ✅ ADR-012 recorded in `.context/DECISIONS.md`.
 
 ---
 
 ## 🛠️ 2. RECENT ACCOMPLISHMENTS & TEST VERIFICATIONS
 
-### A. Restrict Bottom Navigation Dock Strictly to Standalone Mobile Web App (PWA)
-1. **Web Standard Display Mode Detection (`checkIsStandalone` in `PwaInstallProvider.tsx`):**
-   - Implemented `checkIsStandalone()` combining:
-     - W3C Standard: `window.matchMedia('(display-mode: standalone)').matches`, `fullscreen`, `minimal-ui`.
-     - iOS Safari Home Screen PWA: `(window.navigator as any).standalone === true`.
-     - Android TWA: `document.referrer.startsWith('android-app://')`.
-     - Developer/QA Override: `?app=standalone` or `?standalone=true`.
-   - Added reactive media query listener to `window.matchMedia('(display-mode: standalone)')` with automatic cleanup on unmount.
-2. **Zero DOM Loading in Standard Browsers (`dashboard/page.tsx` & `Navigation.tsx`):**
-   - Wrapped `<BottomNav>` on `/dashboard` with `{isStandalone && <BottomNav ... />}`.
-   - Wrapped global bottom navigation in `Navigation.tsx` with `{isMounted && isStandalone && pathname !== '/dashboard' && pathname !== '/login' && ...}`.
-   - On `/login`, suppressed bottom dock in browser mode so `/login` renders as a clean, focused login card.
-3. **Dynamic Responsive Layout Clearance (`dashboard/page.tsx`):**
-   - Adjusted `main` bottom padding: `isStandalone ? 'pb-32 sm:pb-24' : 'pb-12 sm:pb-16'`.
-   - In standard browser mode (mobile Chrome or desktop), removes the empty 128px (`pb-32`) blank space at the bottom of the page.
-   - Navigation in standard mobile Chrome smoothly relies on top `DashboardTabBar`, hamburger drawer, and header actions.
-
-### B. Strict Single-PIN Invalidation (`passwords/route.ts` & `change-password/route.ts`)
-1. **Eliminated Default PIN Fallback:**
-   - Removed `(customPass && cleanPass === DEFAULT_MEMBER_PIN)` from authentication and PIN change validation.
-   - For any member who has rotated their PIN to a custom 6-digit code, entering `935200` strictly fails with `valid: false` and error `Incorrect 6-digit PIN. Please enter your active PIN or use Forgot PIN.`
-   - Unrotated accounts continue to accept `935200` until their first change.
-2. **Current PIN Invalidation in Settings:**
-   - In `/api/change-password`, attempting to update PIN using `935200` as current PIN when a custom PIN exists is rejected with HTTP 400.
-
-### C. Subsystem Velocity & Domain Priority Sorting (`DashboardOverviewTab.tsx` & `SubsystemsTab.tsx`)
-1. **User Squads at the Very Top:**
-   - Filtered and sorted squads in `Engineering Subsystems Velocity` and the dedicated `Subsystems` tab via `prioritizedTeams = useMemo(...)` so that all domains assigned to the logged-in member (`memberDomainIds` / `[My Squad]`, e.g., Software, Sponsorship, Documentation) appear in the first row above all unassigned squads.
-   - Remaining squads cleanly follow in subsequent rows.
-
-### D. Minimal '+' Action Menu & Extravaganza Removal (`BottomNav.tsx` & `page.tsx`)
-1. **Streamlined Action Sheet:**
-   - Header simplified to `Create` with a clean close `✕` button.
-   - Action 1: `Log Build Step` with concise subtitle `Upload video proof`.
-   - Action 2: `New Deliverable` with concise subtitle `Add to subsystem board`.
-   - Dismiss button standardized to `Cancel`.
-2. **Operations Hub Removal:**
-   - Removed `More Portals (Videos, Metrics, Sync)` button.
-   - Excised `OperationsHubModal` and unused `isMobileQuickMenuOpen` states from dashboard page.
-
-### E. Equal Domain Representation in Profile (`ProfileView.tsx`)
-1. **Removed Primary vs. Secondary Classification:**
-   - Eliminated the separate "Primary Domain" card and "Secondary Domains" section in the "My Domains" accordion.
-   - Unified all user domains (`allAssignedDomains = Array.from(new Set([user.teamId, ...(user.secondaryTeams || [])]))`) into an equal, peer-level listing where every domain receives identical card styling, squad badge, and official engineering description.
+### A. Mobile UI Rework — PRD v1.0 Implementation
+1. **Uniform '+' Create Action Sheet (`BottomNav.tsx`):**
+   - Redesigned to match reference image `media_1794499031055_68586280.jpg`.
+   - Matching cards for *Log Build Step* and *New Deliverable* with equal height, light amber borders (`border-amber-200/80 bg-amber-50/30`), soft icon containers, typography, and orange arrows.
+   - Header with orange stacked layer icon, title, subtitle, and circular close `✕` button.
+2. **Dashboard (Observe) (`DashboardOverviewTab.tsx`):**
+   - Mobile view (`md:hidden`) matching Mockup 3 & 5:
+     - Project Dashboard Hero Card (`SIEP E-Bike 2026-27`, `● LIVE`, bike watermark).
+     - 2x2 Project KPI Grid (`Total Tasks`, `Completed`, `Due Soon`, `Overdue`).
+     - Subsystem Progress Section with compact progress bars, percentages, and `View All →`.
+     - Recent Activity Feed with timeline dots, real build logs, and relative timestamps.
+3. **Team Tasks (Manage) (`TeamTasksTab.tsx`):**
+   - Mobile view (`md:hidden`) matching Mockup 4 & 6:
+     - Header: Clipboard checkmark icon, `Team Tasks`, `All project tasks across teams.`
+     - 3-tile KPI Summary (Total, In Progress, Completed).
+     - Search bar and filters row (Squads, Priority).
+     - 4 Status Chips (`To Do`, `In Progress`, `Under Review`, `Completed`) with dynamic counts.
+     - Single-status task list showing scannable cards with domain short codes (`MECH`, `POW`, `BATT`, `E&E`, `SOFT`, `DOCS`), due date, priority pill, and chevron `>`.
+4. **Assigned / My Tasks (Execute) (`MyWorkbenchTab.tsx`):**
+   - Mobile view (`md:hidden`) matching Mockup 7:
+     - Header: User icon, `My Tasks`, `Tasks assigned to you.`
+     - 4-tile personal summary (Total, In Progress, Review, Completed).
+     - Search & Domain/Priority filters.
+     - Status tabs and single-status personal task cards with catch-up empty state.
+5. **Strict Desktop Layout Preservation (`page.tsx` & all tabs):**
+   - Wrapped mobile layouts in `md:hidden` and desktop layouts in `hidden md:block`.
+   - Desktop screens retain the full 4-column drag-and-drop Kanban board, top `DashboardTabBar`, and velocity cards without layout shift.
+   - On mobile, `DashboardTabBar` and `ActionableKpiRibbon` are hidden to eliminate duplicate navigation and repeated metrics per PRD.
 
 ---
 
 ## 📁 3. RECENTLY MODIFIED FILES IN HEAD
-- `web/src/components/PwaInstallProvider.tsx` — Added `checkIsStandalone()` helper, display-mode listener, and standalone state updates.
-- `web/src/app/dashboard/page.tsx` — Restricted `<BottomNav>` strictly to `isStandalone`, dynamically adjusted `pb-` bottom padding.
-- `web/src/components/Navigation.tsx` — Restricted global bottom navigation dock strictly to `isStandalone`, cleaned `/login`.
-- `web/src/components/navigation/BottomNav.tsx` — Updated architecture documentation comments.
-- `.context/DECISIONS.md` — Added ADR-011.
+- `web/src/components/navigation/BottomNav.tsx` — Unified '+' Create action sheet.
+- `web/src/components/dashboard/DashboardOverviewTab.tsx` — Mobile hero header, 2x2 KPI grid, progress bars, recent activity.
+- `web/src/components/dashboard/TeamTasksTab.tsx` — 3 KPI summary, single-status mobile task list with domain tags.
+- `web/src/components/dashboard/MyWorkbenchTab.tsx` — Personal 4 KPI summary, personal search/filters, single-status cards.
+- `web/src/app/dashboard/page.tsx` — Scoped desktop header, KPI ribbon, and tab bar to `hidden md:block`.
+- `.context/DECISIONS.md` — Added ADR-012.
 - `.context/HANDOVER.md` — Updated session status.
 
 ---
@@ -85,13 +65,3 @@ cd web && npx tsc --noEmit
 # Production build check (web/)
 cd web && npm run build
 ```
-
----
-
-## 📋 5. IMMEDIATE NEXT STEPS CHECKLIST
-- [x] Comprehensive standalone detection (`checkIsStandalone`) implemented.
-- [x] Bottom dock unmounted and excluded from DOM in standard web browsers.
-- [x] Dynamic container bottom padding adjusted on `/dashboard`.
-- [x] TypeScript verification passed (0 errors).
-- [x] Turbopack production build passed (20/20 pages).
-- [ ] Commit changes and push to origin/main.
