@@ -1,12 +1,16 @@
 # 📋 ACTIVE SESSION HANDOVER & STATE
-> **Last Updated:** 2026-11-12 | **Branch:** `main`  
+> **Last Updated:** 2026-11-12 | **Branch:** `main` (commit `af6266f`)  
+> **Production Live URL:** `https://web-black-delta-34.vercel.app`  
 > *This document is the single source of truth for in-flight work across breaks. Agents and developers must read this before starting and update it before stopping.*
 
 ---
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
+- **GitHub Remote:** ✅ Pushed to `origin/main` (`af6266f`).
+- **Vercel Production Deployment:** ✅ Live at `https://web-black-delta-34.vercel.app` (Deployment `web-d6euynimt-parths-projects-421c4665.vercel.app`).
+- **Cache Invalidation:** ✅ Service worker cache bumped to `siep-pwa-v2` to force automatic client-side purge of stale caches.
 - **Compilation Status:** ✅ TypeScript compiles clean (`cd web && npx tsc --noEmit` passes with 0 errors).
-- **Production Build:** ✅ Next.js production build (`npm run build`) compiles successfully in 1036ms with 0 errors across all 20 routes.
+- **Production Build:** ✅ Next.js production build (`npm run build`) compiles successfully in 1036ms with 0 errors.
 - **Dev Server Status:** ✅ Next.js 16.4.5 (Turbopack) active on `http://localhost:3000`.
 - **Automated Verification:** ✅ Verified across mobile (390×844) and desktop (1280×800) using Chrome CDP headless browser automation.
 - **Production Deployment Ready:** ✅ All changes tested against Cloud Firestore `member_profiles` collection.
