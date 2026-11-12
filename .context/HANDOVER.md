@@ -6,11 +6,11 @@
 ---
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
-- **Git Head:** ✅ In-flight changes: restricted bottom menu strictly to Mobile Web App (standalone PWA).
+- **Git Head:** ✅ `c524690` (`feat(navigation): limit bottom navigation dock strictly to standalone mobile web app`).
 - **GitHub Remote:** ✅ Up to date with `origin/main`.
 - **TypeScript Verification:** ✅ Clean (`cd web && npx tsc --noEmit` passes with 0 errors).
 - **Production Build:** ✅ Next.js 16.4.5 Turbopack build (`npm run build`) compiles successfully (20/20 static pages generated, 0 errors).
-- **Architecture Synchronization:** ✅ ADR-011 added to `.context/DECISIONS.md`.
+- **Architecture Synchronization:** ✅ ADR-011 recorded in `.context/DECISIONS.md`.
 
 ---
 
