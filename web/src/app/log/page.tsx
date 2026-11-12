@@ -739,40 +739,39 @@ function LogPageContent() {
             <span>Add Build Log</span>
           </button>
 
-          {/* 3. Five Work Status Tiles / Metric Cards */}
-          <div className="overflow-x-auto hide-scrollbar -mx-1 px-1">
-            <div className="flex items-center gap-2 min-w-max pb-1">
-              {(['in_progress', 'testing', 'completed', 'on_hold', 'review'] as LogWorkStatus[]).map((st) => {
-                const cfg = WORK_STATUS_CONFIG[st];
-                const count = statusCounts[st] || 0;
-                const isSelected = mobileStatusFilter === st;
+          {/* 3. Five Work Status Tiles / Metric Cards (Responsive Grid Layout - Zero Horizontal Scroll) */}
+          <div className="grid grid-cols-6 sm:grid-cols-5 gap-2">
+            {(['in_progress', 'testing', 'completed', 'on_hold', 'review'] as LogWorkStatus[]).map((st, idx) => {
+              const cfg = WORK_STATUS_CONFIG[st];
+              const count = statusCounts[st] || 0;
+              const isSelected = mobileStatusFilter === st;
+              const colSpan = idx < 3 ? 'col-span-2 sm:col-span-1' : 'col-span-3 sm:col-span-1';
 
-                return (
-                  <button
-                    key={st}
-                    type="button"
-                    onClick={() => setMobileStatusFilter(isSelected ? 'all' : st)}
-                    className={`bg-white border rounded-2xl p-2.5 shadow-2xs flex items-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0 min-w-[105px] text-left ${
-                      isSelected
-                        ? 'border-orange ring-2 ring-orange/30 bg-orange/5'
-                        : 'border-jet-black/10 hover:border-zinc-300'
-                    }`}
-                  >
+              return (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => setMobileStatusFilter(isSelected ? 'all' : st)}
+                  className={`${colSpan} bg-white border rounded-2xl p-2.5 shadow-2xs flex flex-col justify-between cursor-pointer transition-all active:scale-95 text-left min-w-0 ${
+                    isSelected
+                      ? 'border-orange ring-2 ring-orange/30 bg-orange/5'
+                      : 'border-jet-black/10 hover:border-zinc-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
                     <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${cfg.tileIconBg} ${cfg.tileIconColor}`}>
                       {cfg.icon}
                     </div>
-                    <div>
-                      <div className="text-base font-black font-sans text-jet-black tabular-nums leading-none">
-                        {count}
-                      </div>
-                      <div className="text-[10px] font-sans text-zinc-500 font-medium whitespace-nowrap mt-0.5">
-                        {cfg.label}
-                      </div>
+                    <div className="text-base font-black font-sans text-jet-black tabular-nums leading-none">
+                      {count}
                     </div>
-                  </button>
-                );
-              })}
-            </div>
+                  </div>
+                  <div className={`text-[11px] font-sans font-medium truncate mt-2 ${isSelected ? 'text-orange font-bold' : 'text-zinc-500'}`}>
+                    {cfg.label}
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
           {/* 4. Section Header: Recent Logs & Team Selector Dropdown */}
