@@ -166,6 +166,13 @@ function LogPageContent() {
   const { enqueueLogUpload, isOnline } = useBackgroundSync();
   // Master administrative access for Core Leadership (Tier 1)
   const isCoreAdmin = Boolean(isCore || (user && user.teamId === 'core'));
+  const canApproveCompletion = Boolean(
+    isCore ||
+    isLead ||
+    user?.isCore ||
+    user?.isLead ||
+    user?.teamId === 'core'
+  );
 
   const [isMounted, setIsMounted] = useState(false);
   const [logs, setLogs] = useState<WorkLog[]>([]);
@@ -461,6 +468,10 @@ function LogPageContent() {
     if (!nextStatus) return;
 
     if (nextStatus === 'done') {
+      if (!canApproveCompletion) {
+        alert('Hierarchy Rule: Only Squad Leads and Core Leadership can approve and mark tasks as Completed.');
+        return;
+      }
       setTaskToComplete(task);
       setIsCompleteModalOpen(true);
       return;
@@ -1202,25 +1213,63 @@ function LogPageContent() {
                             Log Work
                           </button>
                           <div className="flex items-center gap-1.5 w-full sm:w-auto">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setTaskToComplete(task);
-                                setIsCompleteModalOpen(true);
-                              }}
-                              className="px-2.5 py-1.5 sm:py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border border-emerald-300 rounded-lg text-[10px] font-mono font-bold transition-colors cursor-pointer flex-1 sm:flex-initial min-h-[36px] sm:min-h-0 flex items-center justify-center text-center"
-                              title="Mark completed with video evidence"
-                            >
-                              Done + Video
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleQuickAdvanceTask(task)}
-                              className="px-2.5 py-1.5 sm:py-1 bg-white hover:bg-jet-black/5 border border-jet-black/15 rounded-lg text-[10px] font-mono font-bold text-jet-black transition-colors cursor-pointer flex-1 sm:flex-initial min-h-[36px] sm:min-h-0 flex items-center justify-center text-center"
-                              title="Advance task status"
-                            >
-                              {task.status === 'review' ? 'Mark Done' : 'Advance →'}
-                            </button>
+                            {task.status === 'review' ? (
+                              canApproveCompletion ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setTaskToComplete(task);
+                                      setIsCompleteModalOpen(true);
+                                    }}
+                                    className="px-2.5 py-1.5 sm:py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border border-emerald-300 rounded-lg text-[10px] font-mono font-bold transition-colors cursor-pointer flex-1 sm:flex-initial min-h-[36px] sm:min-h-0 flex items-center justify-center text-center"
+                                    title="Approve deliverable with video evidence"
+                                  >
+                                    Approve + Video
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickAdvanceTask(task)}
+                                    className="px-2.5 py-1.5 sm:py-1 bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600 rounded-lg text-[10px] font-mono font-bold transition-colors cursor-pointer flex-1 sm:flex-initial min-h-[36px] sm:min-h-0 flex items-center justify-center text-center shadow-2xs"
+                                    title="Approve deliverable as Completed"
+                                  >
+                                    Approve ✓
+                                  </button>
+                                </>
+                              ) : (
+                                <span
+                                  title="Under Review: Only Squad Leads and Core Leadership can approve and complete deliverables"
+                                  className="px-2.5 py-1.5 sm:py-1 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg text-[10px] font-mono font-bold flex items-center justify-center gap-1 select-none flex-1 sm:flex-initial min-h-[36px] sm:min-h-0"
+                                >
+                                  <span>🔒</span>
+                                  <span>Awaiting Lead Approval</span>
+                                </span>
+                              )
+                            ) : (
+                              <>
+                                {canApproveCompletion && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setTaskToComplete(task);
+                                      setIsCompleteModalOpen(true);
+                                    }}
+                                    className="px-2.5 py-1.5 sm:py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border border-emerald-300 rounded-lg text-[10px] font-mono font-bold transition-colors cursor-pointer flex-1 sm:flex-initial min-h-[36px] sm:min-h-0 flex items-center justify-center text-center"
+                                    title="Mark completed with video evidence"
+                                  >
+                                    Done + Video
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickAdvanceTask(task)}
+                                  className="px-2.5 py-1.5 sm:py-1 bg-white hover:bg-jet-black/5 border border-jet-black/15 rounded-lg text-[10px] font-mono font-bold text-jet-black transition-colors cursor-pointer flex-1 sm:flex-initial min-h-[36px] sm:min-h-0 flex items-center justify-center text-center"
+                                  title="Advance task status"
+                                >
+                                  Advance →
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>

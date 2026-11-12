@@ -7,7 +7,7 @@ import {
 } from '@/lib/firestoreService';
 import { TeamId, TaskStatus, TaskPriority, Task, ActivityEvent } from '@/lib/types';
 import { SESSION_COOKIE_NAME, decodeSession } from '@/lib/session';
-import { getMemberByName } from '@/lib/members';
+import { getMemberByName, isMemberCore, isMemberLead } from '@/lib/members';
 import { normalizeTask } from '@/lib/taskMatching';
 
 function dispatchTaskNotifications(task: Task, assignedBy: string) {
@@ -106,6 +106,22 @@ export async function POST(request: NextRequest) {
       session.isCore || session.role === 'admin' || session.teamId === 'core'
     );
     const isDomainLead = Boolean(session.isLead || session.teamId === teamId);
+    const isCoreOrLead = Boolean(
+      session.isCore ||
+      session.isLead ||
+      session.role === 'admin' ||
+      session.teamId === 'core' ||
+      (session.email && (isMemberCore(session.email) || isMemberLead(session.email))) ||
+      (session.name && (isMemberCore(session.name) || isMemberLead(session.name)))
+    );
+
+    // Hierarchy Guard: Only Leads and Core Leadership can create completed tasks directly
+    if (status === 'done' && !isCoreOrLead) {
+      return NextResponse.json(
+        { success: false, error: 'Hierarchy Rule: Only Squad Leads and Core Leadership can approve and mark tasks as Completed.' },
+        { status: 403 }
+      );
+    }
 
     // Role guard: Core can assign anywhere; Leads can create within their squad; Members can create for their squad
     if (!isCoreAdmin && !isDomainLead && session.teamId !== teamId) {
@@ -201,6 +217,28 @@ export async function PATCH(request: NextRequest) {
     if (!isCoreAdmin && session && existing.teamId !== session.teamId && !isAssigned) {
       return NextResponse.json(
         { success: false, error: 'Forbidden: You cannot modify tasks outside your subsystem.' },
+        { status: 403 }
+      );
+    }
+
+    const isCoreOrLead = Boolean(
+      session && (
+        session.isCore ||
+        session.isLead ||
+        session.role === 'admin' ||
+        session.teamId === 'core' ||
+        (session.email && (isMemberCore(session.email) || isMemberLead(session.email))) ||
+        (session.name && (isMemberCore(session.name) || isMemberLead(session.name)))
+      )
+    );
+
+    // Hierarchy Guard: If marking task as 'done', only Leads or Core Leadership can approve completion
+    if (updates.status === 'done' && !isCoreOrLead) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Hierarchy Rule: Only Squad Leads and Core Leadership can approve and mark tasks as Completed.',
+        },
         { status: 403 }
       );
     }

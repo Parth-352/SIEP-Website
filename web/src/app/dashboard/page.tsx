@@ -49,6 +49,14 @@ function DashboardContent() {
   const { isInstalled, isStandalone, installApp } = usePwaInstall();
   const { enqueueTaskStatusUpdate, isOnline } = useBackgroundSync();
   const isCoreAdmin = Boolean(isCore || isAdmin || (user && user.teamId === 'core'));
+  const canApproveCompletion = Boolean(
+    isCore ||
+    isLead ||
+    isAdmin ||
+    user?.isCore ||
+    user?.isLead ||
+    user?.teamId === 'core'
+  );
 
   const [isMounted, setIsMounted] = useState(false);
 
@@ -549,6 +557,10 @@ function DashboardContent() {
     const prevStatus = currentTask.status;
 
     if (nextStatus === 'done') {
+      if (!canApproveCompletion) {
+        alert('Hierarchy Rule: Only Squad Leads and Core Leadership can approve and mark tasks as Completed.');
+        return;
+      }
       setTaskToComplete(currentTask);
       setIsCompleteModalOpen(true);
       return;
@@ -709,6 +721,10 @@ function DashboardContent() {
     if (!currentTask || currentTask.status === status) return;
 
     if (status === 'done') {
+      if (!canApproveCompletion) {
+        alert('Hierarchy Rule: Only Squad Leads and Core Leadership can approve and mark tasks as Completed.');
+        return;
+      }
       setTaskToComplete(currentTask);
       setIsCompleteModalOpen(true);
       return;
@@ -911,6 +927,7 @@ function DashboardContent() {
             handleDragOver={handleDragOver}
             handleDrop={handleDrop}
             handleDragStart={handleDragStart}
+            canApproveCompletion={canApproveCompletion}
           />
         )}
 
@@ -928,6 +945,7 @@ function DashboardContent() {
             memberDomainIds={memberDomainIds}
             isCoreAdmin={isCoreAdmin}
             domainViewScope={domainViewScope}
+            canApproveCompletion={canApproveCompletion}
           />
         )}
 

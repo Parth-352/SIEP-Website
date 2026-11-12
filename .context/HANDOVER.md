@@ -6,29 +6,32 @@
 ---
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
-- **Git Head:** `d9291ff` - `feat(tasks): enforce domain-only task scoping, add Under Review KPI tiles, and unify task dashboards`.
+- **Git Head:** In progress (staged for commit) - `feat(hierarchy): restrict task completion under review to Leads and Core members`.
 - **TypeScript Verification:** ✅ Clean (`cd web && npx tsc --noEmit` passes with 0 errors).
 - **Production Build:** ✅ Next.js 16.4.5 Turbopack build (`npm run build`) compiles successfully (20/20 static pages generated, 0 errors).
-- **Architecture Synchronization:** ✅ ADR-014 recorded in `.context/DECISIONS.md`.
-- **Vercel Production Deployment:** ✅ Live at `https://ridersbay.vercel.app` (Deployment `web-d8szou3j4-parths-projects-421c4665.vercel.app`).
+- **Architecture Synchronization:** ✅ ADR-014 and ADR-015 recorded in `.context/DECISIONS.md`.
 
 ---
 
 ## 🛠️ 2. RECENT ACCOMPLISHMENTS & TEST VERIFICATIONS
 
-### A. Team Tasks & Assigned Tasks Domain Scoping & Uniformity
-1. **Under Review Added & 4-Tile Grid Parity:**
-   - Both `TeamTasksTab.tsx` and `MyWorkbenchTab.tsx` now share an identical 4-tile KPI summary: `Total`, `In Progress`, `Under Review`, `Completed`.
-   - Replaced previous 3-tile grid on Team Tasks; updated label from "Review" to "Under Review" on My Tasks.
-   - Interactive tap-to-filter capability on KPI tiles with active status highlight rings.
-2. **Strict Assigned Domain Task Isolation:**
-   - In **Team Tasks**: Only tasks belonging to the member's assigned domains (`memberDomainIds = [user.teamId, ...(user.secondaryTeams || [])]`) are visible. Subsystem filter dropdown only presents their assigned squads.
-   - In **Assigned Tasks** (`myAssignedTasks`): Only tasks that both belong to the member's assigned domain AND are assigned to the member are shown.
-   - Cross-domain task leakage completely eliminated.
-3. **Design & Nomenclature Uniformity:**
-   - Exact matching search bar placeholders (`Search team tasks...` / `Search my tasks...`), clear buttons, and icons.
-   - Filter dropdowns unified with `All Assigned Squads` and identical priority options (`All Priorities`, `Urgent`, `High`, `Medium`, `Low`).
-   - Identical status chip pills with dynamic counts and badges.
+### A. Hierarchy-Gated Task Completion & Review Observation (ADR-015)
+1. **Under Review Hierarchy Protection:**
+   - Tasks under review (`task.status === 'review'`) can **only** be marked as Completed (`status === 'done'`) by **Squad Leads** (`isLead: true`) or **Core Leadership** (`isCore: true`, `teamId === 'core'`, or `isAdmin: true`).
+   - Regular team members cannot bypass review or directly complete deliverables, maintaining supervisory observation and team hierarchy.
+2. **Server-Side Authorization Authority (`web/src/app/api/tasks/route.ts`):**
+   - In both `POST` and `PATCH`, any attempt to mark a task as `done` without verified Squad Lead or Core credentials is rejected with HTTP `403 Forbidden` (`Hierarchy Rule: Only Squad Leads and Core Leadership can approve and mark tasks as Completed.`).
+3. **Card & Board UI Enforcement (`TaskCard.tsx`, `TeamTasksTab.tsx`, `page.tsx`):**
+   - In the `review` column, non-leads see `🔒 Awaiting Lead Approval` with purple styling, while Leads see emerald `Approve ✓`.
+   - In the quick-move status popup menu on the Kanban board, "Move to Completed" is disabled with `🔒 Lead only`.
+   - Kanban drag-and-drop into the `Completed` column and quick advance buttons verify `canApproveCompletion` and display clear alerts if unauthorized.
+4. **Task Detail Modal (`TaskDetailModal.tsx`):**
+   - In "Under Review" state, displays a dedicated **Under Observation & Review** banner with a direct one-click "Approve & Complete ✓" button for Leads, and clear informational notice for members.
+   - Fast status button for `done` is locked (`🔒 Completed`) and edit form select option is disabled for non-leads.
+   - Non-leads in progress see "Submit for Review &rarr;", progressing tasks into observation.
+5. **Build Log Page (`log/page.tsx`) & Task Complete Modal (`TaskCompleteModal.tsx`):**
+   - Quick advance and video completion buttons respect `canApproveCompletion` with `🔒 Awaiting Lead Approval` badge.
+   - Direct and background video completion modal submissions block non-lead approvals.
 
 ### B. Mobile UI Rework — PRD v1.0 Implementation
 1. **Uniform '+' Create Action Sheet (`BottomNav.tsx`):**

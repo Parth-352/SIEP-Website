@@ -34,6 +34,7 @@ interface TeamTasksTabProps {
   setCardTaskToDelete: (task: Task | null) => void;
   cardMenuTaskId: string | null;
   setCardMenuTaskId: (id: string | null) => void;
+  canApproveCompletion?: boolean;
   handleDragOver: (e: React.DragEvent) => void;
   handleDrop: (e: React.DragEvent, status: TaskStatus) => void;
   handleDragStart: (e: React.DragEvent, taskId: string) => void;
@@ -122,6 +123,7 @@ export default function TeamTasksTab({
   setCardTaskToDelete,
   cardMenuTaskId,
   setCardMenuTaskId,
+  canApproveCompletion = false,
   handleDragOver,
   handleDrop,
   handleDragStart,
@@ -897,20 +899,37 @@ export default function TeamTasksTab({
                                       <div className="px-3 py-1 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
                                         Move Status
                                       </div>
-                                      {STATUS_COLUMNS.filter((c) => c.id !== task.status).map((c) => (
-                                        <button
-                                          key={c.id}
-                                          type="button"
-                                          onClick={(e) => {
-                                            handleMoveStatus(e, task.id, c.id);
-                                            setCardMenuTaskId(null);
-                                          }}
-                                          className="w-full px-3 py-1.5 text-left text-zinc-700 hover:bg-alice-blue flex items-center gap-2 cursor-pointer"
-                                        >
-                                          <span className={`w-1.5 h-1.5 rounded-full ${c.dotColor}`} />
-                                          <span>Move to {c.label}</span>
-                                        </button>
-                                      ))}
+                                      {STATUS_COLUMNS.filter((c) => c.id !== task.status).map((c) => {
+                                        const isCompletionBlocked = c.id === 'done' && !canApproveCompletion;
+                                        return isCompletionBlocked ? (
+                                          <button
+                                            key={c.id}
+                                            type="button"
+                                            disabled
+                                            title="Under Review: Only Squad Leads and Core Leadership can approve and complete tasks"
+                                            className="w-full px-3 py-1.5 text-left text-zinc-400 bg-zinc-50 flex items-center justify-between cursor-not-allowed opacity-60 text-xs"
+                                          >
+                                            <div className="flex items-center gap-2">
+                                              <span className={`w-1.5 h-1.5 rounded-full ${c.dotColor}`} />
+                                              <span>Move to {c.label}</span>
+                                            </div>
+                                            <span className="text-[10px] text-zinc-500 font-semibold">🔒 Lead only</span>
+                                          </button>
+                                        ) : (
+                                          <button
+                                            key={c.id}
+                                            type="button"
+                                            onClick={(e) => {
+                                              handleMoveStatus(e, task.id, c.id);
+                                              setCardMenuTaskId(null);
+                                            }}
+                                            className="w-full px-3 py-1.5 text-left text-zinc-700 hover:bg-alice-blue flex items-center gap-2 cursor-pointer"
+                                          >
+                                            <span className={`w-1.5 h-1.5 rounded-full ${c.dotColor}`} />
+                                            <span>Move to {c.label}</span>
+                                          </button>
+                                        );
+                                      })}
 
                                       {isCoreAdmin && (
                                         <>

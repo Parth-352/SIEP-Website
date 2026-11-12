@@ -52,7 +52,16 @@ export default function TaskDetailModal({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { user } = useAuth();
+  const { user, isCore, isLead, isAdmin: isAuthAdmin } = useAuth();
+  const canApproveCompletion = Boolean(
+    isCore ||
+    isLead ||
+    isAdmin ||
+    isAuthAdmin ||
+    user?.isCore ||
+    user?.isLead ||
+    user?.teamId === 'core'
+  );
   const isAssignedToMe = Boolean(task && user && isTaskAssignedToUser(task, user));
 
   const handleToggleAssignMe = async () => {
@@ -365,6 +374,12 @@ export default function TaskDetailModal({
   // Fast Status Switcher Handler
   const handleQuickStatusChange = async (nextStatus: TaskStatus) => {
     if (task.status === nextStatus) return;
+
+    // Hierarchy Guard: If marking done, only Squad Leads and Core Leadership can approve completion
+    if (nextStatus === 'done' && !canApproveCompletion) {
+      setError('Hierarchy Rule: Only Squad Leads and Core Leadership can approve and mark tasks as Completed.');
+      return;
+    }
     
     // If transitioning to 'done', trigger Video Log & Completion Modal!
     if (nextStatus === 'done' && onCompleteWithVideo) {
@@ -403,18 +418,24 @@ export default function TaskDetailModal({
       return;
     }
 
-    // If marked done in edit mode, prompt for video log!
-    if (editStatus === 'done' && task.status !== 'done' && onCompleteWithVideo) {
-      onCompleteWithVideo({
-        ...task,
-        title: editTitle.trim(),
-        description: editDescription.trim(),
-        teamId: editTeamId,
-        assignedMembers: editAssignedMembers,
-        priority: editPriority,
-        dueDate: editDueDate || undefined,
-      });
-      return;
+    // Hierarchy Guard: If marked done in edit mode, ensure member is Lead or Core
+    if (editStatus === 'done' && task.status !== 'done') {
+      if (!canApproveCompletion) {
+        setError('Hierarchy Rule: Only Squad Leads and Core Leadership can approve and mark tasks as Completed.');
+        return;
+      }
+      if (onCompleteWithVideo) {
+        onCompleteWithVideo({
+          ...task,
+          title: editTitle.trim(),
+          description: editDescription.trim(),
+          teamId: editTeamId,
+          assignedMembers: editAssignedMembers,
+          priority: editPriority,
+          dueDate: editDueDate || undefined,
+        });
+        return;
+      }
     }
 
     setIsSaving(true);
@@ -530,23 +551,69 @@ export default function TaskDetailModal({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
             {STATUS_OPTIONS.map((status) => {
               const isActive = task.status === status.id;
+              const isCompletionBlocked = status.id === 'done' && !canApproveCompletion;
               return (
                 <button
                   key={status.id}
                   type="button"
-                  disabled={!canEdit || isSaving}
+                  disabled={!canEdit || isSaving || isCompletionBlocked}
                   onClick={() => handleQuickStatusChange(status.id)}
-                  className={`py-2 px-3 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed ${
-                    isActive ? status.activeClass : 'bg-white border border-jet-black/10 hover:border-orange hover:text-orange text-grey'
-                  }`}
+                  title={
+                    isCompletionBlocked
+                      ? 'Hierarchy Rule: Only Squad Leads and Core Leadership can approve and mark tasks as Completed'
+                      : undefined
+                  }
+                  className={`py-2 px-3 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
+                    isCompletionBlocked
+                      ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed opacity-60'
+                      : isActive
+                      ? status.activeClass
+                      : 'bg-white border border-jet-black/10 hover:border-orange hover:text-orange text-grey cursor-pointer'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  {isActive && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>}
-                  <span>{status.label}</span>
+                  {isCompletionBlocked ? (
+                    <span className="flex items-center gap-1">
+                      <span>🔒</span>
+                      <span>{status.label}</span>
+                    </span>
+                  ) : (
+                    <>
+                      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>}
+                      <span>{status.label}</span>
+                    </>
+                  )}
                 </button>
               );
             })}
           </div>
         </div>
+
+        {/* Under Review Observation & Hierarchy Banner */}
+        {task.status === 'review' && (
+          <div className="p-4 rounded-xl bg-purple-50/90 border border-purple-200 text-purple-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-start gap-2.5">
+              <span className="text-xl">👁️</span>
+              <div>
+                <p className="font-sans font-bold text-xs uppercase tracking-wider text-purple-800">
+                  Under Observation &amp; Review
+                </p>
+                <p className="text-xs text-purple-900 mt-0.5">
+                  Deliverable is awaiting official verification. Only Squad Leads and Core Leadership have authority to approve and mark Completed.
+                </p>
+              </div>
+            </div>
+            {canApproveCompletion && (
+              <button
+                type="button"
+                onClick={() => handleQuickStatusChange('done')}
+                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-sans text-xs font-bold uppercase tracking-wider shadow-sm transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5"
+              >
+                <span>Approve &amp; Complete</span>
+                <span>✓</span>
+              </button>
+            )}
+          </div>
+        )}
 
         {/* VIEW MODE vs EDIT MODE */}
         {!isEditing ? (
@@ -937,14 +1004,34 @@ export default function TaskDetailModal({
                   <span>Log Work &rarr;</span>
                 </Link>
 
-                {task.status !== 'done' && canEdit && onCompleteWithVideo && (
-                  <button
-                    type="button"
-                    onClick={() => onCompleteWithVideo(task)}
-                    className="h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase font-mono tracking-wider shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
-                  >
-                    <span>Complete &amp; Attach Video</span>
-                  </button>
+                {task.status !== 'done' && canEdit && (
+                  canApproveCompletion ? (
+                    onCompleteWithVideo && (
+                      <button
+                        type="button"
+                        onClick={() => onCompleteWithVideo(task)}
+                        className="h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase font-mono tracking-wider shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                      >
+                        <span>Complete &amp; Attach Video</span>
+                      </button>
+                    )
+                  ) : task.status === 'review' ? (
+                    <div
+                      title="Under Review: Only Squad Leads and Core Leadership can approve and complete deliverables"
+                      className="h-10 px-4 rounded-xl bg-purple-100/80 border border-purple-200 text-purple-800 font-bold text-xs font-sans flex items-center justify-center gap-1.5 whitespace-nowrap select-none"
+                    >
+                      <span>🔒</span>
+                      <span>Awaiting Lead Approval</span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleQuickStatusChange('review')}
+                      className="h-10 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase font-mono tracking-wider shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                    >
+                      <span>Submit for Review &rarr;</span>
+                    </button>
+                  )
                 )}
               </div>
 
@@ -1049,7 +1136,9 @@ export default function TaskDetailModal({
                   <option value="todo">To Do</option>
                   <option value="in_progress">In Progress</option>
                   <option value="review">Under Review</option>
-                  <option value="done">Completed</option>
+                  <option value="done" disabled={!canApproveCompletion}>
+                    {canApproveCompletion ? 'Completed' : 'Completed (Leads & Core only)'}
+                  </option>
                 </select>
               </div>
 

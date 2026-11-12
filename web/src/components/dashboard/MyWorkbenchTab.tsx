@@ -19,6 +19,7 @@ interface MyWorkbenchTabProps {
   memberDomainIds?: TeamId[];
   isCoreAdmin?: boolean;
   domainViewScope?: 'assigned' | 'all';
+  canApproveCompletion?: boolean;
 }
 
 function getDomainBadge(teamId: string) {
@@ -91,6 +92,7 @@ export default function MyWorkbenchTab({
   memberDomainIds,
   isCoreAdmin,
   domainViewScope,
+  canApproveCompletion = false,
 }: MyWorkbenchTabProps) {
   // Mobile-specific state
   const [mobileSearchQuery, setMobileSearchQuery] = useState('');
@@ -612,6 +614,7 @@ export default function MyWorkbenchTab({
                           colId={col.id}
                           isAssignedToMe={true}
                           canManage={true}
+                          canApproveCompletion={canApproveCompletion}
                           onOpenDetail={handleOpenTaskDetail}
                           onMoveStatus={handleMoveStatus}
                           showLogLink={true}

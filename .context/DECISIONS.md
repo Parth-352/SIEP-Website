@@ -204,3 +204,30 @@
 - **Consequences:**
   - Complete privacy and relevance for domain members; zero distraction from other squads' workloads.
   - 100% visual and interactive parity between Team Tasks and Personal Tasks on mobile.
+
+---
+
+## 🏛️ ADR-015: Hierarchy-Gated Task Completion & Review Observation Protocol
+- **Date:** 2026-11-13
+- **Status:** Accepted & Implemented
+- **Context:**
+  - In a high-stakes engineering project (SIEP Season 7.0), technical tasks cannot be finalized or signed off without observation and quality verification by technical leads or project leadership.
+  - Previously, any authenticated member could transition a task directly from "Under Review" (or in progress) to "Completed", bypassing managerial and engineering review.
+- **Decisions:**
+  1. **Hierarchy Authority Gate:**
+     - Only Squad Leads (`isLead: true`), Core Leadership (`isCore: true` / `teamId === 'core'`), or Administrators have authority to approve and mark tasks as `Completed` (`status === 'done'`).
+     - Regular team members can progress work through `todo` &rarr; `in_progress` &rarr; `review` ("Submit for Review &rarr;").
+  2. **Full Entry-Point Enforcement:**
+     - **API Route Authority (`/api/tasks`):** In both `POST` and `PATCH`, transitioning or creating tasks with `status === 'done'` without verified Lead or Core status returns `403 Forbidden` (`Hierarchy Rule: Only Squad Leads and Core Leadership can approve and mark tasks as Completed.`).
+     - **Task Card (`TaskCard.tsx`):** In the `review` column, the advance button is replaced with a `🔒 Awaiting Lead Approval` indicator for non-leads, while Leads see an emerald `Approve ✓` action.
+     - **Move Status Menu (`TeamTasksTab.tsx`):** The "Move to Completed" action is disabled with `🔒 Lead only` for unauthorized members.
+     - **Kanban Board (`page.tsx`):** Drag-and-drop into `done` or quick status advance is gated by `canApproveCompletion` with immediate user feedback.
+     - **Task Detail Modal (`TaskDetailModal.tsx`):**
+       - Dedicated "Under Observation & Review" banner with one-click "Approve & Complete ✓" for Leads/Core, and clear review notice for members.
+       - Quick status button for `done` and edit form select option are disabled with lock indicators.
+       - Progression button switches between "Submit for Review &rarr;" (for members in progress), "🔒 Awaiting Lead Approval" (in review), and "Complete & Attach Video" (for leads).
+     - **Build Log Page (`log/page.tsx`):** Quick advance and "Done + Video" buttons respect `canApproveCompletion` and display `🔒 Awaiting Lead Approval` when tasks are under review.
+     - **Task Complete Modal (`TaskCompleteModal.tsx`):** Backend & form submission verify `canApproveCompletion`.
+- **Consequences:**
+  - Strict organizational hierarchy preserved across all client touchpoints and server APIs.
+  - Quality assurance and video evidence requirements enforced under lead observation.

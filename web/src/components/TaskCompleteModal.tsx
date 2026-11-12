@@ -21,7 +21,15 @@ export default function TaskCompleteModal({
   onClose,
   onTaskCompleted,
 }: TaskCompleteModalProps) {
-  const { user } = useAuth();
+  const { user, isCore, isLead, isAdmin } = useAuth();
+  const canApproveCompletion = Boolean(
+    isCore ||
+    isLead ||
+    isAdmin ||
+    user?.isCore ||
+    user?.isLead ||
+    user?.teamId === 'core'
+  );
   const { enqueueTaskCompletion } = useBackgroundSync();
 
   // Carried-forward log state
@@ -88,6 +96,10 @@ export default function TaskCompleteModal({
   // Submit Handler: Enqueues background upload of video, log creation, and task completion
   const handleSubmitWithVideo = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canApproveCompletion) {
+      setErrorMessage('Hierarchy Rule: Only Squad Leads and Core Leadership can approve and mark tasks as Completed.');
+      return;
+    }
     if (!stepTitle.trim() || !description.trim()) {
       setErrorMessage('Step Title and Description are required.');
       return;
@@ -128,6 +140,10 @@ export default function TaskCompleteModal({
 
   // Quick Complete (Mark done only, skip video log)
   const handleMarkDoneOnly = async () => {
+    if (!canApproveCompletion) {
+      setErrorMessage('Hierarchy Rule: Only Squad Leads and Core Leadership can approve and mark tasks as Completed.');
+      return;
+    }
     setIsSubmitting(true);
     setErrorMessage(null);
 

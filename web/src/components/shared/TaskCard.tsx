@@ -13,6 +13,7 @@ interface TaskCardProps {
   colId: TaskStatus;
   isAssignedToMe: boolean;
   canManage: boolean;
+  canApproveCompletion?: boolean;
   cardMenuTaskId?: string | null;
   setCardMenuTaskId?: (id: string | null) => void;
   onOpenDetail: (task: Task) => void;
@@ -28,6 +29,7 @@ export default function TaskCard({
   colId,
   isAssignedToMe,
   canManage,
+  canApproveCompletion = false,
   cardMenuTaskId,
   setCardMenuTaskId,
   onOpenDetail,
@@ -165,18 +167,32 @@ export default function TaskCard({
             </button>
           )}
           {colId !== 'done' && (
-            <button
-              type="button"
-              disabled={!canManage}
-              onClick={(e) => {
-                const nextIdx = STATUS_COLUMNS.findIndex((c) => c.id === colId) + 1;
-                if (nextIdx < STATUS_COLUMNS.length) onMoveStatus(e, task.id, STATUS_COLUMNS[nextIdx].id);
-              }}
-              title="Move forward"
-              className="px-2.5 py-1 text-xs font-sans font-medium border border-zinc-300 hover:border-orange hover:bg-orange/10 hover:text-orange text-zinc-700 bg-white rounded-lg transition-colors cursor-pointer disabled:opacity-40"
-            >
-              Advance →
-            </button>
+            colId === 'review' && !canApproveCompletion ? (
+              <span
+                title="Under Review: Only Squad Leads and Core Leadership can approve and mark as Completed"
+                className="px-2 py-1 text-[11px] font-sans font-semibold bg-purple-50 border border-purple-200 text-purple-700 rounded-lg flex items-center gap-1 cursor-default select-none shadow-2xs"
+              >
+                <span>🔒</span>
+                <span>Awaiting Lead Approval</span>
+              </span>
+            ) : (
+              <button
+                type="button"
+                disabled={!canManage}
+                onClick={(e) => {
+                  const nextIdx = STATUS_COLUMNS.findIndex((c) => c.id === colId) + 1;
+                  if (nextIdx < STATUS_COLUMNS.length) onMoveStatus(e, task.id, STATUS_COLUMNS[nextIdx].id);
+                }}
+                title={colId === 'review' ? 'Approve deliverable and mark Completed' : 'Move forward'}
+                className={`px-2.5 py-1 text-xs font-sans font-medium border rounded-lg transition-colors cursor-pointer disabled:opacity-40 ${
+                  colId === 'review'
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white font-bold'
+                    : 'border-zinc-300 hover:border-orange hover:bg-orange/10 hover:text-orange text-zinc-700 bg-white'
+                }`}
+              >
+                {colId === 'review' ? 'Approve ✓' : 'Advance →'}
+              </button>
+            )
           )}
         </div>
 
