@@ -305,7 +305,21 @@ function LogPageContent() {
       setStepTitle(decodeURIComponent(taskParam));
       setIsFormOpen(true);
     }
+    const newParam = searchParams.get('new') === 'true' || searchParams.get('action') === 'new';
+    if (newParam) {
+      setIsFormOpen(true);
+    }
   }, [searchParams]);
+
+  // Listen for direct open log form events (e.g. from burger menu or quick actions)
+  useEffect(() => {
+    const handleOpenFormEvent = () => {
+      setIsFormOpen(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    window.addEventListener('siep_open_log_form', handleOpenFormEvent);
+    return () => window.removeEventListener('siep_open_log_form', handleOpenFormEvent);
+  }, []);
 
   // Auth redirect guard & tier access check
   useEffect(() => {
@@ -315,12 +329,6 @@ function LogPageContent() {
     }
 
     if (!authLoading && user) {
-      // Tier 3 Team Members are strictly blocked from /log and redirected to /dashboard
-      if (!isCore && !isLead && user.teamId !== 'core') {
-        router.push('/dashboard?restricted=log');
-        return;
-      }
-
       const urlTeam = searchParams.get('team') || searchParams.get('teamId');
       if (isCoreAdmin && urlTeam && urlTeam !== 'all' && TEAMS[urlTeam as TeamId]) {
         setTargetTeamId(urlTeam as TeamId);
@@ -334,7 +342,7 @@ function LogPageContent() {
       const mins = String(now.getMinutes()).padStart(2, '0');
       setWorkTime(`${hours}:${mins}`);
     }
-  }, [user, authLoading, isCore, isLead, isCoreAdmin, router, searchParams]);
+  }, [user, authLoading, isCoreAdmin, router, searchParams]);
 
   useEffect(() => {
     setIsMounted(true);

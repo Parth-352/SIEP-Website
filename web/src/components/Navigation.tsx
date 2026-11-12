@@ -145,7 +145,7 @@ export default function Navigation() {
           {/* Brand Logo & Portal Tag */}
           <div className="flex items-center gap-3">
             <Link 
-              href={isStandalone || isPortalPage ? "/log" : "/"} 
+              href={isPortalPage ? "/dashboard" : "/"} 
               onClick={closeMenu}
               className="text-2xl font-black text-jet-black tracking-tighter hover:opacity-90 transition-opacity"
             >
@@ -182,8 +182,8 @@ export default function Navigation() {
                   Dashboard
                 </Link>
 
-                {/* Build Log: Exclusively restricted to Core Leadership & Domain Leads */}
-                {(isCore || isLead) && (
+                {/* Build Log: Accessible to all team members */}
+                {user && (
                   <Link
                     href="/log"
                     className={`h-9 px-3.5 rounded-xl text-xs font-sans uppercase tracking-wider font-bold transition-all inline-flex items-center justify-center ${
@@ -485,22 +485,24 @@ export default function Navigation() {
                   </svg>
                 </Link>
 
-                {/* 3. Build Log */}
-                <Link
-                  href="/log"
-                  onClick={closeMenu}
-                  className={`w-full rounded-2xl p-3 sm:p-3.5 flex items-center justify-between gap-3.5 transition-all text-left ${
+                {/* 3. Build Log (Accessible to all members with direct Add Log action) */}
+                <div
+                  className={`w-full rounded-2xl p-3 sm:p-3.5 flex items-center justify-between gap-3 transition-all text-left ${
                     isBuildLogActive
                       ? 'bg-amber-50/90 border border-amber-200/80 shadow-2xs'
                       : 'bg-white hover:bg-zinc-50 border border-zinc-100/90 hover:border-zinc-200/80'
                   }`}
                 >
-                  <div className="flex items-center gap-3.5 min-w-0">
+                  <Link
+                    href="/log"
+                    onClick={closeMenu}
+                    className="flex items-center gap-3.5 min-w-0 flex-1 group"
+                  >
                     <div
                       className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
                         isBuildLogActive
                           ? 'bg-amber-100/80 border border-amber-200/70 text-amber-500'
-                          : 'bg-zinc-100/80 border border-zinc-200/50 text-zinc-700'
+                          : 'bg-zinc-100/80 border border-zinc-200/50 text-zinc-700 group-hover:text-amber-500'
                       }`}
                     >
                       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -508,28 +510,48 @@ export default function Navigation() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v8m-4-4h8" />
                       </svg>
                     </div>
-                    <div className="min-w-0 flex items-center gap-2">
-                      <span className="text-[15px] sm:text-base font-bold text-zinc-900 tracking-tight">
-                        Build Log
-                      </span>
-                      {!(isCore || isLead) && (
-                        <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-zinc-200 text-zinc-600 uppercase">
-                          Leads Only
-                        </span>
-                      )}
-                    </div>
+                    <span className="text-[15px] sm:text-base font-bold text-zinc-900 tracking-tight">
+                      Build Log
+                    </span>
+                  </Link>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Link
+                      href="/log?new=true"
+                      onClick={() => {
+                        closeMenu();
+                        if (typeof window !== 'undefined') {
+                          window.dispatchEvent(new CustomEvent('siep_open_log_form'));
+                        }
+                      }}
+                      title="Add a new build step log"
+                      className="px-2.5 py-1 rounded-xl bg-orange/10 hover:bg-orange text-orange hover:text-white border border-orange/25 font-bold text-xs font-sans tracking-wide transition-all flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+                      </svg>
+                      <span>Add</span>
+                    </Link>
+
+                    <Link
+                      href="/log"
+                      onClick={closeMenu}
+                      className="p-1 text-zinc-400 hover:text-zinc-600 transition-colors"
+                      aria-label="View Build Logs"
+                    >
+                      <svg
+                        className={`w-5 h-5 shrink-0 transition-transform ${
+                          isBuildLogActive ? 'text-amber-500' : 'text-zinc-400'
+                        }`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
                   </div>
-                  <svg
-                    className={`w-5 h-5 shrink-0 transition-transform ${
-                      isBuildLogActive ? 'text-amber-500' : 'text-zinc-400'
-                    }`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
+                </div>
 
                 {/* 4. Assigned */}
                 <Link
@@ -728,16 +750,6 @@ export default function Navigation() {
           <div className="pt-4 mt-4 border-t border-zinc-100 space-y-2.5">
             {user ? (
               <>
-                {/* Secondary Showcase Website Link */}
-                <Link
-                  href="/"
-                  onClick={closeMenu}
-                  className="w-full text-xs font-sans text-zinc-500 hover:text-orange font-semibold py-2 px-3 flex items-center justify-between rounded-xl hover:bg-zinc-50 transition-colors"
-                >
-                  <span>Explore Showcase Website</span>
-                  <span>↗</span>
-                </Link>
-
                 {/* Log Out Button (Matching Reference Photo) */}
                 <button
                   type="button"

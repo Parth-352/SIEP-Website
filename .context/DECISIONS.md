@@ -258,3 +258,29 @@
 - **Consequences:**
   - 100% visual parity with user's reference mockup and app-wide design system.
   - Flawless navigation on both mobile web browsers and standalone installed PWA.
+
+---
+
+## 🏛️ ADR-017: Universal Build Log Access & Pure In-App Navigation Experience
+- **Date:** 2026-11-13
+- **Status:** Accepted & Implemented
+- **Context:**
+  - Previously, the Engineering Log System (`/log`) was artificially restricted at the middleware and page level to Core Leadership and Domain Leads. Regular members (Tier 3) were redirected away with `restricted=log`.
+  - The authenticated mobile slide-over burger menu contained an extraneous "Explore Showcase Website ↗" link, and marked Build Log as "Leads Only", preventing regular engineers from easily logging their fabrication and assembly steps.
+  - The user requested removing the external showcase website link from the burger menu and ensuring non-leads and non-core members have direct options to add logs from the burger menu.
+- **Decisions:**
+  1. **Universal Build Log Access (`/log`):**
+     - Removed the middleware check (`web/src/middleware.ts`) and client-side redirect (`web/src/app/log/page.tsx`) that previously redirected non-leads to `/dashboard?restricted=log`.
+     - All authenticated team members can access `/log` to inspect engineering logs and submit build steps for their squad.
+     - Added desktop nav `Build Log` link for all authenticated users in `Navigation.tsx`.
+  2. **Burger Menu Option to Add Logs:**
+     - Removed the `Leads Only` badge from the `Build Log` card in the burger menu.
+     - Added a direct, prominent `+ Add` action button right inside the `Build Log` card in the burger menu drawer (`/log?new=true` and `siep_open_log_form`), allowing any member to open the build log creation form in 1 tap from anywhere in the app.
+     - Supported `?new=true` / `?action=new` in `log/page.tsx` and updated `BottomNav.tsx`'s "Log Build Step" to also link directly to `/log?new=true`.
+  3. **Showcase Website Link Removal:**
+     - Removed the "Explore Showcase Website ↗" link from the authenticated burger menu drawer, providing a clean, uncluttered interface ending at the red "Log Out" card.
+  4. **Hierarchy Integrity Preserved (ADR-015):**
+     - Submitting build steps and video evidence is open to all members, but approving deliverables and marking tasks as `Completed` remains strictly reserved for Leads and Core leadership.
+- **Consequences:**
+  - Smooth, frictionless logging workflow for shop floor engineers across all squads.
+  - Clean, distraction-free navigation matching reference design.

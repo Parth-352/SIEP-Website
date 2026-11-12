@@ -288,8 +288,13 @@ export default function BottomNav({
             <div className="p-4 space-y-3">
               {/* Option 1: Log Build Step */}
               <Link
-                href="/log"
-                onClick={() => setIsCreateActionSheetOpen(false)}
+                href="/log?new=true"
+                onClick={() => {
+                  setIsCreateActionSheetOpen(false);
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('siep_open_log_form'));
+                  }
+                }}
                 className="group flex items-center justify-between p-4 rounded-2xl border border-amber-200/80 bg-amber-50/30 hover:bg-amber-50/70 hover:border-amber-400 transition-all active:scale-[0.98] cursor-pointer shadow-xs"
               >
                 <div className="flex items-center gap-3.5 min-w-0">
