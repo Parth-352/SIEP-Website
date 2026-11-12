@@ -38,7 +38,6 @@ import DeleteTaskModal from '@/components/shared/DeleteTaskModal';
 import BackupSyncModal from '@/components/shared/BackupSyncModal';
 import ActivityDrawer from '@/components/shared/ActivityDrawer';
 import UndoToast from '@/components/shared/UndoToast';
-import OperationsHubModal from '@/components/shared/OperationsHubModal';
 
 function DashboardContent() {
   const router = useRouter();
@@ -96,8 +95,7 @@ function DashboardContent() {
     return list;
   }, [user]);
 
-  // Mobile All-in-One Bottom Menu & Keyboard states
-  const [isMobileQuickMenuOpen, setIsMobileQuickMenuOpen] = useState(false);
+  // Mobile UI & Keyboard states
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [isManualSyncing, setIsManualSyncing] = useState(false);
 
@@ -912,6 +910,7 @@ function DashboardContent() {
             logs={logs}
             isCore={isCore}
             isLead={isLead}
+            memberDomainIds={memberDomainIds}
             handleOpenTaskDetail={handleOpenTaskDetail}
             handleViewTeamTasksInKanban={handleViewTeamTasksInKanban}
           />
@@ -1044,41 +1043,6 @@ function DashboardContent() {
         onDismiss={() => setUndoState(null)}
       />
 
-      {/* Slide-Up Operations Hub Modal */}
-      <OperationsHubModal
-        isOpen={isMobileQuickMenuOpen}
-        onClose={() => setIsMobileQuickMenuOpen(false)}
-        user={user}
-        isOnline={isOnline}
-        pendingQueueCount={pendingQueueCount}
-        isCore={isCore}
-        isLead={isLead}
-        isCoreAdmin={isCoreAdmin}
-        tasks={tasks}
-        myAssignedCount={myAssignedCount}
-        videoLogsCount={videoLogsCount}
-        activities={activities}
-        unreadActivitiesCount={unreadActivitiesCount}
-        completedTasks={completedTasks}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        setIsActivityDrawerOpen={setIsActivityDrawerOpen}
-        setIsCreateModalOpen={setIsCreateModalOpen}
-        setIsBackupModalOpen={setIsBackupModalOpen}
-        handleOpenActivityDrawer={handleOpenActivityDrawer}
-        selectedSubsystemFilter={selectedSubsystemFilter}
-        setSelectedSubsystemFilter={setSelectedSubsystemFilter}
-        isManualSyncing={isManualSyncing}
-        handleManualSync={handleManualSync}
-        isInstalled={isInstalled}
-        installApp={installApp}
-        onSignOut={async () => {
-          setIsMobileQuickMenuOpen(false);
-          await logout();
-          router.push('/login');
-        }}
-      />
-
       {/* Instagram-Style Bottom Navigation Dock */}
       <BottomNav
         activeTab={activeTab}
@@ -1093,7 +1057,6 @@ function DashboardContent() {
         isCreateActionSheetOpen={isCreateActionSheetOpen}
         setIsCreateActionSheetOpen={setIsCreateActionSheetOpen}
         setIsActivityDrawerOpen={setIsActivityDrawerOpen}
-        setIsMobileQuickMenuOpen={setIsMobileQuickMenuOpen}
         openCreateModal={() => setIsCreateModalOpen(true)}
       />
     </main>

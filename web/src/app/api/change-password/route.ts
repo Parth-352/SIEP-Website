@@ -62,14 +62,12 @@ export async function POST(request: NextRequest) {
     const customPass = fsPasswords[cleanEmail] || getMemberPassword(cleanEmail);
     const activePin = customPass || DEFAULT_MEMBER_PIN;
 
-    // Verify current PIN (allow default PIN fallback if custom exists)
-    const isCurrentValid =
-      cleanCurrent === activePin ||
-      (customPass && cleanCurrent === DEFAULT_MEMBER_PIN);
+    // Strict validation: Only current active PIN allows setting a new PIN
+    const isCurrentValid = cleanCurrent === activePin;
 
     if (!isCurrentValid) {
       return NextResponse.json(
-        { success: false, error: 'Incorrect current PIN. Please try again.' },
+        { success: false, error: 'Incorrect current PIN. Please enter your active 6-digit PIN.' },
         { status: 400 }
       );
     }

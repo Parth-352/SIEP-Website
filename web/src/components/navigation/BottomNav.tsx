@@ -17,7 +17,6 @@ interface BottomNavProps {
   isCreateActionSheetOpen: boolean;
   setIsCreateActionSheetOpen: (open: boolean) => void;
   setIsActivityDrawerOpen: (open: boolean) => void;
-  setIsMobileQuickMenuOpen: (open: boolean) => void;
   openCreateModal: () => void;
 }
 
@@ -34,7 +33,6 @@ export default function BottomNav({
   isCreateActionSheetOpen,
   setIsCreateActionSheetOpen,
   setIsActivityDrawerOpen,
-  setIsMobileQuickMenuOpen,
   openCreateModal,
 }: BottomNavProps) {
   const canCreate = Boolean(isCore || isLead);
@@ -64,7 +62,6 @@ export default function BottomNav({
               setActiveTab('dashboard');
               setIsActivityDrawerOpen(false);
               setIsCreateActionSheetOpen(false);
-              setIsMobileQuickMenuOpen(false);
             }}
             title="Dashboard Overview"
             className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all cursor-pointer group ${
@@ -100,7 +97,6 @@ export default function BottomNav({
               setActiveTab('team_tasks');
               setIsActivityDrawerOpen(false);
               setIsCreateActionSheetOpen(false);
-              setIsMobileQuickMenuOpen(false);
             }}
             title="Team Deliverables & Tasks"
             className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all cursor-pointer group ${
@@ -142,7 +138,6 @@ export default function BottomNav({
               type="button"
               onClick={() => {
                 setIsCreateActionSheetOpen(!isCreateActionSheetOpen);
-                setIsMobileQuickMenuOpen(false);
               }}
               title="Log Step or Create Deliverable"
               className="flex flex-col items-center justify-center py-0.5 px-2 cursor-pointer group active:scale-95 transition-transform"
@@ -171,7 +166,6 @@ export default function BottomNav({
               setActiveTab('my_tasks');
               setIsActivityDrawerOpen(false);
               setIsCreateActionSheetOpen(false);
-              setIsMobileQuickMenuOpen(false);
             }}
             title="Tasks Assigned to Me"
             className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all cursor-pointer group ${
@@ -210,7 +204,6 @@ export default function BottomNav({
               setActiveTab('profile');
               setIsActivityDrawerOpen(false);
               setIsCreateActionSheetOpen(false);
-              setIsMobileQuickMenuOpen(false);
             }}
             title="My Profile & Security"
             className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all cursor-pointer group ${
@@ -264,13 +257,10 @@ export default function BottomNav({
               <div className="w-12 h-1.5 bg-jet-black/20 rounded-full mb-3" />
               <div className="w-full flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-orange animate-pulse" />
-                  <h3 className="text-sm font-mono font-bold uppercase tracking-wider text-jet-black">
-                    Quick Action
+                  <span className="w-2.5 h-2.5 rounded-full bg-orange" />
+                  <h3 className="text-sm font-sans font-bold uppercase tracking-wider text-jet-black">
+                    Create
                   </h3>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-jet-black/5 text-jet-black font-bold border border-jet-black/10">
-                    Lead &amp; Core
-                  </span>
                 </div>
                 <button
                   type="button"
@@ -284,7 +274,7 @@ export default function BottomNav({
 
             {/* Actions List */}
             <div className="p-4 space-y-3">
-              {/* Option 1: Log Build Step / Upload Video */}
+              {/* Option 1: Log Build Step */}
               <Link
                 href="/log"
                 onClick={() => setIsCreateActionSheetOpen(false)}
@@ -296,17 +286,17 @@ export default function BottomNav({
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-mono font-bold text-white flex items-center justify-between">
-                    <span>Log Build Step (Upload Video)</span>
+                  <div className="text-sm font-sans font-bold text-white flex items-center justify-between">
+                    <span>Log Build Step</span>
                     <span>→</span>
                   </div>
-                  <p className="text-xs text-alice-blue/80 font-mono mt-0.5 leading-snug">
-                    Record workshop step with Google Drive video proof &amp; duration.
+                  <p className="text-xs text-alice-blue/75 font-sans mt-0.5 leading-snug">
+                    Upload video proof
                   </p>
                 </div>
               </Link>
 
-              {/* Option 2: Create New Deliverable */}
+              {/* Option 2: New Deliverable */}
               <button
                 type="button"
                 onClick={() => {
@@ -321,36 +311,23 @@ export default function BottomNav({
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-mono font-bold text-jet-black flex items-center justify-between">
-                    <span>Create New Deliverable</span>
+                  <div className="text-sm font-sans font-bold text-jet-black flex items-center justify-between">
+                    <span>New Deliverable</span>
                     <span className="text-orange font-bold">+</span>
                   </div>
-                  <p className="text-xs text-grey font-mono mt-0.5 leading-snug">
-                    Add a prioritized deliverable to subsystem Kanban boards.
+                  <p className="text-xs text-grey font-sans mt-0.5 leading-snug">
+                    Add to subsystem board
                   </p>
                 </div>
               </button>
 
-              {/* Option 3: Additional Views & Squad Hub */}
-              <button
-                type="button"
-                onClick={() => {
-                  setIsCreateActionSheetOpen(false);
-                  setIsMobileQuickMenuOpen(true);
-                }}
-                className="w-full group flex items-center justify-between p-3 rounded-xl border border-jet-black/10 bg-alice-blue/50 hover:bg-alice-blue text-left transition-all cursor-pointer text-xs font-mono"
-              >
-                <span className="text-jet-black font-semibold">More Portals (Videos, Metrics, Sync)</span>
-                <span className="text-grey group-hover:text-jet-black">⋯</span>
-              </button>
-
-              {/* Dismiss */}
+              {/* Cancel */}
               <button
                 type="button"
                 onClick={() => setIsCreateActionSheetOpen(false)}
-                className="w-full py-2.5 rounded-xl border border-jet-black/10 bg-alice-blue/60 text-grey hover:text-jet-black font-mono text-xs font-bold text-center transition-colors cursor-pointer"
+                className="w-full py-2.5 rounded-xl border border-jet-black/10 bg-alice-blue/60 text-grey hover:text-jet-black font-sans text-xs font-semibold text-center transition-colors cursor-pointer"
               >
-                Dismiss
+                Cancel
               </button>
             </div>
           </div>

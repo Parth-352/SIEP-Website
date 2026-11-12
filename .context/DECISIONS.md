@@ -1,7 +1,8 @@
 # 📜 ARCHITECTURE DECISION RECORDS (ADRs)
 > **Permanent Record of Architectural Trade-offs and Invariant Constraints**  
 > *Project: Riders Bay Smart Scrambler E-Bike (SIEP Season 7.0)*  
-> *These decisions are intentional. Agents must consult these before proposing major refactorings.*
+> *These decisions are intentional. Agents must consult these before proposing major refactorings.*  
+> *Last Synced:* 2026-11-12 (Daily Codebase Context Sync)
 
 ---
 
@@ -22,7 +23,7 @@
 - **Decision:**
   - Every member has an assigned 6-digit numeric PIN (defaulting to `935200`).
   - Members can self-service update their PIN from the dashboard (`/api/change-password`).
-  - Authentication checks Cloud Firestore first (`settings/passwords` & member subcollections), falling back to local memory store (`src/lib/store.ts`).
+  - Authentication checks Cloud Firestore first (`member_passwords` & `team_passwords`), falling back to local memory store (`src/lib/store.ts`).
   - Authenticated session is stored in an HTTP cookie (`siep_session`) with a lightweight JSON payload decoded by `decodeSession()`.
 - **Consequences:**
   - Fast, reliable login even during intermittent college Wi-Fi connectivity.
@@ -90,3 +91,40 @@
   - Instant avatar and name reflection across all views without hard-reloading.
   - Zero storage quota bloat on serverless hosting.
   - Smooth user experience with no OTP friction for routine PIN adjustments.
+
+---
+
+## 📌 ADR-008: Mobile Profile UX Refinement, PWA Banner De-clutter & Native Photo Action Sheet
+
+- **Context:** On mobile devices, the Profile view had visual competition from the persistent top `<DashboardHeader>` and `<ActionableKpiRibbon>`. In addition, `PwaInstallProvider` rendered a fixed floating bottom banner (`showBanner && !isInstalled`) above the mobile dock, which obstructed bottom navigation tabs and triggered accidental touches. Furthermore, members needed standard mobile photo management workflows: previewing the full-resolution uploaded avatar in a lightbox, uploading/updating a photo, or removing their photo to restore their CAD monogram initials.
+- **Decision:**
+  - **Header & KPI Ribbon Suppression:** In `web/src/app/dashboard/page.tsx`, conditioned `<DashboardHeader>` and `<ActionableKpiRibbon>` on `activeTab !== 'profile'`, allowing the Profile view to function as a full-screen, dedicated identity workspace without redundant dashboard headers.
+  - **PWA Mobile Banner Removal:** Removed the fixed bottom banner from `PwaInstallProvider.tsx`. The install prompt remains accessible on-demand from header buttons and settings without obstructing mobile navigation docks.
+  - **Native Photo Action Sheet:** In `ProfileView.tsx`, clicking the profile avatar opens an action sheet modal with options:
+    - *View Full Photo* (available when a photo exists, opens a lightbox preview modal).
+    - *Upload Profile Picture* / *Upload New Photo* (triggers native file input for square canvas compression).
+    - *Remove Photo* (deletes the photo from Firestore `member_profiles` and local session).
+    - *Cancel*.
+  - **Collapsible Secondary Domains:** Secondary team domains are housed in an expandable/collapsible card to keep vertical scroll clean on mobile devices.
+- **Consequences:**
+  - Zero floating banner overlap on mobile viewports.
+  - Clean, focused mobile profile experience with high UX parity with native iOS/Android settings sheets.
+  - Intuitive avatar inspection and management.
+
+---
+
+## 🏛️ ADR-009: Strict PIN Invalidation, Priority Squad Sorting & Minimal Bottom Action Sheet
+- **Date:** 2026-11-12
+- **Status:** Accepted & Implemented
+- **Context:**
+  1. Previously, `api/passwords` and `api/change-password` contained a fallback clause allowing the default PIN `935200` to grant entry even after a member set a custom PIN. This defeated password rotation security.
+  2. In the Dashboard Overview and Subsystems tab, competition squads were displayed in a static array order, causing members assigned across multiple secondary domains to find their squads scattered across lower grid rows.
+  3. The bottom dock `+` action menu had verbose descriptions and opened a secondary "Operations Hub" modal with redundant navigation cards and install prompts.
+- **Decision:**
+  1. **Strict Single-PIN Invalidation:** Removed all default PIN fallbacks when `customPass` exists in Firestore or local store. If a custom PIN exists, entering `935200` strictly fails. Default PIN remains valid only for un-customized accounts until first rotation.
+  2. **Priority Squad Sorting:** Implemented `prioritizedTeams = useMemo(...)` in both `DashboardOverviewTab.tsx` and `SubsystemsTab.tsx` prioritizing `memberDomainIds.includes(team.id)`. The user's primary and secondary squads always render first at the top of the grid.
+  3. **Minimal '+' Action Sheet:** Replaced verbose text with clean copy (`Create`, `Log Build Step: Upload video proof`, `New Deliverable: Add to subsystem board`, `Cancel`). Completely excised `OperationsHubModal` and unused triggers.
+- **Consequences:**
+  - Robust authentication model preventing unauthorized default credential reuse.
+  - Immediate high-visibility velocity tracking for member's own domains.
+  - Ultra-fast, distraction-free action creation on mobile and desktop.

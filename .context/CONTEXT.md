@@ -33,6 +33,7 @@ Riders Bay is an electric vehicle development initiative designing and fabricati
 ---
 
 ## 📜 3. RECENT GIT COMMITS & REPOSITORY ACTIVITY
+- `6796f65` - `docs(handover): record mobile profile redesign matching reference design`
 - `872dce4` - `feat(profile): rework mobile profile matching reference design, remove PWA banners, add collapsible domains & photo action sheet`
 - `2f850bc` - `docs(handover): update production deployment confirmation and status`
 - `af6266f` - `chore(pwa): bump service worker cache version to v2 to auto-purge stale client caches`

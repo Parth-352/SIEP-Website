@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { TEAMS, TEAMS_LIST } from '@/lib/teams';
 import { Task, WorkLog, TeamId } from '@/lib/types';
@@ -25,6 +25,17 @@ export default function DashboardOverviewTab({
   setActiveTab,
   setSelectedSubsystemFilter,
 }: DashboardOverviewTabProps) {
+  // Sort squads so that all domains assigned to the active user ([My Squad]) appear at the very top
+  const prioritizedTeams = useMemo(() => {
+    return [...TEAMS_LIST].sort((a, b) => {
+      const aIsMySquad = memberDomainIds.includes(a.id);
+      const bIsMySquad = memberDomainIds.includes(b.id);
+      if (aIsMySquad && !bIsMySquad) return -1;
+      if (!aIsMySquad && bIsMySquad) return 1;
+      return 0;
+    });
+  }, [memberDomainIds]);
+
   return (
     <div className="space-y-6">
       {/* Subsystem Health & Velocity Overview */}
@@ -50,7 +61,7 @@ export default function DashboardOverviewTab({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
-          {TEAMS_LIST.map((team) => {
+          {prioritizedTeams.map((team) => {
             const teamTasks = tasks.filter((t) => t.teamId === team.id);
             const completed = teamTasks.filter((t) => t.status === 'done').length;
             const total = teamTasks.length;

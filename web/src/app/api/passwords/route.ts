@@ -135,15 +135,17 @@ export async function POST(request: NextRequest) {
       const customPass = fsMemberPasswords[cleanEmail] || getMemberPassword(cleanEmail);
       const activePass = customPass || DEFAULT_MEMBER_PIN;
 
-      const isValid =
-        cleanPass === activePass ||
-        (customPass && cleanPass === DEFAULT_MEMBER_PIN);
+      // Strict PIN validation: only the active PIN is valid.
+      // Default PIN 935200 is only valid if no custom PIN has been set yet.
+      const isValid = cleanPass === activePass;
 
       if (!isValid) {
         return NextResponse.json({
           success: true,
           valid: false,
-          error: 'Incorrect 6-digit PIN. Default PIN is 935200.',
+          error: customPass
+            ? 'Incorrect 6-digit PIN. Please enter your active PIN or use Forgot PIN.'
+            : 'Incorrect 6-digit PIN. Default PIN is 935200.',
         });
       }
 

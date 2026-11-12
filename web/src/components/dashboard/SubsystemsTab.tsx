@@ -10,6 +10,7 @@ interface SubsystemsTabProps {
   logs: WorkLog[];
   isCore: boolean;
   isLead: boolean;
+  memberDomainIds?: TeamId[];
   handleOpenTaskDetail: (task: Task) => void;
   handleViewTeamTasksInKanban: (teamId: TeamId) => void;
 }
@@ -19,12 +20,25 @@ export default function SubsystemsTab({
   logs,
   isCore,
   isLead,
+  memberDomainIds = [],
   handleOpenTaskDetail,
   handleViewTeamTasksInKanban,
 }: SubsystemsTabProps) {
+  // Sort squads so that all domains assigned to the active user ([My Squad]) appear at the very top
+  const prioritizedTeams = React.useMemo(() => {
+    if (!memberDomainIds || memberDomainIds.length === 0) return TEAMS_LIST;
+    return [...TEAMS_LIST].sort((a, b) => {
+      const aIsMySquad = memberDomainIds.includes(a.id);
+      const bIsMySquad = memberDomainIds.includes(b.id);
+      if (aIsMySquad && !bIsMySquad) return -1;
+      if (!aIsMySquad && bIsMySquad) return 1;
+      return 0;
+    });
+  }, [memberDomainIds]);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {TEAMS_LIST.map((team) => {
+      {prioritizedTeams.map((team) => {
         const teamTasks = tasks.filter((t) => t.teamId === team.id);
         const teamLogs = logs.filter((l) => l.teamId === team.id);
         const completedCount = teamTasks.filter((t) => t.status === 'done').length;
@@ -33,11 +47,16 @@ export default function SubsystemsTab({
         const latestLog = teamLogs[0];
         const progressPct =
           teamTasks.length > 0 ? Math.round((completedCount / teamTasks.length) * 100) : 0;
+        const isUserDomain = memberDomainIds.includes(team.id);
 
         return (
           <div
             key={team.id}
-            className="bg-white border border-jet-black/10 rounded-2xl p-6 shadow-sm hover:border-orange/50 transition-all flex flex-col justify-between h-full"
+            className={`bg-white border rounded-2xl p-6 shadow-sm transition-all flex flex-col justify-between h-full ${
+              isUserDomain
+                ? 'border-orange/40 hover:border-orange bg-orange/2'
+                : 'border-jet-black/10 hover:border-orange/50'
+            }`}
           >
             <div className="space-y-4 flex-1 flex flex-col">
               {/* Header */}
@@ -55,13 +74,20 @@ export default function SubsystemsTab({
                     </span>
                   )}
                 </div>
-                <span
-                  className={`px-2.5 py-0.5 rounded text-[10px] font-mono uppercase font-bold shrink-0 ${
-                    team.role === 'admin' ? 'bg-orange/20 text-orange' : 'bg-jet-black/5 text-jet-black'
-                  }`}
-                >
-                  {team.role}
-                </span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {isUserDomain && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold bg-orange text-white">
+                      My Squad
+                    </span>
+                  )}
+                  <span
+                    className={`px-2.5 py-0.5 rounded text-[10px] font-mono uppercase font-bold shrink-0 ${
+                      team.role === 'admin' ? 'bg-orange/20 text-orange' : 'bg-jet-black/5 text-jet-black'
+                    }`}
+                  >
+                    {team.role}
+                  </span>
+                </div>
               </div>
 
               {/* Progress Bar */}
