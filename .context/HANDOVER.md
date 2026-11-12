@@ -10,7 +10,7 @@
 - **TypeScript Verification:** ✅ Clean (`cd web && npx tsc --noEmit` passes with 0 errors).
 - **Production Build:** ✅ Next.js 16.4.5 Turbopack build (`npm run build`) compiles successfully (20/20 static pages generated, 0 errors).
 - **Architecture Synchronization:** ✅ ADR-012 recorded in `.context/DECISIONS.md`.
-- **Vercel Production Deployment:** In-flight deployment building for `https://ridersbay.vercel.app` & `https://riders-bay.vercel.app`.
+- **Vercel Production Deployment:** ✅ Live at `https://ridersbay.vercel.app` (Deployment `web-86y6ba2xk-parths-projects-421c4665.vercel.app`).
 
 ---
 
