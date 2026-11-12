@@ -41,10 +41,11 @@ export default function BottomNav({
     <>
       {/* =========================================================================
           INSTAGRAM-STYLE BOTTOM NAVIGATION DOCK
-          Visible across all devices: flush at bottom on mobile, floating dock on desktop.
+          Rendered EXCLUSIVELY in the installed Mobile Web App (standalone PWA mode).
+          Never loaded or rendered in standard web browsers (mobile Chrome, Safari, etc.).
           Item 1: Dashboard (General Info & Executive Overview)
           Item 2: Team Tasks (To-do list scoped strictly to user's assigned teams)
-          Item 3: Center [+] Button (Instagram style - ONLY for Leads & Core leadership, NEVER normal users)
+          Item 3: Center [+] Button (Instagram style - ONLY for Leads & Core leadership)
           Item 4: Assigned to Me (Personal Workbench)
           Item 5: Personal Profile (Identity, Assigned Domains & PIN change)
          ========================================================================= */}

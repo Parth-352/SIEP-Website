@@ -45,7 +45,7 @@ function DashboardContent() {
   const restrictedNotice = searchParams.get('restricted') === 'log';
 
   const { user, loading: authLoading, isAdmin, isCore, isLead, tier, logout } = useAuth();
-  const { isInstalled, installApp } = usePwaInstall();
+  const { isInstalled, isStandalone, installApp } = usePwaInstall();
   const { enqueueTaskStatusUpdate, isOnline } = useBackgroundSync();
   const isCoreAdmin = Boolean(isCore || isAdmin || (user && user.teamId === 'core'));
 
@@ -787,7 +787,11 @@ function DashboardContent() {
   const videoLogsCount = logs.filter((l) => Boolean(l.videoUrl)).length;
 
   return (
-    <main className="min-h-screen bg-alice-blue text-jet-black pt-20 sm:pt-24 pb-32 sm:pb-24 px-3 sm:px-6 lg:px-8 font-sans">
+    <main
+      className={`min-h-screen bg-alice-blue text-jet-black pt-20 sm:pt-24 ${
+        isStandalone ? 'pb-32 sm:pb-24' : 'pb-12 sm:pb-16'
+      } px-3 sm:px-6 lg:px-8 font-sans`}
+    >
       {/* Background CAD accent */}
       <div className="fixed inset-0 opacity-[0.02] pointer-events-none bg-[radial-gradient(#2B303A_1px,transparent_1px)] [background-size:24px_24px]" />
 
@@ -1043,22 +1047,24 @@ function DashboardContent() {
         onDismiss={() => setUndoState(null)}
       />
 
-      {/* Instagram-Style Bottom Navigation Dock */}
-      <BottomNav
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        filteredTasksCount={filteredTasks.length}
-        myAssignedCount={myAssignedCount}
-        isCore={isCore}
-        isLead={isLead}
-        userDisplayName={user.displayName}
-        userPhotoUrl={user.photoUrl}
-        isInputFocused={isInputFocused}
-        isCreateActionSheetOpen={isCreateActionSheetOpen}
-        setIsCreateActionSheetOpen={setIsCreateActionSheetOpen}
-        setIsActivityDrawerOpen={setIsActivityDrawerOpen}
-        openCreateModal={() => setIsCreateModalOpen(true)}
-      />
+      {/* Instagram-Style Bottom Navigation Dock (strictly rendered only for installed Mobile Web App / Standalone mode) */}
+      {isStandalone && (
+        <BottomNav
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          filteredTasksCount={filteredTasks.length}
+          myAssignedCount={myAssignedCount}
+          isCore={isCore}
+          isLead={isLead}
+          userDisplayName={user.displayName}
+          userPhotoUrl={user.photoUrl}
+          isInputFocused={isInputFocused}
+          isCreateActionSheetOpen={isCreateActionSheetOpen}
+          setIsCreateActionSheetOpen={setIsCreateActionSheetOpen}
+          setIsActivityDrawerOpen={setIsActivityDrawerOpen}
+          openCreateModal={() => setIsCreateModalOpen(true)}
+        />
+      )}
     </main>
   );
 }

@@ -137,3 +137,19 @@
 - **Context:** The profile accordion previously divided assigned domains into a highlighted "Primary Domain" card and a subdued "Secondary Domains" pill section. In student multi-disciplinary engineering squads, domain involvement is peer-level and equal.
 - **Decision:** Excised the hierarchical "Primary" and "Secondary" classification from the profile view (`ProfileView.tsx`). All assigned domains (`[user.teamId, ...(user.secondaryTeams || [])]`) are unified and rendered equally with consistent card styling, official squad badge, and engineering domain description.
 - **Consequences:** Clean, non-hierarchical domain presentation celebrating members' multi-squad responsibilities equally.
+
+---
+
+## 🏛️ ADR-011: Restrict Bottom Navigation Dock Strictly to Standalone Mobile Web App (PWA)
+- **Date:** 2026-11-12
+- **Status:** Accepted & Implemented
+- **Context:** Previously, the Instagram-style bottom navigation dock rendered unconditionally on all web browsers (including desktop Chrome/Safari and mobile Chrome/Safari). In standard mobile and desktop web browsers, this bottom floating dock collided with browser navigation toolbars, consumed viewport height, and gave the website the appearance of a forced mobile app when visitors or team members were simply browsing the site. Furthermore, the desktop and mobile website already feature responsive top-level navigation (header logo, hamburger drawer menu, and top `DashboardTabBar`).
+- **Decision:**
+  1. **Web Standard Display Mode Detection:** Implemented `checkIsStandalone()` in `PwaInstallProvider.tsx` combining W3C standard `display-mode: standalone`, `fullscreen`, and `minimal-ui`, iOS Safari `(navigator).standalone === true`, Android TWA referrer `android-app://`, and developer testing query params `?app=standalone`.
+  2. **Reactive State Tracking:** Added a media query change listener to `window.matchMedia('(display-mode: standalone)')` to ensure immediate reactive state sync when display modes change (e.g. Chrome DevTools device mode emulation).
+  3. **Zero DOM Loading in Browsers:** In `web/src/app/dashboard/page.tsx` and `web/src/components/Navigation.tsx`, `<BottomNav>` and the global bottom bar are strictly guarded by `isStandalone`. When opened in standard browsers (desktop or mobile Chrome/Safari), bottom navigation is completely omitted from the React render tree (0 DOM nodes, zero event listeners, zero interference).
+  4. **Dynamic Container Bottom Padding:** On `/dashboard`, `main` bottom padding dynamically adjusts between `pb-12 sm:pb-16` in browser mode and `pb-32 sm:pb-24` in standalone mode, removing the empty 128px white space when running in mobile Chrome.
+  5. **Clean Login Screen:** Suppressed bottom navigation on `/login` in standard browsers so the login view renders as a focused, distraction-free authentication card.
+- **Consequences:**
+  - Pristine, native-feeling website browsing in Chrome on mobile and desktop without invasive bottom floating docks.
+  - Retains the full app-like Instagram navigation dock, safe-area inset padding, and thumb-friendly controls exclusively when launched as an installed Mobile Web App from the device home screen.

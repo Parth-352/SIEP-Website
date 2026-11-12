@@ -29,6 +29,28 @@ export function usePwaInstall() {
 
 const DISMISS_KEY = 'siep_pwa_banner_dismissed_v1';
 
+/**
+ * Checks whether the app is executing in a standalone Mobile Web App environment.
+ * Detects standard W3C display modes (standalone, fullscreen, minimal-ui),
+ * iOS Safari standalone Home Screen web apps, Android TWAs, and dev debug queries.
+ */
+export function checkIsStandalone(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const isDisplayStandalone =
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.matchMedia('(display-mode: fullscreen)').matches ||
+    window.matchMedia('(display-mode: minimal-ui)').matches;
+
+  const isIosStandalone = (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+  const isTwa = document.referrer.startsWith('android-app://');
+  const isDebug =
+    new URLSearchParams(window.location.search).get('app') === 'standalone' ||
+    new URLSearchParams(window.location.search).get('standalone') === 'true';
+
+  return Boolean(isDisplayStandalone || isIosStandalone || isTwa || isDebug);
+}
+
 export function PwaInstallProvider({ children }: { children: React.ReactNode }) {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -39,10 +61,7 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     // 1. Check if already running in standalone PWA mode
-    const standalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
-      document.referrer.includes('android-app://');
+    const standalone = checkIsStandalone();
 
     if (standalone) {
       setIsInstalled(true);
@@ -54,6 +73,16 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
       }
       return;
     }
+
+    // Reactive listener for display-mode changes (e.g. Chrome DevTools emulation)
+    const mq = window.matchMedia('(display-mode: standalone)');
+    const handleMqChange = (e: MediaQueryListEvent) => {
+      const active = e.matches || checkIsStandalone();
+      setIsStandalone(active);
+      if (active) setIsInstalled(true);
+    };
+
+    mq.addEventListener?.('change', handleMqChange);
 
     // 2. Detect iOS Safari
     const ua = window.navigator.userAgent;
@@ -99,6 +128,7 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      mq.removeEventListener?.('change', handleMqChange);
     };
   }, []);
 
