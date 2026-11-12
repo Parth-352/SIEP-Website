@@ -6,11 +6,11 @@
 ---
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
-- **Git Head:** Pending commit - `feat(nav): allow all members to add logs from burger menu & remove showcase link`.
+- **Git Head:** `fb274f2` - `feat(nav): open build log to all members, add 1-tap log creation in burger menu, and remove external showcase link`.
 - **TypeScript Verification:** ✅ Clean (`cd web && npx tsc --noEmit` passes with 0 errors).
 - **Production Build:** ✅ Next.js 16.4.5 Turbopack build (`npm run build`) compiles successfully (20/20 static pages generated, 0 errors).
 - **Architecture Synchronization:** ✅ ADR-014, ADR-015, ADR-016, and ADR-017 recorded in `.context/DECISIONS.md`.
-- **Vercel Production Deployment:** Ready to deploy.
+- **Vercel Production Deployment:** ✅ Live at `https://ridersbay.vercel.app` (Deployment `web-b2x1xxw2w-parths-projects-421c4665.vercel.app`).
 
 ---
 
