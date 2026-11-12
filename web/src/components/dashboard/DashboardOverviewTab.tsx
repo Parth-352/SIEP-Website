@@ -28,21 +28,113 @@ function getRelativeTime(timestamp?: string | number): string {
   return new Date(timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-function getSubsystemSymbol(teamId: string): string {
+interface SubsystemVisual {
+  containerClass: string;
+  icon: React.ReactNode;
+}
+
+function getSubsystemVisual(teamId: string): SubsystemVisual {
   switch (teamId) {
-    case 'telemetry':
     case 'software':
-      return '</>';
+    case 'telemetry':
+      return {
+        containerClass: 'bg-purple-50 text-purple-600 border border-purple-200/60',
+        icon: (
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+          </svg>
+        ),
+      };
+    case 'mechanical':
     case 'chassis':
     case 'suspension':
     case 'brakes':
-      return '⚙';
+      return {
+        containerClass: 'bg-zinc-100 text-zinc-700 border border-zinc-200/80',
+        icon: (
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        ),
+      };
+    case 'entc':
     case 'electronics':
     case 'powertrain':
     case 'battery':
-      return '⚡';
+      return {
+        containerClass: 'bg-sky-50 text-sky-600 border border-sky-200/60',
+        icon: (
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        ),
+      };
+    case 'documentation':
+      return {
+        containerClass: 'bg-amber-50 text-amber-600 border border-amber-200/60',
+        icon: (
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        ),
+      };
+    case 'design':
+      return {
+        containerClass: 'bg-pink-50 text-pink-600 border border-pink-200/60',
+        icon: (
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+        ),
+      };
+    case 'research':
+      return {
+        containerClass: 'bg-cyan-50 text-cyan-600 border border-cyan-200/60',
+        icon: (
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+          </svg>
+        ),
+      };
+    case 'sponsorship':
+      return {
+        containerClass: 'bg-emerald-50 text-emerald-600 border border-emerald-200/60',
+        icon: (
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        ),
+      };
+    case 'socialmedia':
+    case 'marketing':
+      return {
+        containerClass: 'bg-rose-50 text-rose-600 border border-rose-200/60',
+        icon: (
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+          </svg>
+        ),
+      };
+    case 'core':
+    case 'safety':
+      return {
+        containerClass: 'bg-amber-50 text-amber-700 border border-amber-300/60',
+        icon: (
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        ),
+      };
     default:
-      return '📄';
+      return {
+        containerClass: 'bg-zinc-100 text-zinc-600 border border-zinc-200/60',
+        icon: (
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+        ),
+      };
   }
 }
 
@@ -234,13 +326,13 @@ export default function DashboardOverviewTab({
             </button>
           </div>
 
-          <div className="space-y-3.5 pt-1">
+          <div className="space-y-4 pt-1">
             {prioritizedTeams.slice(0, 5).map((team) => {
               const teamTasks = tasks.filter((t) => t.teamId === team.id);
               const completed = teamTasks.filter((t) => t.status === 'done').length;
               const total = teamTasks.length;
               const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
-              const symbol = getSubsystemSymbol(team.id);
+              const visual = getSubsystemVisual(team.id);
 
               return (
                 <div
@@ -249,22 +341,26 @@ export default function DashboardOverviewTab({
                     setSelectedSubsystemFilter(team.id);
                     setActiveTab('team_tasks');
                   }}
-                  className="space-y-1.5 cursor-pointer group"
+                  className="space-y-2 cursor-pointer group"
                 >
-                  <div className="flex items-center justify-between text-xs font-sans">
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-7 h-7 rounded-lg bg-alice-blue border border-jet-black/10 flex items-center justify-center text-xs font-mono font-bold text-zinc-700">
-                        {symbol}
-                      </span>
-                      <span className="font-bold text-jet-black group-hover:text-orange transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {/* Uniform SVG Icon Container */}
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${visual.containerClass}`}>
+                        {visual.icon}
+                      </div>
+                      {/* Uniform Subsystem Name */}
+                      <span className="text-sm font-bold font-sans text-jet-black group-hover:text-orange transition-colors truncate">
                         {team.shortName}
                       </span>
                     </div>
-                    <span className="font-bold text-jet-black tabular-nums">
+                    {/* Uniform Percentage Label */}
+                    <span className="text-sm font-bold font-sans text-jet-black tabular-nums shrink-0">
                       {pct}%
                     </span>
                   </div>
-                  <div className="w-full h-2 bg-zinc-100 rounded-full overflow-hidden">
+                  {/* Uniform Calibrated Progress Bar */}
+                  <div className="w-full h-2 bg-amber-100/70 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-amber-400 group-hover:bg-orange rounded-full transition-all duration-500"
                       style={{ width: `${pct}%` }}
