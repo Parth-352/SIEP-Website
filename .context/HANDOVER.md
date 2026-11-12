@@ -1,15 +1,17 @@
 # 📋 ACTIVE SESSION HANDOVER & STATE
-> **Last Updated:** 2026-11-12 | **Branch:** `main`  
-> **Production Live URL:** `https://web-black-delta-34.vercel.app`  
+> **Last Updated:** 2026-11-12 | **Branch:** `main` (commit `076561c`)  
+> **Production Live URL:** `https://riders-bay.vercel.app` (also `https://web-black-delta-34.vercel.app`)  
 > *This document is the single source of truth for in-flight work across breaks. Agents and developers must read this before starting and update it before stopping.*
 
 ---
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
+- **Git Head:** ✅ `076561c` (`feat(security): enforce strict single-PIN invalidation, prioritize user squads & streamline create menu`).
+- **GitHub Remote:** ✅ Up to date with `origin/main`.
 - **TypeScript Verification:** ✅ Clean (`cd web && npx tsc --noEmit` passes with 0 errors).
 - **Production Build:** ✅ Next.js 16.4.5 Turbopack build (`npm run build`) compiles successfully (20/20 static pages generated, 0 errors).
-- **Automated Verification:** ✅ E2E headless Chrome test verified default PIN rejection, active PIN login, prioritized squad velocity grid rendering, and minimal '+' action sheet.
-- **Vercel Production Deployment:** ✅ Ready for deployment.
+- **Automated Verification:** ✅ Live Vercel production API verified: default PIN `935200` rejected (`valid: false`), active PIN `202020` authenticated (`valid: true`), unrotated members work with default PIN.
+- **Vercel Production Deployment:** ✅ Live at `https://riders-bay.vercel.app`.
 
 ---
 
