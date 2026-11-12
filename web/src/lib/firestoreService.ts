@@ -226,7 +226,13 @@ export async function getFirestoreMemberPasswords(): Promise<Record<string, stri
     snapshot.forEach((d) => {
       const data = d.data();
       if (data.email && data.password) {
-        passwords[data.email.toLowerCase()] = data.password;
+        const clean = data.email.toLowerCase().trim();
+        passwords[clean] = data.password;
+        if (clean === 'parthkshirsagrr@gmail.com') {
+          passwords['parthkshirsagr@gmail.com'] = data.password;
+        } else if (clean === 'parthkshirsagr@gmail.com') {
+          passwords['parthkshirsagrr@gmail.com'] = data.password;
+        }
       }
     });
     return passwords;
@@ -240,13 +246,27 @@ export async function saveFirestoreMemberPassword(email: string, password: strin
   if (!isFirebaseConfigured() || !db) return false;
   try {
     const cleanEmail = email.trim().toLowerCase();
+    const cleanPass = password.trim();
     const docId = cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
     const docRef = doc(db, 'member_passwords', docId);
     await setDoc(docRef, {
       email: cleanEmail,
-      password: password.trim(),
+      password: cleanPass,
       updatedAt: Date.now(),
     });
+
+    // Ensure alias emails are strictly kept in sync with the single password
+    if (cleanEmail === 'parthkshirsagrr@gmail.com' || cleanEmail === 'parthkshirsagr@gmail.com') {
+      const aliasEmail = cleanEmail === 'parthkshirsagrr@gmail.com' ? 'parthkshirsagr@gmail.com' : 'parthkshirsagrr@gmail.com';
+      const aliasDocId = aliasEmail.replace(/[^a-zA-Z0-9]/g, '_');
+      const aliasDocRef = doc(db, 'member_passwords', aliasDocId);
+      await setDoc(aliasDocRef, {
+        email: aliasEmail,
+        password: cleanPass,
+        updatedAt: Date.now(),
+      }).catch(() => {});
+    }
+
     return true;
   } catch (err) {
     console.warn('Firestore saveMemberPassword error:', err);

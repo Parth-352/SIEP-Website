@@ -219,8 +219,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: true };
       }
 
-      if (data && data.error && verifyRes.status !== 404) {
-        return { success: false, error: data.error };
+      // STRICT PIN CHECK: If member API returned invalid PIN or error, do not fall through to legacy/fallback auth!
+      if (data && (data.valid === false || data.error)) {
+        return { success: false, error: data.error || 'Incorrect 6-digit PIN.' };
       }
     } catch (err) {
       console.warn('API password verification notice:', err);

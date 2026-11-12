@@ -461,7 +461,7 @@ export default function ProfileView({
         </button>
 
         {isMyDomainsOpen && (
-          <div className="p-4 pt-2 border-t border-zinc-100 space-y-2.5 animate-in fade-in">
+          <div className="p-3.5 pt-2 border-t border-zinc-100 space-y-2 animate-in fade-in">
             {allAssignedDomains.length > 0 ? (
               allAssignedDomains.map((domainId) => {
                 const team = TEAMS[domainId];
@@ -469,21 +469,14 @@ export default function ProfileView({
                 return (
                   <div
                     key={domainId}
-                    className="p-3.5 rounded-xl bg-zinc-50/70 border border-zinc-200/80 hover:border-orange/30 hover:bg-orange/2 transition-colors space-y-1"
+                    className="p-3.5 rounded-xl bg-zinc-50/70 border border-zinc-200/80 hover:border-orange/30 hover:bg-orange/2 transition-colors flex items-center justify-between"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-jet-black font-sans">
-                        {team.name}
-                      </span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-sans font-bold border ${team.badgeBg}`}>
-                        {team.code}
-                      </span>
-                    </div>
-                    {team.description && (
-                      <p className="text-xs text-zinc-500 font-sans leading-relaxed">
-                        {team.description}
-                      </p>
-                    )}
+                    <span className="text-sm font-bold text-jet-black font-sans">
+                      {team.name}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-sans font-bold border ${team.badgeBg}`}>
+                      {team.code}
+                    </span>
                   </div>
                 );
               })

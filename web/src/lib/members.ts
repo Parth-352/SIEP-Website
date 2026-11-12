@@ -24,6 +24,7 @@ export const CORE_MEMBER_NAMES = [
 export const CORE_MEMBER_EMAILS = [
   'pawaletirthraj@gmail.com',
   'parthkshirsagrr@gmail.com',
+  'parthkshirsagr@gmail.com',
   'riddhimunot7@gmail.com',
   'desardapratik7@gmail.com',
 ];
@@ -271,7 +272,8 @@ export const ALL_MEMBER_NAMES = ROSTER_MEMBERS.map((m) => m.name);
 export function getMemberByEmail(email: string): TeamMemberEntry | undefined {
   if (!email) return undefined;
   const clean = email.trim().toLowerCase();
-  return ROSTER_MEMBERS.find((m) => m.email.toLowerCase() === clean);
+  const normalized = clean === 'parthkshirsagr@gmail.com' ? 'parthkshirsagrr@gmail.com' : clean;
+  return ROSTER_MEMBERS.find((m) => m.email.toLowerCase() === normalized || m.email.toLowerCase() === clean);
 }
 
 export function getMemberByName(name: string): TeamMemberEntry | undefined {
