@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
-import { UserProfile, Task, WorkLog } from '@/lib/types';
+import React, { useState, useRef, useMemo } from 'react';
+import { UserProfile, Task, WorkLog, TeamId } from '@/lib/types';
 import { TEAMS } from '@/lib/teams';
 import { DashboardTab } from '@/types/dashboard';
 import { getMemberInitials, getAvatarColorClass } from '@/utils/avatarUtils';
@@ -96,6 +96,18 @@ export default function ProfileView({
 
   // Sign out confirmation state
   const [isConfirmingSignOut, setIsConfirmingSignOut] = useState(false);
+
+  // All assigned domains (equal representation without primary vs secondary division)
+  const allAssignedDomains: TeamId[] = useMemo(() => {
+    const list: TeamId[] = [];
+    if (user.teamId) list.push(user.teamId);
+    if (user.secondaryTeams && Array.isArray(user.secondaryTeams)) {
+      user.secondaryTeams.forEach((t) => {
+        if (t && !list.includes(t)) list.push(t);
+      });
+    }
+    return list;
+  }, [user.teamId, user.secondaryTeams]);
 
   // Save Name
   const handleSaveName = async (e: React.FormEvent) => {
@@ -449,47 +461,35 @@ export default function ProfileView({
         </button>
 
         {isMyDomainsOpen && (
-          <div className="p-4 pt-1 border-t border-zinc-100 space-y-3 animate-in fade-in">
-            {/* Primary Squad */}
-            <div className="p-3.5 rounded-xl bg-orange/5 border border-orange/20 space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-bold text-orange uppercase tracking-wider">
-                  Primary Domain
-                </span>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-sans font-bold border ${TEAMS[user.teamId]?.badgeBg}`}>
-                  {TEAMS[user.teamId]?.code}
-                </span>
-              </div>
-              <div className="text-sm font-bold text-jet-black font-sans">
-                {TEAMS[user.teamId]?.name || user.teamId}
-              </div>
-              <p className="text-xs text-zinc-500 font-sans leading-relaxed">
-                {TEAMS[user.teamId]?.description || 'Core engineering division'}
-              </p>
-            </div>
-
-            {/* Secondary Squads */}
-            {user.secondaryTeams && user.secondaryTeams.length > 0 ? (
-              <div className="p-3.5 rounded-xl bg-zinc-50 border border-zinc-200/80 space-y-1.5">
-                <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-wider block">
-                  Secondary Domains ({user.secondaryTeams.length})
-                </span>
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {user.secondaryTeams.map((secId) => (
-                    <span
-                      key={secId}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-sans font-semibold border ${
-                        TEAMS[secId]?.badgeBg || 'bg-white text-zinc-800 border-zinc-200'
-                      }`}
-                    >
-                      {TEAMS[secId]?.shortName || secId}
-                    </span>
-                  ))}
-                </div>
-              </div>
+          <div className="p-4 pt-2 border-t border-zinc-100 space-y-2.5 animate-in fade-in">
+            {allAssignedDomains.length > 0 ? (
+              allAssignedDomains.map((domainId) => {
+                const team = TEAMS[domainId];
+                if (!team) return null;
+                return (
+                  <div
+                    key={domainId}
+                    className="p-3.5 rounded-xl bg-zinc-50/70 border border-zinc-200/80 hover:border-orange/30 hover:bg-orange/2 transition-colors space-y-1"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-jet-black font-sans">
+                        {team.name}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-sans font-bold border ${team.badgeBg}`}>
+                        {team.code}
+                      </span>
+                    </div>
+                    {team.description && (
+                      <p className="text-xs text-zinc-500 font-sans leading-relaxed">
+                        {team.description}
+                      </p>
+                    )}
+                  </div>
+                );
+              })
             ) : (
               <p className="text-xs text-zinc-400 font-sans italic">
-                No secondary domains assigned.
+                No domains assigned.
               </p>
             )}
           </div>

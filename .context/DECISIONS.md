@@ -128,3 +128,12 @@
   - Robust authentication model preventing unauthorized default credential reuse.
   - Immediate high-visibility velocity tracking for member's own domains.
   - Ultra-fast, distraction-free action creation on mobile and desktop.
+
+---
+
+## 🏛️ ADR-010: Equal Domain Representation in Member Profile
+- **Date:** 2026-11-12
+- **Status:** Accepted & Implemented
+- **Context:** The profile accordion previously divided assigned domains into a highlighted "Primary Domain" card and a subdued "Secondary Domains" pill section. In student multi-disciplinary engineering squads, domain involvement is peer-level and equal.
+- **Decision:** Excised the hierarchical "Primary" and "Secondary" classification from the profile view (`ProfileView.tsx`). All assigned domains (`[user.teamId, ...(user.secondaryTeams || [])]`) are unified and rendered equally with consistent card styling, official squad badge, and engineering domain description.
+- **Consequences:** Clean, non-hierarchical domain presentation celebrating members' multi-squad responsibilities equally.

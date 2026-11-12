@@ -40,6 +40,11 @@
    - Removed `More Portals (Videos, Metrics, Sync)` button.
    - Excised `OperationsHubModal` and unused `isMobileQuickMenuOpen` states from dashboard page.
 
+### D. Equal Domain Representation in Profile (`ProfileView.tsx`)
+1. **Removed Primary vs. Secondary Classification:**
+   - Eliminated the separate "Primary Domain" card and "Secondary Domains" section in the "My Domains" accordion.
+   - Unified all user domains (`allAssignedDomains = Array.from(new Set([user.teamId, ...(user.secondaryTeams || [])]))`) into an equal, peer-level listing where every domain receives identical card styling, squad badge, and official engineering description.
+
 ---
 
 ## 📁 3. RECENTLY MODIFIED FILES IN HEAD
