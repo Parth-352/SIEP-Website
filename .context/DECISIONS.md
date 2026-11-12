@@ -170,3 +170,17 @@
 - **Consequences:**
   - High signal-to-noise ratio on mobile with no repeated KPIs or duplicate tab bars.
   - Native mobile app feel on small viewports while preserving complete desktop operations tooling.
+
+---
+
+## ADR-013: Build Log Mobile Rework & 5-Status Engineering Workflow
+- **Date:** 2026-11-13
+- **Status:** Accepted & Implemented
+- **Context:** User requested redesign of the `/log` page on mobile matching mockup `media_1794510271459_0a6999fe.jpg`, requiring one prominent "+ Add Build Log" button, 5 simple work statuses (`In Progress`, `Testing`, `Completed`, `On Hold`, `Needs Review`), single team dropdown, search and status filters together, chronological activity feed with video previews, compact cards, zero Deliverables terminology, and live backend data.
+- **Decision:**
+  1. Extended `WorkLog` type with `LogWorkStatus` and added resilient status inference for existing logs via `getLogWorkStatus`.
+  2. Implemented mobile layout (`md:hidden`) with hero banner, prominent dark action button, 5 live KPI metric tiles, recent logs header with single team dropdown, search bar, status chips, timeline guide with video thumbnails, and slide-up detail drawer.
+  3. Preserved desktop engineering logbook layout completely (`hidden md:block`).
+- **Consequences:**
+  - Fast, intuitive build logging workflow for workshop members on mobile.
+  - Zero disruption to desktop operations or database records.

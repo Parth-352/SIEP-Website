@@ -466,7 +466,9 @@ export default function Navigation() {
                   <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
                   </svg>
-                  <span className="text-[10px] font-mono tracking-tight mt-0.5 font-bold text-jet-black">
+                  <span className={`text-[10px] font-mono tracking-tight mt-0.5 ${
+                    pathname === '/dashboard' ? 'font-bold text-jet-black' : 'font-medium'
+                  }`}>
                     Dashboard
                   </span>
                 </Link>
@@ -490,12 +492,22 @@ export default function Navigation() {
                     title="Log Build Step & Video Proof"
                     className="flex flex-col items-center justify-center py-0.5 px-2 group active:scale-95 transition-transform"
                   >
-                    <div className="w-8 h-8 rounded-xl border-2 border-jet-black bg-jet-black text-alice-blue flex items-center justify-center font-bold hover:bg-orange hover:border-orange transition-all shadow-2xs">
+                    <div
+                      className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all shadow-2xs ${
+                        pathname === '/log'
+                          ? 'border-orange bg-orange text-white shadow-md shadow-orange/30 scale-105'
+                          : 'border-jet-black bg-jet-black text-alice-blue hover:bg-orange hover:border-orange'
+                      }`}
+                    >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
                       </svg>
                     </div>
-                    <span className="text-[10px] font-mono tracking-tight mt-0.5 font-bold text-jet-black">
+                    <span
+                      className={`text-[10px] font-mono tracking-tight mt-0.5 ${
+                        pathname === '/log' ? 'font-bold text-jet-black' : 'font-medium text-grey'
+                      }`}
+                    >
                       Log
                     </span>
                   </Link>

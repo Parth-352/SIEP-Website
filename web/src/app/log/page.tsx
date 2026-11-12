@@ -5,13 +5,150 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { TEAMS, TEAMS_LIST } from '@/lib/teams';
-import { WorkLog, TeamId, Task, TaskStatus, TaskPriority } from '@/lib/types';
+import { WorkLog, TeamId, Task, TaskStatus, TaskPriority, LogWorkStatus } from '@/lib/types';
 import { uploadFileToGoogleDrive, getEmbeddableVideoUrl } from '@/lib/driveUpload';
 import MemberSelect from '@/components/MemberSelect';
 import TaskCompleteModal from '@/components/TaskCompleteModal';
 import { useBackgroundSync } from '@/components/BackgroundSyncProvider';
 import { getOfflineCachedLogs, cacheOfflineLogs } from '@/lib/offlineDb';
 import { isTaskAssignedToUser } from '@/lib/taskMatching';
+
+function getLogWorkStatus(log: WorkLog): LogWorkStatus {
+  if (log.status) return log.status;
+  const text = `${log.stepTitle || ''} ${log.description || ''} ${log.achievements || ''}`.toLowerCase();
+  if (text.includes('test') || text.includes('dyno') || text.includes('benchmark') || text.includes('trial')) {
+    return 'testing';
+  }
+  if ((log.blockers && log.blockers.trim().length > 0) || text.includes('on hold') || text.includes('waiting') || text.includes('delay') || text.includes('blocked')) {
+    return 'on_hold';
+  }
+  if (text.includes('review') || text.includes('audit') || text.includes('inspect') || text.includes('verification')) {
+    return 'review';
+  }
+  if (log.videoUrl && (text.includes('weld') || text.includes('completed') || text.includes('done') || text.includes('finished') || text.includes('fabricated'))) {
+    return 'completed';
+  }
+  return 'in_progress';
+}
+
+function getDomainBadge(teamId: string) {
+  switch (teamId) {
+    case 'mechanical':
+    case 'chassis':
+      return { code: 'MECH', bg: 'bg-amber-500/10 text-amber-700 border-amber-500/20' };
+    case 'powertrain':
+      return { code: 'POW', bg: 'bg-sky-500/10 text-sky-700 border-sky-500/20' };
+    case 'battery':
+      return { code: 'BATT', bg: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20' };
+    case 'entc':
+    case 'electronics':
+      return { code: 'E&E', bg: 'bg-blue-500/10 text-blue-700 border-blue-500/20' };
+    case 'software':
+    case 'telemetry':
+      return { code: 'SOFT', bg: 'bg-purple-500/10 text-purple-700 border-purple-500/20' };
+    case 'brakes':
+      return { code: 'BRK', bg: 'bg-rose-500/10 text-rose-700 border-rose-500/20' };
+    case 'suspension':
+      return { code: 'SUSP', bg: 'bg-indigo-500/10 text-indigo-700 border-indigo-500/20' };
+    case 'safety':
+      return { code: 'SAFE', bg: 'bg-red-500/10 text-red-700 border-red-500/20' };
+    case 'design':
+      return { code: 'DSGN', bg: 'bg-pink-500/10 text-pink-700 border-pink-500/20' };
+    case 'research':
+      return { code: 'R&D', bg: 'bg-cyan-500/10 text-cyan-700 border-cyan-500/20' };
+    case 'sponsorship':
+      return { code: 'SPON', bg: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20' };
+    case 'socialmedia':
+    case 'marketing':
+      return { code: 'MKT', bg: 'bg-pink-500/10 text-pink-700 border-pink-500/20' };
+    case 'core':
+      return { code: 'CORE', bg: 'bg-orange/10 text-orange border-orange/30' };
+    case 'documentation':
+    default:
+      return { code: 'DOCS', bg: 'bg-zinc-100 text-zinc-700 border-zinc-200' };
+  }
+}
+
+function formatLogDate(dateVal?: string | number): string {
+  if (!dateVal) return 'Recently';
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return String(dateVal);
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+}
+
+const WORK_STATUS_CONFIG: Record<
+  LogWorkStatus,
+  {
+    label: string;
+    filterLabel: string;
+    icon: React.ReactNode;
+    badgeBg: string;
+    tileIconBg: string;
+    tileIconColor: string;
+  }
+> = {
+  in_progress: {
+    label: 'In Progress',
+    filterLabel: 'In Progress',
+    icon: (
+      <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M8 5v14l11-7z" />
+      </svg>
+    ),
+    badgeBg: 'bg-amber-500/10 text-amber-700 border border-amber-500/20',
+    tileIconBg: 'bg-amber-500/10 border border-amber-500/20',
+    tileIconColor: 'text-amber-600',
+  },
+  testing: {
+    label: 'Testing',
+    filterLabel: 'Testing',
+    icon: (
+      <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+      </svg>
+    ),
+    badgeBg: 'bg-purple-500/10 text-purple-700 border border-purple-500/20',
+    tileIconBg: 'bg-purple-500/10 border border-purple-500/20',
+    tileIconColor: 'text-purple-600',
+  },
+  completed: {
+    label: 'Completed',
+    filterLabel: 'Completed',
+    icon: (
+      <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+    ),
+    badgeBg: 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20',
+    tileIconBg: 'bg-emerald-500/10 border border-emerald-500/20',
+    tileIconColor: 'text-emerald-600',
+  },
+  on_hold: {
+    label: 'On Hold',
+    filterLabel: 'On Hold',
+    icon: (
+      <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+      </svg>
+    ),
+    badgeBg: 'bg-rose-500/10 text-rose-700 border border-rose-500/20',
+    tileIconBg: 'bg-rose-500/10 border border-rose-500/20',
+    tileIconColor: 'text-rose-600',
+  },
+  review: {
+    label: 'Needs Review',
+    filterLabel: 'Review',
+    icon: (
+      <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+      </svg>
+    ),
+    badgeBg: 'bg-sky-500/10 text-sky-700 border border-sky-500/20',
+    tileIconBg: 'bg-sky-500/10 border border-sky-500/20',
+    tileIconColor: 'text-sky-600',
+  },
+};
 
 function LogLoadingSkeleton() {
   return (
@@ -94,6 +231,58 @@ function LogPageContent() {
   const [deleteConfirmLog, setDeleteConfirmLog] = useState<WorkLog | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Mobile UI Redesign States (per PRD v1.0 & Mockup media_1794510271459_0a6999fe.jpg)
+  const [mobileStatusFilter, setMobileStatusFilter] = useState<'all' | LogWorkStatus>('all');
+  const [selectedMobileDetailLog, setSelectedMobileDetailLog] = useState<WorkLog | null>(null);
+  const [targetStatus, setTargetStatus] = useState<LogWorkStatus>('in_progress');
+  const [editStatus, setEditStatus] = useState<LogWorkStatus>('in_progress');
+
+  // Dynamic status counts calculated live from Firestore logs (respects team selection)
+  const statusCounts = useMemo(() => {
+    const counts: Record<LogWorkStatus, number> = {
+      in_progress: 0,
+      testing: 0,
+      completed: 0,
+      on_hold: 0,
+      review: 0,
+    };
+    const pool = selectedTeamFilter === 'all'
+      ? logs
+      : logs.filter((l) => l.teamId === selectedTeamFilter);
+
+    pool.forEach((l) => {
+      const st = getLogWorkStatus(l);
+      counts[st] = (counts[st] || 0) + 1;
+    });
+    return counts;
+  }, [logs, selectedTeamFilter]);
+
+  // Dynamic filtered logs feed for mobile
+  const visibleMobileLogs = useMemo(() => {
+    return logs.filter((log) => {
+      // 1. Team filter
+      if (selectedTeamFilter !== 'all' && log.teamId !== selectedTeamFilter) {
+        return false;
+      }
+      // 2. Status filter
+      if (mobileStatusFilter !== 'all') {
+        const st = getLogWorkStatus(log);
+        if (st !== mobileStatusFilter) return false;
+      }
+      // 3. Search query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const match =
+          (log.stepTitle || '').toLowerCase().includes(q) ||
+          (log.description || '').toLowerCase().includes(q) ||
+          (log.teamName || '').toLowerCase().includes(q) ||
+          (log.membersPresent || []).some((m) => m.toLowerCase().includes(q));
+        if (!match) return false;
+      }
+      return true;
+    });
+  }, [logs, selectedTeamFilter, mobileStatusFilter, searchQuery]);
 
   // Handle URL query parameter for team filter and task pre-filling
   useEffect(() => {
@@ -340,6 +529,7 @@ function LogPageContent() {
 
     const logPayload = {
       stepTitle: stepTitle.trim(),
+      status: targetStatus,
       teamId: effectiveTeamId,
       teamName: effectiveTeamConfig?.name || effectiveTeamId,
       authorName: authorName.trim() || user.displayName,
@@ -391,6 +581,7 @@ function LogPageContent() {
   const openEditModal = (log: WorkLog) => {
     setEditingLog(log);
     setEditStepTitle(log.stepTitle);
+    setEditStatus(log.status || getLogWorkStatus(log));
     setEditTeamId(log.teamId);
     setEditAuthorName(log.authorName);
     setEditDate(log.date);
@@ -423,6 +614,7 @@ function LogPageContent() {
         body: JSON.stringify({
           id: editingLog.id,
           stepTitle: editStepTitle.trim(),
+          status: editStatus,
           teamId: isCoreAdmin ? editTeamId : editingLog.teamId,
           authorName: editAuthorName.trim() || editingLog.authorName,
           date: editDate || editingLog.date,
@@ -493,6 +685,298 @@ function LogPageContent() {
       <div className="fixed inset-0 opacity-[0.02] pointer-events-none bg-[radial-gradient(#2B303A_1px,transparent_1px)] [background-size:24px_24px]"></div>
 
       <div className="max-w-6xl mx-auto relative z-10 space-y-5 sm:space-y-8">
+
+        {/* =========================================================================
+            MOBILE BUILD LOG VIEW (PRD v1.0 & Mockup media_1794510271459_0a6999fe.jpg)
+            Visible strictly on mobile screens (md:hidden).
+            Desktop screens are completely isolated in (hidden md:block).
+           ========================================================================= */}
+        <div className="md:hidden space-y-4 max-w-lg mx-auto">
+          {/* 1. Mobile Hero Header Card */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500/10 via-orange/5 to-white border border-amber-200/60 p-5 shadow-xs">
+            {/* Motorcycle Silhouette Watermark */}
+            <svg className="absolute -right-2 -bottom-2 w-44 h-28 text-orange/15 pointer-events-none" viewBox="0 0 100 60" fill="currentColor">
+              <circle cx="20" cy="42" r="14" fill="none" stroke="currentColor" strokeWidth="4"/>
+              <circle cx="80" cy="42" r="14" fill="none" stroke="currentColor" strokeWidth="4"/>
+              <path d="M20 42 L42 42 L55 24 L35 24 Z" fill="none" stroke="currentColor" strokeWidth="4" strokeLinejoin="round"/>
+              <path d="M42 42 L65 24 L80 42" fill="none" stroke="currentColor" strokeWidth="4" strokeLinejoin="round"/>
+              <path d="M55 24 L72 14 L78 14" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
+              <path d="M45 18 L60 18" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round"/>
+            </svg>
+
+            <div className="relative z-10 flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-orange shrink-0 mt-0.5 shadow-2xs">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div className="space-y-1 min-w-0 pr-12">
+                <span className="text-[10px] font-mono uppercase tracking-[0.2em] font-bold text-zinc-500 block">
+                  SIEP 2026–27
+                </span>
+                <h2 className="text-xl font-black font-sans text-jet-black tracking-tight leading-tight">
+                  Build Log
+                </h2>
+                <p className="text-xs font-sans text-zinc-500 leading-relaxed">
+                  Record team work, tests and progress with photos or videos.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Prominent "+ Add Build Log" Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsFormOpen(true);
+              setFormError(null);
+            }}
+            className="w-full py-3.5 px-5 rounded-2xl bg-[#1e232d] hover:bg-jet-black text-white font-sans font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.99] cursor-pointer"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Add Build Log</span>
+          </button>
+
+          {/* 3. Five Work Status Tiles / Metric Cards */}
+          <div className="overflow-x-auto hide-scrollbar -mx-1 px-1">
+            <div className="flex items-center gap-2 min-w-max pb-1">
+              {(['in_progress', 'testing', 'completed', 'on_hold', 'review'] as LogWorkStatus[]).map((st) => {
+                const cfg = WORK_STATUS_CONFIG[st];
+                const count = statusCounts[st] || 0;
+                const isSelected = mobileStatusFilter === st;
+
+                return (
+                  <button
+                    key={st}
+                    type="button"
+                    onClick={() => setMobileStatusFilter(isSelected ? 'all' : st)}
+                    className={`bg-white border rounded-2xl p-2.5 shadow-2xs flex items-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0 min-w-[105px] text-left ${
+                      isSelected
+                        ? 'border-orange ring-2 ring-orange/30 bg-orange/5'
+                        : 'border-jet-black/10 hover:border-zinc-300'
+                    }`}
+                  >
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${cfg.tileIconBg} ${cfg.tileIconColor}`}>
+                      {cfg.icon}
+                    </div>
+                    <div>
+                      <div className="text-base font-black font-sans text-jet-black tabular-nums leading-none">
+                        {count}
+                      </div>
+                      <div className="text-[10px] font-sans text-zinc-500 font-medium whitespace-nowrap mt-0.5">
+                        {cfg.label}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 4. Section Header: Recent Logs & Team Selector Dropdown */}
+          <div className="flex items-center justify-between gap-3 pt-1">
+            <h3 className="text-lg font-bold font-sans text-jet-black tracking-tight">
+              Recent Logs
+            </h3>
+
+            {/* Team selection through one dropdown per PRD */}
+            <div className="relative">
+              <select
+                value={selectedTeamFilter}
+                onChange={(e) => setSelectedTeamFilter(e.target.value)}
+                className="appearance-none bg-white border border-jet-black/15 text-jet-black text-xs font-sans font-bold py-1.5 pl-3 pr-7 rounded-xl shadow-2xs focus:ring-2 focus:ring-orange focus:outline-none cursor-pointer"
+              >
+                <option value="all">All Teams</option>
+                {TEAMS_LIST.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.shortName}
+                  </option>
+                ))}
+              </select>
+              <svg className="w-3.5 h-3.5 text-zinc-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+
+          {/* 5. Search & Status Filter Chips Together */}
+          <div className="space-y-2">
+            {/* Search Input */}
+            <div className="relative w-full">
+              <input
+                type="text"
+                placeholder="Search logs (title, description, member)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-8 py-2 rounded-xl border border-jet-black/15 bg-white text-xs font-sans text-jet-black placeholder:text-zinc-400 focus:ring-2 focus:ring-orange focus:outline-none shadow-2xs transition-all"
+              />
+              <svg className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-jet-black text-xs font-bold"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Status Filter Chips Row */}
+            <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar pb-1">
+              <button
+                type="button"
+                onClick={() => setMobileStatusFilter('all')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-sans font-bold whitespace-nowrap cursor-pointer transition-all ${
+                  mobileStatusFilter === 'all'
+                    ? 'bg-jet-black text-white shadow-2xs'
+                    : 'bg-white border border-jet-black/10 text-zinc-600 hover:text-jet-black'
+                }`}
+              >
+                All
+              </button>
+              {(['in_progress', 'testing', 'completed', 'on_hold', 'review'] as LogWorkStatus[]).map((st) => {
+                const cfg = WORK_STATUS_CONFIG[st];
+                const isSelected = mobileStatusFilter === st;
+                return (
+                  <button
+                    key={st}
+                    type="button"
+                    onClick={() => setMobileStatusFilter(isSelected ? 'all' : st)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-sans font-bold whitespace-nowrap cursor-pointer transition-all flex items-center gap-1.5 ${
+                      isSelected
+                        ? 'bg-jet-black text-white shadow-2xs'
+                        : 'bg-white border border-jet-black/10 text-zinc-600 hover:text-jet-black'
+                    }`}
+                  >
+                    <span>{cfg.filterLabel}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 6. Chronological Activity Feed with Video Previews */}
+          <div className="space-y-3 pt-1">
+            {loadingLogs ? (
+              <div className="bg-white border border-jet-black/10 rounded-2xl p-8 text-center text-xs font-mono text-zinc-500 space-y-2">
+                <span className="w-5 h-5 border-2 border-orange border-t-transparent rounded-full animate-spin inline-block"></span>
+                <p>Syncing build logs...</p>
+              </div>
+            ) : visibleMobileLogs.length === 0 ? (
+              <div className="bg-white border border-dashed border-zinc-200 rounded-3xl p-8 text-center space-y-1">
+                <p className="text-xs font-sans font-semibold text-zinc-600">
+                  No build logs match the selected filters.
+                </p>
+                <p className="text-[11px] font-sans text-zinc-400">
+                  Try switching teams, clearing search, or tap &ldquo;+ Add Build Log&rdquo; above!
+                </p>
+              </div>
+            ) : (
+              <div className="relative pl-5 space-y-3">
+                {/* Timeline Track Guide */}
+                <div className="absolute left-2 top-3 bottom-3 w-0.5 bg-zinc-200" />
+
+                {visibleMobileLogs.map((log) => {
+                  const workStatus = getLogWorkStatus(log);
+                  const statusCfg = WORK_STATUS_CONFIG[workStatus];
+                  const domainBadge = getDomainBadge(log.teamId);
+                  const dateFormatted = formatLogDate(log.date || log.createdAt);
+
+                  // Extract YouTube thumbnail or fallback
+                  let thumbUrl: string | null = null;
+                  if (log.videoUrl) {
+                    const ytMatch = log.videoUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+                    if (ytMatch && ytMatch[1]) {
+                      thumbUrl = `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg`;
+                    }
+                  }
+
+                  return (
+                    <div key={log.id} className="relative flex items-center">
+                      {/* Timeline Dot */}
+                      <div className="absolute -left-[17px] top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-orange ring-4 ring-white shadow-2xs z-10" />
+
+                      {/* Compact Card */}
+                      <div
+                        onClick={() => setSelectedMobileDetailLog(log)}
+                        className="w-full bg-white border border-jet-black/10 hover:border-orange/60 rounded-2xl p-2.5 shadow-2xs hover:shadow-xs transition-all cursor-pointer active:scale-[0.99] flex items-center justify-between gap-3"
+                      >
+                        {/* Left: Thumbnail Preview */}
+                        <div className="relative w-20 h-14 sm:w-24 sm:h-16 rounded-xl overflow-hidden bg-zinc-900 shrink-0 border border-black/10 flex items-center justify-center">
+                          {thumbUrl ? (
+                            <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-950 flex items-center justify-center relative">
+                              <svg className="w-8 h-8 text-white/10" viewBox="0 0 100 60" fill="currentColor">
+                                <circle cx="20" cy="42" r="14" fill="none" stroke="currentColor" strokeWidth="4"/>
+                                <circle cx="80" cy="42" r="14" fill="none" stroke="currentColor" strokeWidth="4"/>
+                                <path d="M20 42 L42 42 L55 24 L35 24 Z" fill="none" stroke="currentColor" strokeWidth="4"/>
+                              </svg>
+                            </div>
+                          )}
+                          {/* Play Button Overlay */}
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/25">
+                            <div className="w-6 h-6 rounded-full bg-black/60 backdrop-blur-xs flex items-center justify-center text-white shadow-xs">
+                              <svg className="w-3 h-3 translate-x-0.5 fill-current" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                            </div>
+                          </div>
+                          {/* Timestamp Pill */}
+                          <span className="absolute bottom-1 right-1 px-1 py-0.2 bg-black/80 text-white text-[8px] font-mono rounded">
+                            {log.workTime || 'VIDEO'}
+                          </span>
+                        </div>
+
+                        {/* Middle: Title, Description, Domain, Status */}
+                        <div className="min-w-0 flex-1">
+                          <h4 className="text-sm font-sans font-bold text-jet-black truncate">
+                            {log.stepTitle}
+                          </h4>
+                          <p className="text-xs text-zinc-500 font-sans truncate mt-0.5">
+                            {log.description}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-1.5">
+                            {/* Domain Short Code */}
+                            <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-sans font-black uppercase tracking-wider border shrink-0 ${domainBadge.bg}`}>
+                              {domainBadge.code}
+                            </span>
+                            {/* Work Status Pill */}
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-sans font-bold flex items-center gap-1 shrink-0 ${statusCfg.badgeBg}`}>
+                              {statusCfg.icon}
+                              <span>{statusCfg.label}</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Right: Date & Chevron */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-xs text-zinc-400 font-sans font-medium whitespace-nowrap">
+                            {dateFormatted}
+                          </span>
+                          <svg className="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* =========================================================================
+            DESKTOP BUILD LOG VIEW (Desktop Layout Preserved 100%)
+            Visible strictly on desktop screens (hidden md:block).
+           ========================================================================= */}
+        <div className="hidden md:block space-y-8">
 
         {/* =========================================================================
             HEADER & SCOPE CONSOLE
@@ -750,48 +1234,88 @@ function LogPageContent() {
         )}
 
         {/* =========================================================================
-            RECORD NEW STEP FORM DRAWER
+            RECORD NEW STEP FORM DRAWER / MODAL
            ========================================================================= */}
         {isFormOpen && (
-          <div className="bg-white border-2 border-orange/40 rounded-2xl p-4 sm:p-10 shadow-lg animate-in fade-in duration-200">
-            
-            {/* Form Top Title */}
-            <div className="pb-4 border-b border-jet-black/10">
-              <h3 className="text-lg font-bold text-jet-black tracking-tight">
-                Record New Step
-              </h3>
-            </div>
-
-            {/* Error Banner */}
-            {formError && (
-              <div className="mt-4 p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start gap-3">
-                <span className="font-bold text-xs uppercase tracking-wider shrink-0 bg-red-200 px-1.5 py-0.5 rounded">Error</span>
-                <p className="leading-relaxed flex-1">{formError}</p>
+          <div className="fixed inset-0 z-[200] bg-jet-black/70 backdrop-blur-xs flex flex-col justify-end p-0 sm:items-center sm:justify-center sm:p-4 overflow-y-auto animate-in fade-in duration-200">
+            <div
+              onClick={() => setIsFormOpen(false)}
+              className="fixed inset-0"
+            />
+            <div className="relative bg-white border-2 border-orange/40 rounded-t-3xl sm:rounded-2xl p-4 sm:p-8 shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto z-10 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8 my-0 sm:my-auto">
+              
+              {/* Form Top Title */}
+              <div className="flex items-center justify-between pb-3 border-b border-jet-black/10">
+                <h3 className="text-lg font-bold text-jet-black tracking-tight">
+                  Add Build Log
+                </h3>
                 <button
                   type="button"
-                  onClick={() => setFormError(null)}
-                  className="text-red-500 hover:text-red-800 text-xs font-mono font-bold"
+                  onClick={() => setIsFormOpen(false)}
+                  className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-600 font-bold text-xs cursor-pointer"
                 >
-                  Dismiss
+                  ✕
                 </button>
               </div>
-            )}
 
-            <form onSubmit={handleLogSubmit} className="mt-6 space-y-6">
-              
-              {/* Step Title */}
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-1.5 font-medium">
-                  Step Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={stepTitle}
-                  onChange={(e) => setStepTitle(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-white text-jet-black text-base sm:text-sm font-medium focus:ring-2 focus:ring-orange focus:outline-none transition-all"
-                />
-              </div>
+              {/* Error Banner */}
+              {formError && (
+                <div className="mt-4 p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start gap-3">
+                  <span className="font-bold text-xs uppercase tracking-wider shrink-0 bg-red-200 px-1.5 py-0.5 rounded">Error</span>
+                  <p className="leading-relaxed flex-1">{formError}</p>
+                  <button
+                    type="button"
+                    onClick={() => setFormError(null)}
+                    className="text-red-500 hover:text-red-800 text-xs font-mono font-bold"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
+
+              <form onSubmit={handleLogSubmit} className="mt-5 space-y-5">
+                
+                {/* Step Title */}
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-1.5 font-medium">
+                    Step Title *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={stepTitle}
+                    onChange={(e) => setStepTitle(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-white text-jet-black text-base sm:text-sm font-medium focus:ring-2 focus:ring-orange focus:outline-none transition-all"
+                  />
+                </div>
+
+                {/* Work Status */}
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-1.5 font-medium">
+                    Work Status
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    {(['in_progress', 'testing', 'completed', 'on_hold', 'review'] as LogWorkStatus[]).map((st) => {
+                      const cfg = WORK_STATUS_CONFIG[st];
+                      const isSelected = targetStatus === st;
+                      return (
+                        <button
+                          key={st}
+                          type="button"
+                          onClick={() => setTargetStatus(st)}
+                          className={`p-2 rounded-xl border text-xs font-sans font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+                            isSelected
+                              ? 'border-orange bg-orange/10 text-orange shadow-2xs ring-1 ring-orange'
+                              : 'border-jet-black/15 bg-white text-zinc-700 hover:bg-zinc-50'
+                          }`}
+                        >
+                          {cfg.icon}
+                          <span className="truncate">{cfg.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
               {/* Subsystem, Date, Time & Hours */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
@@ -1035,6 +1559,7 @@ function LogPageContent() {
             </form>
 
           </div>
+          </div>
         )}
 
         {/* =========================================================================
@@ -1077,6 +1602,34 @@ function LogPageContent() {
                     onChange={(e) => setEditStepTitle(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 bg-alice-blue/30 text-jet-black text-base sm:text-sm focus:ring-2 focus:ring-orange focus:outline-none"
                   />
+                </div>
+
+                {/* Work Status Selector */}
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-grey mb-1.5 font-medium">
+                    Work Status
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    {(['in_progress', 'testing', 'completed', 'on_hold', 'review'] as LogWorkStatus[]).map((st) => {
+                      const cfg = WORK_STATUS_CONFIG[st];
+                      const isSelected = editStatus === st;
+                      return (
+                        <button
+                          key={st}
+                          type="button"
+                          onClick={() => setEditStatus(st)}
+                          className={`p-2 rounded-xl border text-xs font-sans font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+                            isSelected
+                              ? 'border-orange bg-orange/10 text-orange shadow-2xs ring-1 ring-orange'
+                              : 'border-jet-black/15 bg-white text-zinc-700 hover:bg-zinc-50'
+                          }`}
+                        >
+                          {cfg.icon}
+                          <span className="truncate">{cfg.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -1573,7 +2126,164 @@ function LogPageContent() {
           )}
         </div>
 
+        {/* End of Desktop View */}
+        </div>
+
       </div>
+
+      {/* =========================================================================
+          MOBILE LOG DETAILS & VIDEO DRAWER
+          Slide-up sheet triggered when tapping any compact card on mobile.
+         ========================================================================= */}
+      {selectedMobileDetailLog && (
+        <div className="fixed inset-0 z-[200] flex flex-col justify-end p-0 sm:items-center sm:justify-center sm:p-4 animate-in fade-in duration-200">
+          <div
+            onClick={() => setSelectedMobileDetailLog(null)}
+            className="fixed inset-0 bg-jet-black/60 backdrop-blur-xs"
+          />
+
+          <div className="relative bg-white rounded-t-3xl sm:rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto z-10 shadow-2xl border border-jet-black/15 p-5 space-y-4 animate-in slide-in-from-bottom duration-200 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+            {/* Top Handle & Close */}
+            <div className="flex items-center justify-between border-b border-jet-black/10 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded bg-jet-black text-white font-mono text-[10px] font-bold">
+                  STEP #{String(selectedMobileDetailLog.stepNumber).padStart(2, '0')}
+                </span>
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${getDomainBadge(selectedMobileDetailLog.teamId).bg}`}>
+                  {getDomainBadge(selectedMobileDetailLog.teamId).code}
+                </span>
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border flex items-center gap-1 ${WORK_STATUS_CONFIG[getLogWorkStatus(selectedMobileDetailLog)].badgeBg}`}>
+                  {WORK_STATUS_CONFIG[getLogWorkStatus(selectedMobileDetailLog)].icon}
+                  <span>{WORK_STATUS_CONFIG[getLogWorkStatus(selectedMobileDetailLog)].label}</span>
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedMobileDetailLog(null)}
+                className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-600 font-bold text-xs cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Video Player Embed */}
+            {selectedMobileDetailLog.videoUrl && (() => {
+              const embed = getEmbeddableVideoUrl(selectedMobileDetailLog.videoUrl);
+              if (!embed) return null;
+              return (
+                <div className="rounded-2xl overflow-hidden bg-black aspect-video border border-black/10 shadow-xs relative">
+                  {embed.source === 'drive' || embed.source === 'youtube' ? (
+                    <iframe
+                      src={embed.embedUrl}
+                      className="w-full h-full border-0"
+                      allow="autoplay; encrypted-media; fullscreen"
+                      allowFullScreen
+                      title={selectedMobileDetailLog.stepTitle}
+                    />
+                  ) : (
+                    <video
+                      controls
+                      src={embed.embedUrl}
+                      className="w-full h-full object-contain"
+                    />
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Title & Metadata */}
+            <div className="space-y-1">
+              <h3 className="text-base font-bold font-sans text-jet-black">
+                {selectedMobileDetailLog.stepTitle}
+              </h3>
+              <div className="flex items-center gap-2 text-xs text-zinc-500 font-sans flex-wrap">
+                <span>{selectedMobileDetailLog.teamName}</span>
+                <span>&bull;</span>
+                <span>{formatLogDate(selectedMobileDetailLog.date)}</span>
+                {selectedMobileDetailLog.workTime && (
+                  <>
+                    <span>&bull;</span>
+                    <span>{selectedMobileDetailLog.workTime}</span>
+                  </>
+                )}
+                <span>&bull;</span>
+                <span className="font-bold text-jet-black">{selectedMobileDetailLog.hoursSpent} hrs</span>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="bg-alice-blue/50 rounded-xl p-3 border border-jet-black/5 text-xs text-zinc-700 font-sans leading-relaxed whitespace-pre-line">
+              {selectedMobileDetailLog.description}
+            </div>
+
+            {/* Achievements & Blockers */}
+            {(selectedMobileDetailLog.achievements || selectedMobileDetailLog.blockers) && (
+              <div className="space-y-2 pt-1 text-xs">
+                {selectedMobileDetailLog.achievements && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200/60 rounded-xl text-emerald-900">
+                    <span className="font-bold block mb-0.5 text-[10px] uppercase font-mono tracking-wider">
+                      Key Achievements
+                    </span>
+                    <p>{selectedMobileDetailLog.achievements}</p>
+                  </div>
+                )}
+                {selectedMobileDetailLog.blockers && (
+                  <div className="p-3 bg-rose-50 border border-rose-200/60 rounded-xl text-rose-900">
+                    <span className="font-bold block mb-0.5 text-[10px] uppercase font-mono tracking-wider">
+                      Blockers / Issues
+                    </span>
+                    <p>{selectedMobileDetailLog.blockers}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Contributors */}
+            {selectedMobileDetailLog.membersPresent && selectedMobileDetailLog.membersPresent.length > 0 && (
+              <div className="space-y-1">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-bold block">
+                  Contributors
+                </span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {selectedMobileDetailLog.membersPresent.map((m, idx) => (
+                    <span key={idx} className="px-2 py-0.5 rounded-lg bg-zinc-100 text-zinc-700 text-[11px] font-sans">
+                      {m}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Actions for Author / Admin */}
+            {(isCoreAdmin || user.teamId === selectedMobileDetailLog.teamId) && (
+              <div className="pt-3 border-t border-jet-black/10 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const log = selectedMobileDetailLog;
+                    setSelectedMobileDetailLog(null);
+                    openEditModal(log);
+                  }}
+                  className="px-4 py-2 rounded-xl border border-jet-black/20 text-xs font-sans font-bold hover:bg-zinc-100 text-jet-black cursor-pointer"
+                >
+                  Edit Step
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const log = selectedMobileDetailLog;
+                    setSelectedMobileDetailLog(null);
+                    setDeleteConfirmLog(log);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-sans font-bold cursor-pointer"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* =========================================================================
           TASK COMPLETE WITH VIDEO EVIDENCE MODAL

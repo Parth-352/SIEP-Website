@@ -61,11 +61,14 @@ export interface InAppNotification {
   read: boolean;
 }
 
+export type LogWorkStatus = 'in_progress' | 'testing' | 'completed' | 'on_hold' | 'review';
+
 export interface WorkLog {
   id: string;
   stepNumber: number;
   stepTitle: string;
   phase?: string;
+  status?: LogWorkStatus;
   teamId: TeamId;
   teamName: string;
   authorName: string;

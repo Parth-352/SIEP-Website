@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
     let {
       stepTitle,
       phase,
+      status,
       teamId,
       authorName,
       date,
@@ -100,6 +101,7 @@ export async function POST(request: NextRequest) {
     const newLog = createLog({
       stepTitle,
       phase: phase || 'Engineering Move',
+      status: status || undefined,
       teamId: teamId as TeamId,
       teamName,
       authorName: authorName || 'Team Member',
