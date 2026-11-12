@@ -26,6 +26,7 @@ interface AuthContextType {
   isCore: boolean;
   isLead: boolean;
   tier: 1 | 2 | 3;
+  userTeams: TeamId[];
   login: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
 }
@@ -38,6 +39,7 @@ const AuthContext = createContext<AuthContextType>({
   isCore: false,
   isLead: false,
   tier: 3,
+  userTeams: [],
   login: async () => ({ success: false }),
   logout: async () => {},
 });
@@ -69,6 +71,7 @@ function getSavedUser(): UserProfile | null {
       profile.tier = getMemberTier(member.email);
       profile.role = member.isCore ? 'admin' : 'team';
       profile.teamId = member.teamId;
+      profile.secondaryTeams = member.secondaryTeams || [];
       profile.teamName = TEAMS[member.teamId]?.name || 'SIEP Squad';
       profile.memberId = member.id;
     } else if (profile.teamId) {
@@ -109,6 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             displayName: member?.name || matchedTeam?.name || fbUser.displayName || fbUser.email,
             role: isCore ? 'admin' : 'team',
             teamId: (member?.teamId || matchedTeam?.id || 'core') as TeamId,
+            secondaryTeams: member?.secondaryTeams || [],
             teamName: member ? (TEAMS[member.teamId]?.name || 'SIEP Squad') : (matchedTeam?.name || 'SIEP Team'),
             isCore,
             isLead,
@@ -148,6 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           displayName: mem.name,
           role: data.isCore ? 'admin' : 'team',
           teamId: mem.teamId,
+          secondaryTeams: mem.secondaryTeams || getMemberByEmail(cleanEmail)?.secondaryTeams || [],
           teamName: TEAMS[mem.teamId as TeamId]?.name || 'SIEP Squad',
           isCore: Boolean(data.isCore),
           isLead: Boolean(data.isLead),
@@ -246,6 +251,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAdmin = isCore;
   const isTeam = Boolean(user && !isCore);
   const tier: 1 | 2 | 3 = user?.tier || (isCore ? 1 : isLead ? 2 : 3);
+  const userTeams: TeamId[] = user
+    ? Array.from(new Set([user.teamId, ...(user.secondaryTeams || [])]))
+    : [];
 
   return (
     <AuthContext.Provider
@@ -257,6 +265,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isCore,
         isLead,
         tier,
+        userTeams,
         login,
         logout,
       }}

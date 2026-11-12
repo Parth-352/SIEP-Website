@@ -160,6 +160,7 @@ export async function POST(request: NextRequest) {
           email: member.email,
           role: member.role,
           teamId: member.teamId,
+          secondaryTeams: member.secondaryTeams || [],
           isCore,
           isLead,
           tier,

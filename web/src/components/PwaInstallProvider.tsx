@@ -146,9 +146,9 @@ export function PwaInstallProvider({ children }: { children: React.ReactNode }) 
     >
       {children}
 
-      {/* Floating Bottom Mobile Install Banner */}
+      {/* Floating Bottom Mobile Install Banner (Raised above bottom dock on mobile) */}
       {showBanner && !isInstalled && (
-        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-96 z-[999] animate-fade-in pointer-events-auto">
+        <div className="fixed bottom-20 left-3 right-3 sm:bottom-6 sm:left-auto sm:right-6 sm:w-96 z-[999] animate-fade-in pointer-events-auto">
           <div className="bg-jet-black/95 backdrop-blur-md text-alice-blue p-4 rounded-2xl shadow-xl border border-orange/40 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="w-11 h-11 rounded-xl bg-orange/20 border border-orange/40 flex items-center justify-center shrink-0 overflow-hidden">

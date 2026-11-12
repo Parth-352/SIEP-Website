@@ -2,113 +2,43 @@
 
 import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { TEAMS_LIST, TEAMS, ALL_TEAMS } from '@/lib/teams';
-import { ROSTER_MEMBERS } from '@/lib/members';
+import { TEAMS_LIST } from '@/lib/teams';
 import { Task, WorkLog, TeamId, TaskStatus, TaskPriority, ActivityEvent } from '@/lib/types';
-import { getEmbeddableVideoUrl } from '@/lib/driveUpload';
-import MemberSelect from '@/components/MemberSelect';
 import TaskDetailModal from '@/components/TaskDetailModal';
 import TaskCompleteModal from '@/components/TaskCompleteModal';
 import { usePwaInstall } from '@/components/PwaInstallProvider';
 import { useBackgroundSync } from '@/components/BackgroundSyncProvider';
-import { getOfflineCachedTasks, cacheOfflineTasks, getOfflineCachedLogs, cacheOfflineLogs, getOutboxItems } from '@/lib/offlineDb';
+import {
+  getOfflineCachedTasks,
+  cacheOfflineTasks,
+  getOfflineCachedLogs,
+  cacheOfflineLogs,
+  getOutboxItems,
+} from '@/lib/offlineDb';
 import { isTaskAssignedToUser } from '@/lib/taskMatching';
 
-const STATUS_COLUMNS: { id: TaskStatus; label: string; color: string; dotColor: string }[] = [
-  { id: 'todo', label: 'To Do', color: 'bg-zinc-100 text-zinc-700', dotColor: 'bg-zinc-400' },
-  { id: 'in_progress', label: 'In Progress', color: 'bg-orange/15 text-orange font-bold', dotColor: 'bg-orange' },
-  { id: 'review', label: 'Under Review', color: 'bg-purple-100 text-purple-700 font-bold', dotColor: 'bg-purple-500' },
-  { id: 'done', label: 'Completed', color: 'bg-emerald-100 text-emerald-800 font-bold', dotColor: 'bg-emerald-500' },
-];
-
-const PRIORITY_BADGES: Record<TaskPriority, { label: string; bg: string }> = {
-  urgent: { label: 'Urgent', bg: 'bg-red-500 text-white' },
-  high: { label: 'High', bg: 'bg-orange text-jet-black font-bold' },
-  medium: { label: 'Medium', bg: 'bg-amber-100 text-amber-800' },
-  low: { label: 'Low', bg: 'bg-zinc-100 text-zinc-600' },
-};
-
-const TASKS_STORAGE_KEY = 'siep_tasks_cache_v3';
-
-const AVATAR_COLORS = [
-  'bg-amber-100 text-amber-900 border-amber-300',
-  'bg-sky-100 text-sky-900 border-sky-300',
-  'bg-emerald-100 text-emerald-900 border-emerald-300',
-  'bg-purple-100 text-purple-900 border-purple-300',
-  'bg-rose-100 text-rose-900 border-rose-300',
-  'bg-indigo-100 text-indigo-900 border-indigo-300',
-  'bg-teal-100 text-teal-900 border-teal-300',
-];
-
-function getMemberInitials(name: string): string {
-  if (!name) return '?';
-  const clean = name.trim();
-  const words = clean.split(/\s+/);
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
-  return (words[0][0] + words[words.length - 1][0]).toUpperCase();
-}
-
-function getAvatarColorClass(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  const index = Math.abs(hash) % AVATAR_COLORS.length;
-  return AVATAR_COLORS[index];
-}
-
-function formatRelativeDueDate(dueDateStr?: string) {
-  if (!dueDateStr) return null;
-  const parts = dueDateStr.split('-');
-  if (parts.length !== 3) return null;
-  const target = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 23, 59, 59);
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const diffTime = target.getTime() - now.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays < 0) {
-    const overdueDays = Math.abs(diffDays);
-    return {
-      text: overdueDays === 1 ? '1 day overdue' : `${overdueDays}d overdue`,
-      className: 'bg-red-50 text-red-600 border border-red-200 font-bold',
-      isOverdue: true,
-    };
-  }
-  if (diffDays === 0) {
-    return {
-      text: 'Due today',
-      className: 'bg-red-50 text-red-600 border border-red-200 font-bold animate-pulse',
-      isDueSoon: true,
-    };
-  }
-  if (diffDays === 1) {
-    return {
-      text: 'Due tomorrow',
-      className: 'bg-orange/15 text-orange border border-orange/30 font-semibold',
-      isDueSoon: true,
-    };
-  }
-  if (diffDays <= 2) {
-    return {
-      text: `${diffDays} days left`,
-      className: 'bg-orange/15 text-orange border border-orange/30 font-semibold',
-      isDueSoon: true,
-    };
-  }
-  if (diffDays <= 7) {
-    return {
-      text: `${diffDays} days left`,
-      className: 'bg-zinc-100 text-zinc-700 border border-zinc-200 font-medium',
-      isDueSoon: true,
-    };
-  }
-  return {
-    text: `${diffDays} days left`,
-    className: 'bg-zinc-50 text-zinc-600 border border-zinc-200',
-    isDueSoon: false,
-  };
-}
+// Modular Dashboard Architecture Imports
+import { TASKS_STORAGE_KEY, STATUS_COLUMNS } from '@/constants/dashboard';
+import { DashboardTab, SpecialDeadlineFilter, MemberCredential, UndoState } from '@/types/dashboard';
+import BottomNav from '@/components/navigation/BottomNav';
+import DashboardTabBar from '@/components/navigation/DashboardTabBar';
+import DashboardHeader from '@/components/dashboard/DashboardHeader';
+import ActionableKpiRibbon from '@/components/dashboard/ActionableKpiRibbon';
+import DashboardOverviewTab from '@/components/dashboard/DashboardOverviewTab';
+import TeamTasksTab from '@/components/dashboard/TeamTasksTab';
+import MyWorkbenchTab from '@/components/dashboard/MyWorkbenchTab';
+import SubsystemsTab from '@/components/dashboard/SubsystemsTab';
+import VideoArchiveTab from '@/components/dashboard/VideoArchiveTab';
+import VelocityMetricsTab from '@/components/dashboard/VelocityMetricsTab';
+import CredentialsVaultTab from '@/components/dashboard/CredentialsVaultTab';
+import ProfileView from '@/components/profile/ProfileView';
+import CreateTaskModal from '@/components/shared/CreateTaskModal';
+import DeleteTaskModal from '@/components/shared/DeleteTaskModal';
+import BackupSyncModal from '@/components/shared/BackupSyncModal';
+import ActivityDrawer from '@/components/shared/ActivityDrawer';
+import UndoToast from '@/components/shared/UndoToast';
+import OperationsHubModal from '@/components/shared/OperationsHubModal';
 
 function DashboardContent() {
   const router = useRouter();
@@ -122,20 +52,49 @@ function DashboardContent() {
 
   const [isMounted, setIsMounted] = useState(false);
 
-  // Active view tab (default to 'my_tasks' so user's work is front-and-center)
-  const [activeTab, setActiveTab] = useState<'my_tasks' | 'kanban' | 'teams' | 'videos' | 'metrics' | 'accounts'>('my_tasks');
+  // Active view tab (default to 'dashboard' as Item 1)
+  const [activeTab, setActiveTab] = useState<DashboardTab>('dashboard');
 
-  // Team Metrics & Leaderboard filter state
-  const [leaderboardSquadFilter, setLeaderboardSquadFilter] = useState<string>('all');
-  const [memberSearchQuery, setMemberSearchQuery] = useState<string>('');
-
-  // Handle URL query tab parameter (e.g. /dashboard?tab=teams or ?tab=my_tasks)
+  // Handle URL query tab parameter (e.g. /dashboard?tab=team_tasks or ?tab=profile)
   useEffect(() => {
     const tabParam = searchParams.get('tab');
-    if (tabParam && ['my_tasks', 'kanban', 'teams', 'videos', 'metrics', 'accounts'].includes(tabParam)) {
-      setActiveTab(tabParam as any);
+    if (tabParam) {
+      if (tabParam === 'kanban') {
+        setActiveTab('team_tasks');
+      } else if (
+        [
+          'dashboard',
+          'team_tasks',
+          'my_tasks',
+          'profile',
+          'teams',
+          'videos',
+          'metrics',
+          'accounts',
+        ].includes(tabParam)
+      ) {
+        setActiveTab(tabParam as DashboardTab);
+      }
     }
   }, [searchParams]);
+
+  // Instagram-style Create Action Sheet for center [+] button
+  const [isCreateActionSheetOpen, setIsCreateActionSheetOpen] = useState(false);
+
+  // Domain view scope for Team Tasks ('assigned' = member's squads only; 'all' = all 9 squads)
+  const [domainViewScope, setDomainViewScope] = useState<'assigned' | 'all'>('assigned');
+
+  // Member's assigned domain IDs (primary + secondary)
+  const memberDomainIds: TeamId[] = useMemo(() => {
+    if (!user) return [];
+    const list: TeamId[] = [user.teamId];
+    if (user.secondaryTeams && Array.isArray(user.secondaryTeams)) {
+      user.secondaryTeams.forEach((t) => {
+        if (!list.includes(t)) list.push(t);
+      });
+    }
+    return list;
+  }, [user]);
 
   // Mobile All-in-One Bottom Menu & Keyboard states
   const [isMobileQuickMenuOpen, setIsMobileQuickMenuOpen] = useState(false);
@@ -145,7 +104,7 @@ function DashboardContent() {
   // Main data state
   const [tasks, setTasks] = useState<Task[]>([]);
   const [logs, setLogs] = useState<WorkLog[]>([]);
-  const [loadingData, setLoadingData] = useState(true);
+  const [, setLoadingData] = useState(true);
 
   // Live Activity & Outbox State
   const [activities, setActivities] = useState<ActivityEvent[]>([]);
@@ -159,20 +118,15 @@ function DashboardContent() {
   const [selectedSubsystemFilter, setSelectedSubsystemFilter] = useState<string>('all');
   const [selectedPriorityFilter, setSelectedPriorityFilter] = useState<string>('all');
   const [assignedToMeOnly, setAssignedToMeOnly] = useState(false);
-  const [specialDeadlineFilter, setSpecialDeadlineFilter] = useState<'all' | 'due_week' | 'overdue' | 'review'>('all');
+  const [specialDeadlineFilter, setSpecialDeadlineFilter] = useState<SpecialDeadlineFilter>('all');
 
   // Header quick more dropdown state
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
 
   // Undo Toast state
-  const [undoState, setUndoState] = useState<{
-    taskId: string;
-    previousStatus: TaskStatus;
-    message: string;
-  } | null>(null);
+  const [undoState, setUndoState] = useState<UndoState | null>(null);
 
   // Personal workbench state
-  const [isMyTasksCollapsed, setIsMyTasksCollapsed] = useState(false);
   const [myTasksTabStatusFilter, setMyTasksTabStatusFilter] = useState<'all' | TaskStatus>('all');
 
   // Task Detail Modal state
@@ -190,37 +144,13 @@ function DashboardContent() {
 
   // New task form modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskDesc, setNewTaskDesc] = useState('');
-  const [newTaskTeam, setNewTaskTeam] = useState<TeamId>('mechanical');
-  const [newTaskMembers, setNewTaskMembers] = useState<string[]>([]);
-  const [newTaskPriority, setNewTaskPriority] = useState<TaskPriority>('medium');
-  const [newTaskStatus, setNewTaskStatus] = useState<TaskStatus>('todo');
-  const [newTaskDueDate, setNewTaskDueDate] = useState('');
-  const [isSubmittingTask, setIsSubmittingTask] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
 
   // Database Backup / Reset Modal state (Admin)
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
-  const [showCredentialsPasswords, setShowCredentialsPasswords] = useState(false);
   const [teamCredentials, setTeamCredentials] = useState<Record<string, { password: string; isCustom: boolean }>>({});
-  const [memberCredentials, setMemberCredentials] = useState<
-    Array<{
-      id: string;
-      name: string;
-      email: string;
-      role: string;
-      teamId: TeamId;
-      isCore: boolean;
-      isLead: boolean;
-      tier: number;
-      password: string;
-      isCustom: boolean;
-    }>
-  >([]);
-  const [accountsViewMode, setAccountsViewMode] = useState<'members' | 'teams'>('members');
+  const [memberCredentials, setMemberCredentials] = useState<MemberCredential[]>([]);
 
   // Fetch updated credentials for Core Leadership from Cloud Database
   const loadCredentials = useCallback(() => {
@@ -251,7 +181,7 @@ function DashboardContent() {
   // Security guard: If non-core squad is on accounts tab, reset to kanban
   useEffect(() => {
     if (activeTab === 'accounts' && user && user.teamId !== 'core') {
-      setActiveTab('kanban');
+      setActiveTab('team_tasks');
     }
   }, [activeTab, user]);
 
@@ -275,7 +205,7 @@ function DashboardContent() {
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed)) {
-          const cleaned = parsed.filter((t: any) => !t.id?.startsWith('task-seed'));
+          const cleaned = parsed.filter((t: { id?: string }) => !t.id?.startsWith('task-seed'));
           setTasks(cleaned);
           localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(cleaned));
         }
@@ -308,10 +238,7 @@ function DashboardContent() {
     });
 
     try {
-      const [tasksRes, logsRes] = await Promise.all([
-        fetch('/api/tasks'),
-        fetch('/api/logs'),
-      ]);
+      const [tasksRes, logsRes] = await Promise.all([fetch('/api/tasks'), fetch('/api/logs')]);
       const tasksData = await tasksRes.json();
       const logsData = await logsRes.json();
 
@@ -399,11 +326,6 @@ function DashboardContent() {
     return activities.filter((a) => a.timestamp > lastReadActivityTimestamp).length;
   }, [activities, lastReadActivityTimestamp]);
 
-  const filteredActivities = useMemo(() => {
-    if (activitySubsystemFilter === 'all') return activities;
-    return activities.filter((a) => a.teamId === activitySubsystemFilter);
-  }, [activities, activitySubsystemFilter]);
-
   const handleOpenActivityDrawer = () => {
     setIsActivityDrawerOpen(true);
     const now = Date.now();
@@ -417,7 +339,10 @@ function DashboardContent() {
   useEffect(() => {
     const handleFocusIn = (e: FocusEvent) => {
       const target = e.target as HTMLElement;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+      if (
+        target &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')
+      ) {
         setIsInputFocused(true);
       }
     };
@@ -442,13 +367,6 @@ function DashboardContent() {
     }
   };
 
-  // Handle default new task team selection based on user
-  useEffect(() => {
-    if (user && user.teamId !== 'core') {
-      setNewTaskTeam(user.teamId);
-    }
-  }, [user]);
-
   // Dedicated memo for all tasks assigned to the current member
   const myAssignedTasks = useMemo(() => {
     if (!user) return [];
@@ -466,106 +384,6 @@ function DashboardContent() {
     const completionPct = total > 0 ? Math.round((done / total) * 100) : 0;
     return { todo, inProgress, review, done, total, completionPct };
   }, [myAssignedTasks]);
-
-  // Team Metrics: Member Velocity Leaderboard calculation
-  const memberMetrics = useMemo(() => {
-    return ROSTER_MEMBERS.map((member) => {
-      const memberNameLower = member.name.toLowerCase();
-
-      // Find logs authored or attended by member
-      const memberLogs = logs.filter((l) => {
-        const isAuthor = Boolean(l.authorName && (l.authorName.toLowerCase().includes(memberNameLower) || memberNameLower.includes(l.authorName.toLowerCase())));
-        const isPresent = Array.isArray(l.membersPresent) && l.membersPresent.some((mp) => mp.toLowerCase().includes(memberNameLower) || memberNameLower.includes(mp.toLowerCase()));
-        return isAuthor || isPresent;
-      });
-
-      const totalHours = Number(memberLogs.reduce((acc, curr) => acc + (curr.hoursSpent || 0), 0).toFixed(1));
-
-      // Find tasks assigned to member
-      const memberTasks = tasks.filter((t) => {
-        return Array.isArray(t.assignedMembers) && t.assignedMembers.some((am) => {
-          const amLower = am.toLowerCase();
-          return amLower.includes(memberNameLower) || memberNameLower.includes(amLower) || am === member.id;
-        });
-      });
-
-      const completedTasksCount = memberTasks.filter((t) => t.status === 'done').length;
-      const activeTasksCount = memberTasks.filter((t) => t.status === 'in_progress' || t.status === 'review').length;
-
-      let subtasksDoneCount = 0;
-      memberTasks.forEach((t) => {
-        if (t.subtasks) {
-          subtasksDoneCount += t.subtasks.filter((st) => st.completed).length;
-        }
-      });
-
-      // Weighted velocity score: 10 pts per workshop hr + 15 pts per done deliverable + 5 pts active + 2 per subtask
-      const velocityScore = Math.round((totalHours * 10) + (completedTasksCount * 15) + (activeTasksCount * 5) + (subtasksDoneCount * 2));
-
-      return {
-        member,
-        totalHours,
-        logsCount: memberLogs.length,
-        completedTasksCount,
-        activeTasksCount,
-        subtasksDoneCount,
-        velocityScore,
-      };
-    }).sort((a, b) => {
-      if (b.velocityScore !== a.velocityScore) return b.velocityScore - a.velocityScore;
-      if (b.totalHours !== a.totalHours) return b.totalHours - a.totalHours;
-      return b.completedTasksCount - a.completedTasksCount;
-    });
-  }, [logs, tasks]);
-
-  // Filtered Leaderboard
-  const filteredMemberMetrics = useMemo(() => {
-    return memberMetrics.filter((item) => {
-      if (leaderboardSquadFilter !== 'all' && item.member.teamId !== leaderboardSquadFilter) {
-        return false;
-      }
-      if (memberSearchQuery.trim()) {
-        const q = memberSearchQuery.toLowerCase();
-        const matchName = item.member.name.toLowerCase().includes(q);
-        const matchRole = item.member.role.toLowerCase().includes(q);
-        if (!matchName && !matchRole) return false;
-      }
-      return true;
-    });
-  }, [memberMetrics, leaderboardSquadFilter, memberSearchQuery]);
-
-  // Squad Subsystem Velocity Matrix
-  const squadMetrics = useMemo(() => {
-    return TEAMS_LIST.map((team) => {
-      const squadTasks = tasks.filter((t) => t.teamId === team.id);
-      const doneTasks = squadTasks.filter((t) => t.status === 'done').length;
-      const inProgressTasks = squadTasks.filter((t) => t.status === 'in_progress' || t.status === 'review').length;
-      const blockedTasks = squadTasks.filter((t) => t.isBlocked).length;
-
-      const squadLogs = logs.filter((l) => l.teamId === team.id);
-      const squadHours = Number(squadLogs.reduce((acc, curr) => acc + (curr.hoursSpent || 0), 0).toFixed(1));
-      const completionPercent = squadTasks.length > 0 ? Math.round((doneTasks / squadTasks.length) * 100) : 0;
-
-      const lead = ROSTER_MEMBERS.find((m) => m.teamId === team.id && m.isLead);
-
-      return {
-        team,
-        lead,
-        totalTasks: squadTasks.length,
-        doneTasks,
-        inProgressTasks,
-        blockedTasks,
-        squadHours,
-        completionPercent,
-        logsCount: squadLogs.length,
-      };
-    }).sort((a, b) => b.completionPercent - a.completionPercent);
-  }, [tasks, logs]);
-
-  // Active Blockers Radar
-  const blockedRadarTasks = useMemo(() => {
-    return tasks.filter((t) => t.isBlocked && t.status !== 'done');
-  }, [tasks]);
 
   // Actionable Deadlines & Review Counts
   const { overdueTasksList, dueThisWeekTasksList, underReviewTasksList } = useMemo(() => {
@@ -599,12 +417,22 @@ function DashboardContent() {
     };
   }, [tasks]);
 
-  // Filtered Tasks computation (hook called before any early return)
+  // Filtered Tasks computation
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
       // Assigned to me filter
       if (assignedToMeOnly && user) {
         if (!isTaskAssignedToUser(task, user)) return false;
+      }
+      // Domain-scoped filtering for Team Tasks (Item 2)
+      if ((activeTab === 'team_tasks' || activeTab === 'kanban') && !assignedToMeOnly) {
+        if (!isCoreAdmin || domainViewScope === 'assigned') {
+          if (selectedSubsystemFilter === 'all') {
+            if (!memberDomainIds.includes(task.teamId)) {
+              return false;
+            }
+          }
+        }
       }
       // Subsystem filter (only applies if assignedToMeOnly is false)
       if (!assignedToMeOnly && selectedSubsystemFilter !== 'all' && task.teamId !== selectedSubsystemFilter) {
@@ -643,14 +471,26 @@ function DashboardContent() {
         const memberMatch = Array.isArray(task.assignedMembers)
           ? task.assignedMembers.some((m) => m.toLowerCase().includes(q))
           : String(task.assignedMembers || '').toLowerCase().includes(q);
-        const teamMatch = (TEAMS[task.teamId]?.name || '').toLowerCase().includes(q);
+        const teamMatch = (task.teamId || '').toLowerCase().includes(q);
         if (!titleMatch && !descMatch && !memberMatch && !teamMatch) {
           return false;
         }
       }
       return true;
     });
-  }, [tasks, selectedSubsystemFilter, selectedPriorityFilter, searchQuery, assignedToMeOnly, specialDeadlineFilter, user]);
+  }, [
+    tasks,
+    selectedSubsystemFilter,
+    selectedPriorityFilter,
+    searchQuery,
+    assignedToMeOnly,
+    specialDeadlineFilter,
+    user,
+    activeTab,
+    isCoreAdmin,
+    domainViewScope,
+    memberDomainIds,
+  ]);
 
   // Loading skeleton
   if (!isMounted || authLoading || !user) {
@@ -662,55 +502,34 @@ function DashboardContent() {
     );
   }
 
-  // Create Task
-  const handleCreateTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setCreateError(null);
-    if (!newTaskTitle.trim()) {
-      setCreateError('Task title is required');
-      return;
-    }
+  // Create Task Submission
+  const handleCreateTask = async (taskData: {
+    title: string;
+    description: string;
+    teamId: TeamId;
+    assignedMembers: string[];
+    priority: TaskPriority;
+    status: TaskStatus;
+    dueDate?: string;
+  }) => {
+    const res = await fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(taskData),
+    });
 
-    setIsSubmittingTask(true);
-    try {
-      const res = await fetch('/api/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: newTaskTitle.trim(),
-          description: newTaskDesc.trim(),
-          teamId: newTaskTeam,
-          assignedMembers: newTaskMembers,
-          priority: newTaskPriority,
-          status: newTaskStatus,
-          dueDate: newTaskDueDate || undefined,
-        }),
-      });
-
-      const data = await res.json();
-      if (data.success && data.task) {
-        const nextTasks = [data.task, ...tasks];
-        persistTasksLocal(nextTasks);
-        setNewTaskTitle('');
-        setNewTaskDesc('');
-        setNewTaskMembers([]);
-        setNewTaskDueDate('');
-        setNewTaskStatus('todo');
-        setIsCreateModalOpen(false);
-      } else {
-        setCreateError(data.error || 'Failed to create task');
-      }
-    } catch (err) {
-      console.error('Error creating task:', err);
-      setCreateError('Network error while creating task');
-    } finally {
-      setIsSubmittingTask(false);
+    const data = await res.json();
+    if (data.success && data.task) {
+      const nextTasks = [data.task, ...tasks];
+      persistTasksLocal(nextTasks);
+    } else {
+      throw new Error(data.error || 'Failed to create task');
     }
   };
 
   // Move Task Status (Kanban quick advance / rewind with Undo support)
   const handleMoveStatus = async (e: React.MouseEvent, taskId: string, nextStatus: TaskStatus) => {
-    e.stopPropagation(); // Don't open detail modal
+    e.stopPropagation();
 
     const currentTask = tasks.find((t) => t.id === taskId);
     if (!currentTask) return;
@@ -772,12 +591,6 @@ function DashboardContent() {
     } catch (err) {
       console.warn('Network offline or undo failed:', err);
     }
-  };
-
-  // Prompt Delete Task
-  const promptDeleteTask = (e: React.MouseEvent, taskItem: Task) => {
-    e.stopPropagation();
-    setCardTaskToDelete(taskItem);
   };
 
   const confirmDeleteCardTask = async () => {
@@ -866,6 +679,54 @@ function DashboardContent() {
     }
   };
 
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, taskId: string) => {
+    e.dataTransfer.setData('text/plain', taskId);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = async (e: React.DragEvent, status: TaskStatus) => {
+    e.preventDefault();
+    const taskId = e.dataTransfer.getData('text/plain');
+    if (!taskId) return;
+    const currentTask = tasks.find((t) => t.id === taskId);
+    if (!currentTask || currentTask.status === status) return;
+
+    if (status === 'done') {
+      setTaskToComplete(currentTask);
+      setIsCompleteModalOpen(true);
+      return;
+    }
+
+    const prevStatus = currentTask.status;
+    const updatedTasks = tasks.map((t) =>
+      t.id === taskId ? { ...t, status, updatedAt: Date.now() } : t
+    );
+    persistTasksLocal(updatedTasks);
+    cacheOfflineTasks(updatedTasks);
+
+    const nextColLabel = STATUS_COLUMNS.find((c) => c.id === status)?.label || status;
+    setUndoState({
+      taskId,
+      previousStatus: prevStatus,
+      message: `"${currentTask.title.slice(0, 32)}..." moved to ${nextColLabel}`,
+    });
+
+    try {
+      await fetch('/api/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: taskId, status }),
+      });
+    } catch (err) {
+      console.warn('Network offline or drag update failed:', err);
+      enqueueTaskStatusUpdate({ taskId, nextStatus: status });
+    }
+  };
+
   // Backup & Reset Handlers (Admin)
   const handleExportBackup = async () => {
     try {
@@ -885,7 +746,7 @@ function DashboardContent() {
       } else {
         setBackupStatus(`Export error: ${data.error}`);
       }
-    } catch (err) {
+    } catch {
       setBackupStatus('Network error while exporting backup.');
     }
   };
@@ -910,7 +771,7 @@ function DashboardContent() {
       } else {
         setBackupStatus(`Reset error: ${data.error}`);
       }
-    } catch (err) {
+    } catch {
       setBackupStatus('Network error while resetting database.');
     } finally {
       setIsResetting(false);
@@ -920,3152 +781,315 @@ function DashboardContent() {
   // Switch to Kanban with pre-filtered team
   const handleViewTeamTasksInKanban = (teamId: string) => {
     setSelectedSubsystemFilter(teamId);
-    setActiveTab('kanban');
+    setActiveTab('team_tasks');
   };
 
-  // Overall Metrics
-  const totalHours = logs.reduce((acc, curr) => acc + (curr.hoursSpent || 0), 0);
   const completedTasks = tasks.filter((t) => t.status === 'done').length;
-  const inProgressTasks = tasks.filter((t) => t.status === 'in_progress').length;
+  const inProgressTasks = tasks.filter((t) => t.status !== 'done').length;
   const videoLogsCount = logs.filter((l) => Boolean(l.videoUrl)).length;
 
   return (
     <main className="min-h-screen bg-alice-blue text-jet-black pt-20 sm:pt-24 pb-32 sm:pb-24 px-3 sm:px-6 lg:px-8 font-sans">
-      
       {/* Background CAD accent */}
-      <div className="fixed inset-0 opacity-[0.02] pointer-events-none bg-[radial-gradient(#2B303A_1px,transparent_1px)] [background-size:24px_24px]"></div>
+      <div className="fixed inset-0 opacity-[0.02] pointer-events-none bg-[radial-gradient(#2B303A_1px,transparent_1px)] [background-size:24px_24px]" />
 
       <div className="max-w-7xl mx-auto relative z-10 space-y-5 sm:space-y-8">
+        {/* Header */}
+        <DashboardHeader
+          user={user}
+          isCore={isCore}
+          isCoreAdmin={isCoreAdmin}
+          isOnline={isOnline}
+          pendingQueueCount={pendingQueueCount}
+          unreadActivitiesCount={unreadActivitiesCount}
+          isMoreMenuOpen={isMoreMenuOpen}
+          setIsMoreMenuOpen={setIsMoreMenuOpen}
+          handleOpenActivityDrawer={handleOpenActivityDrawer}
+          setIsBackupModalOpen={setIsBackupModalOpen}
+          setIsCreateModalOpen={setIsCreateModalOpen}
+          isInstalled={isInstalled}
+          installApp={installApp}
+          restrictedNotice={restrictedNotice}
+          dismissRestrictedNotice={() => router.replace('/dashboard')}
+        />
 
-        {/* =========================================================================
-            DASHBOARD HEADER
-            Spacious, modern project command console with quick actions
-           ========================================================================= */}
-        <div className="bg-white border border-jet-black/10 rounded-2xl p-4 sm:p-5 shadow-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-orange animate-pulse"></span>
-                <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-500 font-bold">
-                  {isCore ? 'Operations Center • Central Leadership' : `Squad Console • ${TEAMS[user.teamId]?.name || user.teamName}`}
-                </span>
+        {/* Actionable KPI Ribbon (shown across dashboard and task views, hidden on dedicated profile) */}
+        {activeTab !== 'profile' && (
+          <ActionableKpiRibbon
+            totalTasksCount={tasks.length}
+            activeTasksCount={inProgressTasks}
+            dueThisWeekCount={dueThisWeekTasksList.length}
+            overdueCount={overdueTasksList.length}
+            underReviewCount={underReviewTasksList.length}
+            setSpecialDeadlineFilter={setSpecialDeadlineFilter}
+            setSelectedSubsystemFilter={setSelectedSubsystemFilter}
+            setAssignedToMeOnly={setAssignedToMeOnly}
+            setActiveTab={setActiveTab}
+          />
+        )}
 
-                {isOnline ? (
-                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[9px] font-mono font-bold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <span>LIVE</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[9px] font-mono font-bold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                    <span>Offline ({pendingQueueCount})</span>
-                  </div>
-                )}
-              </div>
+        {/* Elevated View Tabs */}
+        {activeTab !== 'profile' && (
+          <DashboardTabBar
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            filteredTasksCount={filteredTasks.length}
+            myAssignedCount={myAssignedCount}
+            teamsCount={TEAMS_LIST.length}
+            videoLogsCount={videoLogsCount}
+            completedTasksCount={completedTasks}
+            totalTasksCount={tasks.length}
+            isCore={isCore}
+          />
+        )}
 
-              <h1 className="text-xl sm:text-2xl font-bold text-jet-black tracking-tight">
-                Project Operations Dashboard
-              </h1>
-              <p className="text-zinc-600 text-xs sm:text-sm font-light">
-                SIEP 2026–27 electric scrambler build deliverables, tasks, and telemetry.
-              </p>
-            </div>
+        {/* Tab 1: Dashboard Overview */}
+        {activeTab === 'dashboard' && (
+          <DashboardOverviewTab
+            tasks={tasks}
+            logs={logs}
+            memberDomainIds={memberDomainIds}
+            isCore={isCore}
+            isLead={isLead}
+            setActiveTab={setActiveTab}
+            setSelectedSubsystemFilter={setSelectedSubsystemFilter}
+          />
+        )}
 
-            {/* Quick Header Actions: More Dropdown + Primary Create Task */}
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              
-              {/* More Actions Dropdown */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
-                  className="px-3.5 py-2 sm:py-2.5 rounded-xl border border-jet-black/15 bg-white hover:bg-alice-blue text-jet-black text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
-                  title="More actions"
-                >
-                  <span>More</span>
-                  <span className="text-[10px] text-zinc-500">▼</span>
-                  {unreadActivitiesCount > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-full bg-orange text-white text-[9px] font-bold">
-                      {unreadActivitiesCount}
-                    </span>
-                  )}
-                </button>
+        {/* Tab 2: Team Tasks / Kanban */}
+        {(activeTab === 'team_tasks' || activeTab === 'kanban') && (
+          <TeamTasksTab
+            user={user}
+            isCoreAdmin={isCoreAdmin}
+            memberDomainIds={memberDomainIds}
+            domainViewScope={domainViewScope}
+            setDomainViewScope={setDomainViewScope}
+            tasks={tasks}
+            filteredTasks={filteredTasks}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            selectedPriorityFilter={selectedPriorityFilter}
+            setSelectedPriorityFilter={setSelectedPriorityFilter}
+            selectedSubsystemFilter={selectedSubsystemFilter}
+            setSelectedSubsystemFilter={setSelectedSubsystemFilter}
+            assignedToMeOnly={assignedToMeOnly}
+            setAssignedToMeOnly={setAssignedToMeOnly}
+            myAssignedCount={myAssignedCount}
+            specialDeadlineFilter={specialDeadlineFilter}
+            setSpecialDeadlineFilter={setSpecialDeadlineFilter}
+            handleOpenTaskDetail={handleOpenTaskDetail}
+            handleMoveStatus={handleMoveStatus}
+            handleQuickAssignToMe={handleQuickAssignToMe}
+            setCardTaskToDelete={setCardTaskToDelete}
+            cardMenuTaskId={cardMenuTaskId}
+            setCardMenuTaskId={setCardMenuTaskId}
+            handleDragOver={handleDragOver}
+            handleDrop={handleDrop}
+            handleDragStart={handleDragStart}
+          />
+        )}
 
-                {isMoreMenuOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setIsMoreMenuOpen(false)}
-                    />
-                    <div className="absolute right-0 mt-2 w-56 bg-white border border-jet-black/10 rounded-xl shadow-lg z-50 py-1 text-xs divide-y divide-jet-black/5 animate-fade-in">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsMoreMenuOpen(false);
-                          handleOpenActivityDrawer();
-                        }}
-                        className="w-full px-3.5 py-2.5 text-left hover:bg-alice-blue flex items-center justify-between text-jet-black cursor-pointer font-medium"
-                      >
-                        <span className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-orange"></span>
-                          <span>Squad Activity Feed</span>
-                        </span>
-                        {unreadActivitiesCount > 0 && (
-                          <span className="px-1.5 py-0.5 rounded-full bg-orange text-white text-[9px] font-bold">
-                            {unreadActivitiesCount}
-                          </span>
-                        )}
-                      </button>
-
-                      {isCoreAdmin && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsMoreMenuOpen(false);
-                            setIsBackupModalOpen(true);
-                          }}
-                          className="w-full px-3.5 py-2.5 text-left hover:bg-alice-blue flex items-center gap-2 text-jet-black cursor-pointer font-medium"
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full bg-jet-black"></span>
-                          <span>Database Backup & Sync</span>
-                        </button>
-                      )}
-
-                      {!isInstalled && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsMoreMenuOpen(false);
-                            installApp();
-                          }}
-                          className="w-full px-3.5 py-2.5 text-left hover:bg-alice-blue flex items-center gap-2 text-jet-black cursor-pointer font-medium"
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                          <span>Install Web App</span>
-                        </button>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Primary Create Task Button */}
-              <button
-                type="button"
-                onClick={() => setIsCreateModalOpen(true)}
-                className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-semibold text-xs sm:text-sm shadow-sm cursor-pointer flex items-center justify-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                </svg>
-                <span>Create Task</span>
-              </button>
-            </div>
-
-          </div>
-
-          {/* Access Restriction Notice Banner */}
-          {restrictedNotice && (
-            <div className="mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-amber-900 text-xs font-mono">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-amber-600"></span>
-                <span>
-                  The <strong>Engineering Log System (/log)</strong> is reserved for Core Leadership and Domain Leads.
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => router.replace('/dashboard')}
-                className="text-zinc-500 hover:text-jet-black font-bold text-sm px-2 cursor-pointer"
-                title="Dismiss"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* =========================================================================
-            COMPACT ACTIONABLE KPI METRICS RIBBON (Option A)
-            Clean, high-density, 4 clickable metrics that immediately filter the board
-           ========================================================================= */}
-        <div className="bg-white border border-jet-black/10 rounded-2xl shadow-xs overflow-hidden grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 divide-x divide-jet-black/10">
-          
-          {/* Card 1: Total Active Deliverables */}
-          <div
-            onClick={() => {
-              setSpecialDeadlineFilter('all');
-              setSelectedSubsystemFilter('all');
-              setAssignedToMeOnly(false);
-              setActiveTab('kanban');
-            }}
-            className="p-3.5 sm:p-4 hover:bg-alice-blue/50 transition-colors cursor-pointer group flex flex-col justify-between"
-            title="Click to view all tasks"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-bold">
-                Deliverables
-              </span>
-              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-700 font-bold group-hover:bg-jet-black group-hover:text-white transition-colors">
-                {tasks.length} Total
-              </span>
-            </div>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl sm:text-3xl font-extrabold font-mono text-jet-black">
-                {tasks.filter((t) => t.status !== 'done').length}
-              </span>
-              <span className="text-xs text-zinc-600 font-sans">active in flight</span>
-            </div>
-          </div>
-
-          {/* Card 2: Due This Week */}
-          <div
-            onClick={() => {
-              setSpecialDeadlineFilter('due_week');
-              setActiveTab('kanban');
-            }}
-            className="p-3.5 sm:p-4 hover:bg-alice-blue/50 transition-colors cursor-pointer group flex flex-col justify-between"
-            title="Click to filter tasks due this week"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-bold">
-                Due This Week
-              </span>
-              <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold ${
-                dueThisWeekTasksList.length > 0 ? 'bg-orange/15 text-orange' : 'bg-zinc-100 text-zinc-600'
-              }`}>
-                Next 7 Days
-              </span>
-            </div>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className={`text-2xl sm:text-3xl font-extrabold font-mono ${
-                dueThisWeekTasksList.length > 0 ? 'text-orange' : 'text-jet-black'
-              }`}>
-                {dueThisWeekTasksList.length}
-              </span>
-              <span className="text-xs text-zinc-600 font-sans">upcoming deadlines</span>
-            </div>
-          </div>
-
-          {/* Card 3: Overdue Deliverables */}
-          <div
-            onClick={() => {
-              setSpecialDeadlineFilter('overdue');
-              setActiveTab('kanban');
-            }}
-            className="p-3.5 sm:p-4 hover:bg-alice-blue/50 transition-colors cursor-pointer group flex flex-col justify-between"
-            title="Click to filter overdue tasks"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-bold">
-                Overdue
-              </span>
-              {overdueTasksList.length > 0 ? (
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold animate-pulse">
-                  Action Required
-                </span>
-              ) : (
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
-                  On Track
-                </span>
-              )}
-            </div>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className={`text-2xl sm:text-3xl font-extrabold font-mono ${
-                overdueTasksList.length > 0 ? 'text-red-600' : 'text-emerald-600'
-              }`}>
-                {overdueTasksList.length}
-              </span>
-              <span className="text-xs text-zinc-600 font-sans">
-                {overdueTasksList.length > 0 ? 'past deadline' : 'all on schedule'}
-              </span>
-            </div>
-          </div>
-
-          {/* Card 4: Waiting for Review */}
-          <div
-            onClick={() => {
-              setSpecialDeadlineFilter('review');
-              setActiveTab('kanban');
-            }}
-            className="p-3.5 sm:p-4 hover:bg-alice-blue/50 transition-colors cursor-pointer group flex flex-col justify-between"
-            title="Click to filter review queue"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-bold">
-                Review Queue
-              </span>
-              <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold ${
-                underReviewTasksList.length > 0 ? 'bg-purple-100 text-purple-700' : 'bg-zinc-100 text-zinc-600'
-              }`}>
-                Lead Sign-off
-              </span>
-            </div>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className={`text-2xl sm:text-3xl font-extrabold font-mono ${
-                underReviewTasksList.length > 0 ? 'text-purple-600' : 'text-jet-black'
-              }`}>
-                {underReviewTasksList.length}
-              </span>
-              <span className="text-xs text-zinc-600 font-sans">under verification</span>
-            </div>
-          </div>
-
-        </div>
-
-        {/* =========================================================================
-            ELEVATED VIEW NAVIGATION TABS
-            Natural sentence case, high contrast, clean icons and active indicators
-           ========================================================================= */}
-        <div className="bg-white border border-jet-black/10 rounded-2xl p-1.5 sm:p-2 shadow-xs flex items-center gap-1.5 sm:gap-2 overflow-x-auto hide-scrollbar">
-          
-          <button
-            type="button"
-            onClick={() => setActiveTab('my_tasks')}
-            className={`px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-sans font-medium transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-              activeTab === 'my_tasks'
-                ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
-                : 'text-zinc-600 hover:text-jet-black hover:bg-alice-blue/70'
-            }`}
-          >
-            <span>My Tasks</span>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-              activeTab === 'my_tasks'
-                ? 'bg-orange text-white'
-                : myAssignedCount > 0
-                ? 'bg-orange/15 text-orange'
-                : 'bg-jet-black/10 text-zinc-700'
-            }`}>
-              {myAssignedCount}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('kanban')}
-            className={`px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-sans font-medium transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-              activeTab === 'kanban'
-                ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
-                : 'text-zinc-600 hover:text-jet-black hover:bg-alice-blue/70'
-            }`}
-          >
-            <span>Task Board</span>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-              activeTab === 'kanban' ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-zinc-700'
-            }`}>
-              {tasks.length}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('teams')}
-            className={`px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-sans font-medium transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-              activeTab === 'teams'
-                ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
-                : 'text-zinc-600 hover:text-jet-black hover:bg-alice-blue/70'
-            }`}
-          >
-            <span>Subsystems</span>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-              activeTab === 'teams' ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-zinc-700'
-            }`}>
-              {TEAMS_LIST.length}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('videos')}
-            className={`px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-sans font-medium transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-              activeTab === 'videos'
-                ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
-                : 'text-zinc-600 hover:text-jet-black hover:bg-alice-blue/70'
-            }`}
-          >
-            <span>Video Evidence</span>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-              activeTab === 'videos' ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-zinc-700'
-            }`}>
-              {videoLogsCount}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('metrics')}
-            className={`px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-sans font-medium transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-              activeTab === 'metrics'
-                ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
-                : 'text-zinc-600 hover:text-jet-black hover:bg-alice-blue/70'
-            }`}
-          >
-            <span>Squad Metrics</span>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-              activeTab === 'metrics' ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-zinc-700'
-            }`}>
-              {completedTasks}/{tasks.length}
-            </span>
-          </button>
-
-          {isCore && (
-            <button
-              type="button"
-              onClick={() => setActiveTab('accounts')}
-              className={`px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-sans font-medium transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ml-auto ${
-                activeTab === 'accounts'
-                  ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
-                  : 'text-zinc-600 hover:text-jet-black hover:bg-alice-blue/70'
-              }`}
-            >
-              <span>Team Credentials</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange/20 text-orange font-bold uppercase">
-                Core Only
-              </span>
-            </button>
-          )}
-        </div>
-
-        {/* =========================================================================
-            TAB 0: DEDICATED PERSONAL WORKBENCH (MY TASKS)
-            Personal focus space for all deliverables assigned to the authenticated user
-           ========================================================================= */}
+        {/* Tab 3: Dedicated Personal Workbench */}
         {activeTab === 'my_tasks' && (
-          <div className="space-y-6">
-            
-            {/* Header & Filter Toolbar for My Tasks */}
-            <div className="bg-white border border-jet-black/10 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-orange animate-pulse"></span>
-                    <h3 className="text-base sm:text-lg font-bold font-sans text-jet-black">
-                      Personal Action Workbench
-                    </h3>
-                  </div>
-                  <p className="text-xs font-sans text-zinc-600 mt-0.5">
-                    Managing {myAssignedCount} deliverables assigned to <strong className="text-jet-black font-semibold">{user.displayName}</strong>
-                  </p>
-                </div>
-
-                {/* Personal Completion Metric */}
-                <div className="flex items-center gap-3">
-                  <div className="text-right font-sans">
-                    <div className="text-xs text-zinc-500">Personal Progress</div>
-                    <div className="text-sm font-bold text-jet-black">
-                      {myTasksBreakdown.done} / {myTasksBreakdown.total} completed ({myTasksBreakdown.completionPct}%)
-                    </div>
-                  </div>
-                  <div className="w-24 h-2.5 bg-alice-blue rounded-full overflow-hidden border border-jet-black/10 hidden sm:block">
-                    <div
-                      className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                      style={{ width: `${myTasksBreakdown.completionPct}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Status Filter Pills for My Tasks */}
-              <div className="pt-3 border-t border-jet-black/5 flex flex-wrap items-center gap-2">
-                <span className="text-xs font-sans text-zinc-500 font-semibold shrink-0">
-                  Filter Status:
-                </span>
-
-                <button
-                  type="button"
-                  onClick={() => setMyTasksTabStatusFilter('all')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-sans transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
-                    myTasksTabStatusFilter === 'all'
-                      ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
-                      : 'bg-alice-blue/60 text-zinc-600 hover:text-jet-black hover:bg-alice-blue'
-                  }`}
-                >
-                  <span>All Assigned</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                    myTasksTabStatusFilter === 'all' ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-zinc-700'
-                  }`}>
-                    {myAssignedTasks.length}
-                  </span>
-                </button>
-
-                {STATUS_COLUMNS.map((col) => {
-                  const count = myAssignedTasks.filter((t) => t.status === col.id).length;
-                  const isSelected = myTasksTabStatusFilter === col.id;
-                  return (
-                    <button
-                      key={col.id}
-                      type="button"
-                      onClick={() => setMyTasksTabStatusFilter(col.id)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-sans transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
-                        isSelected
-                          ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
-                          : 'bg-alice-blue/60 text-zinc-600 hover:text-jet-black hover:bg-alice-blue'
-                      }`}
-                    >
-                      <span className={`w-2 h-2 rounded-full ${col.dotColor}`}></span>
-                      <span>{col.label}</span>
-                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                        isSelected ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-zinc-700'
-                      }`}>
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* My Tasks Cards Layout */}
-            {myAssignedTasks.length === 0 ? (
-              <div className="bg-white border border-jet-black/10 rounded-2xl p-12 text-center flex flex-col items-center justify-center space-y-3 shadow-sm">
-                <div className="w-12 h-12 rounded-2xl bg-orange/10 text-orange flex items-center justify-center">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <h4 className="text-base font-mono font-bold text-jet-black">
-                  No Active Tasks Assigned to You
-                </h4>
-                <p className="text-xs font-mono text-grey max-w-md leading-relaxed">
-                  You are all caught up! When tasks are assigned to <strong className="text-jet-black">{user.displayName}</strong>, they will be organized here with status flow and drive video attachments.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('kanban')}
-                  className="mt-2 px-5 py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-mono text-xs font-bold uppercase tracking-wider cursor-pointer shadow-sm"
-                >
-                  Go to Team Task Board &rarr;
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                {STATUS_COLUMNS.map((col) => {
-                  const columnTasks = myAssignedTasks
-                    .filter((t) => t.status === col.id)
-                    .filter((t) => myTasksTabStatusFilter === 'all' || myTasksTabStatusFilter === col.id);
-
-                  return (
-                    <div
-                      key={col.id}
-                      className="bg-white border border-jet-black/10 rounded-2xl p-4 sm:p-5 flex flex-col min-h-[180px] h-fit shadow-sm"
-                    >
-                      {/* Column Header */}
-                      <div className="flex items-center justify-between pb-3 mb-3 border-b border-jet-black/10">
-                        <div className="flex items-center gap-2">
-                          <span className={`w-2.5 h-2.5 rounded-full ${col.dotColor}`}></span>
-                          <h4 className="text-sm font-sans font-bold text-zinc-800">
-                            {col.label}
-                          </h4>
-                        </div>
-                        <span className="text-xs font-sans px-2.5 py-0.5 rounded-full bg-alice-blue text-zinc-700 font-bold border border-jet-black/10">
-                          {columnTasks.length}
-                        </span>
-                      </div>
-
-                      {/* Cards */}
-                      <div className="space-y-3 flex-1 overflow-y-auto pr-0.5">
-                        {columnTasks.length === 0 ? (
-                          <div className="py-6 px-3 border border-dashed border-zinc-200 rounded-xl flex items-center justify-center text-center">
-                            <span className="text-xs text-zinc-500 font-sans">
-                              No tasks in {col.label}
-                            </span>
-                          </div>
-                        ) : (
-                          columnTasks.map((task) => {
-                            const taskTeam = TEAMS[task.teamId];
-                            const priorityInfo = PRIORITY_BADGES[task.priority] || PRIORITY_BADGES.medium;
-
-                            return (
-                              <div
-                                key={task.id}
-                                onClick={() => handleOpenTaskDetail(task)}
-                                className="group bg-alice-blue/40 hover:bg-white border border-jet-black/10 hover:border-orange/60 rounded-xl p-3.5 sm:p-4 shadow-2xs hover:shadow-md transition-all space-y-3 cursor-pointer"
-                              >
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className={`px-2 py-0.5 rounded-md text-[11px] font-sans font-semibold border whitespace-nowrap flex-shrink-0 ${taskTeam?.badgeBg || 'bg-zinc-100 text-zinc-800 border-zinc-200'}`}>
-                                    {taskTeam?.shortName || task.teamId}
-                                  </span>
-                                  <span className={`px-2 py-0.5 rounded text-[10px] font-sans font-bold uppercase tracking-wider whitespace-nowrap flex-shrink-0 ${priorityInfo.bg}`}>
-                                    {priorityInfo.label}
-                                  </span>
-                                </div>
-
-                                <div>
-                                  <h5 className="text-sm font-sans font-semibold text-jet-black leading-snug group-hover:text-orange transition-colors">
-                                    {task.title}
-                                  </h5>
-                                  {task.description && (
-                                    <p className="text-xs text-zinc-600 mt-1 font-normal line-clamp-2 leading-relaxed">
-                                      {task.description}
-                                    </p>
-                                  )}
-                                </div>
-
-                                <div className="pt-2 border-t border-jet-black/5 flex items-center justify-between text-xs font-sans text-zinc-500">
-                                  {(() => {
-                                    const dueInfo = formatRelativeDueDate(task.dueDate);
-                                    if (!dueInfo) return <span className="text-[11px] text-zinc-400 italic">No deadline</span>;
-                                    return (
-                                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-sans ${dueInfo.className}`}>
-                                        {dueInfo.isOverdue && <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span>}
-                                        {dueInfo.text}
-                                      </span>
-                                    );
-                                  })()}
-                                  <span className="text-[11px] text-zinc-400 font-sans">
-                                    {user.displayName.split(' ')[0]}
-                                  </span>
-                                </div>
-
-                                <div className="pt-2.5 border-t border-jet-black/5 flex items-center justify-between">
-                                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                                    {col.id !== 'todo' && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          const prevIdx = STATUS_COLUMNS.findIndex((c) => c.id === col.id) - 1;
-                                          if (prevIdx >= 0) handleMoveStatus(e, task.id, STATUS_COLUMNS[prevIdx].id);
-                                        }}
-                                        title="Move back"
-                                        className="px-2 py-1 text-xs font-sans font-medium bg-white hover:bg-zinc-100 rounded-lg border border-zinc-200 text-zinc-600 cursor-pointer transition-colors"
-                                      >
-                                        ←
-                                      </button>
-                                    )}
-                                    {col.id !== 'done' && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          const nextIdx = STATUS_COLUMNS.findIndex((c) => c.id === col.id) + 1;
-                                          if (nextIdx < STATUS_COLUMNS.length) handleMoveStatus(e, task.id, STATUS_COLUMNS[nextIdx].id);
-                                        }}
-                                        title="Advance status"
-                                        className="px-2.5 py-1 text-xs font-sans font-medium border border-zinc-300 hover:border-orange hover:bg-orange/10 hover:text-orange text-zinc-700 bg-white rounded-lg transition-colors cursor-pointer"
-                                      >
-                                        Advance →
-                                      </button>
-                                    )}
-                                  </div>
-
-                                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                    <Link
-                                      href={`/log?team=${task.teamId}&task=${encodeURIComponent(task.title)}`}
-                                      className="text-xs font-sans px-2 py-1 rounded-lg border border-orange/40 text-orange hover:bg-orange hover:text-white transition-all font-semibold"
-                                    >
-                                      Log
-                                    </Link>
-                                    <span className="text-xs font-sans text-zinc-500 group-hover:text-orange font-semibold transition-colors">
-                                      Details ↗
-                                    </span>
-                                  </div>
-                                </div>
-
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-          </div>
+          <MyWorkbenchTab
+            user={user}
+            myAssignedTasks={myAssignedTasks}
+            myTasksBreakdown={myTasksBreakdown}
+            myTasksTabStatusFilter={myTasksTabStatusFilter}
+            setMyTasksTabStatusFilter={setMyTasksTabStatusFilter}
+            handleOpenTaskDetail={handleOpenTaskDetail}
+            handleMoveStatus={handleMoveStatus}
+            setActiveTab={setActiveTab}
+          />
         )}
 
-        {/* =========================================================================
-            TAB 1: KANBAN TASK BOARD
-            Interactive board with Live Search, Subsystem Pills, and Task Click-to-Edit
-           ========================================================================= */}
-        {activeTab === 'kanban' && (
-          <div className="space-y-6">
-            
-            {/* Filter & Search Bar */}
-            <div className="bg-white border border-jet-black/10 rounded-2xl p-5 shadow-sm space-y-4">
-              
-              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-                
-                {/* Search Input */}
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search tasks by title, description, or squad..."
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-jet-black/15 text-xs sm:text-sm font-sans text-zinc-800 placeholder:text-zinc-400 focus:ring-2 focus:ring-orange focus:outline-none"
-                  />
-                  <svg className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-3.5 top-2.5 text-zinc-400 hover:text-zinc-700 text-xs font-sans cursor-pointer"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-
-                {/* Priority Selector */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-xs font-sans text-zinc-500 font-semibold">Priority:</span>
-                  <select
-                    value={selectedPriorityFilter}
-                    onChange={(e) => setSelectedPriorityFilter(e.target.value)}
-                    className="px-3 py-2 rounded-xl border border-jet-black/15 text-xs sm:text-sm font-sans text-zinc-700 font-medium focus:ring-2 focus:ring-orange focus:outline-none bg-white cursor-pointer"
-                  >
-                    <option value="all">All Priorities</option>
-                    <option value="urgent">Urgent</option>
-                    <option value="high">High Priority</option>
-                    <option value="medium">Medium Priority</option>
-                    <option value="low">Low Priority</option>
-                  </select>
-                </div>
-
-              </div>
-
-              {/* Subsystem Filter Pills with smooth horizontal scroll and right-edge gradient indicator */}
-              <div className="relative">
-                <div className="pt-3 border-t border-jet-black/5 flex items-center gap-2 overflow-x-auto hide-scrollbar touch-pan-x scroll-smooth pr-10">
-                  <span className="text-xs font-sans text-zinc-500 font-semibold shrink-0">
-                    Subsystem:
-                  </span>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedSubsystemFilter('all');
-                      setAssignedToMeOnly(false);
-                    }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-sans transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                      selectedSubsystemFilter === 'all' && !assignedToMeOnly
-                        ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
-                        : 'bg-alice-blue/60 text-zinc-600 hover:text-jet-black hover:bg-alice-blue'
-                    }`}
-                  >
-                    All Tasks ({tasks.length})
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const nextVal = !assignedToMeOnly;
-                      setAssignedToMeOnly(nextVal);
-                      if (nextVal) {
-                        setSelectedSubsystemFilter('all');
-                      }
-                    }}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-sans transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 ${
-                      assignedToMeOnly
-                        ? 'bg-orange text-white font-semibold shadow-md'
-                        : 'bg-alice-blue/60 text-zinc-600 hover:text-jet-black hover:bg-alice-blue'
-                    }`}
-                  >
-                    <span>Assigned to Me</span>
-                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                      assignedToMeOnly ? 'bg-white/30 text-white' : 'bg-jet-black/10 text-zinc-700'
-                    }`}>
-                      {myAssignedCount}
-                    </span>
-                  </button>
-
-                  {TEAMS_LIST.map((team) => {
-                    const count = tasks.filter((t) => t.teamId === team.id).length;
-                    const isSelected = selectedSubsystemFilter === team.id && !assignedToMeOnly;
-                    return (
-                      <button
-                        key={team.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedSubsystemFilter(team.id);
-                          setAssignedToMeOnly(false);
-                        }}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-sans transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 ${
-                          isSelected
-                            ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
-                            : 'bg-alice-blue/60 text-zinc-600 hover:text-jet-black hover:bg-alice-blue'
-                        }`}
-                      >
-                        <span className="font-medium">{team.shortName}</span>
-                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                          isSelected ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-zinc-700'
-                        }`}>
-                          {count}
-                        </span>
-                      </button>
-                    );
-                  })}
-
-                  {specialDeadlineFilter !== 'all' && (
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-orange/15 border border-orange/30 text-orange text-xs font-sans font-semibold whitespace-nowrap shrink-0">
-                      <span>
-                        Filter: {specialDeadlineFilter === 'due_week' ? 'Due This Week' : specialDeadlineFilter === 'overdue' ? 'Overdue' : 'Review Queue'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setSpecialDeadlineFilter('all')}
-                        className="hover:text-jet-black font-bold ml-0.5 cursor-pointer"
-                        title="Clear deadline filter"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  )}
-
-                  {(selectedSubsystemFilter !== 'all' || selectedPriorityFilter !== 'all' || searchQuery || assignedToMeOnly || specialDeadlineFilter !== 'all') && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedSubsystemFilter('all');
-                        setSelectedPriorityFilter('all');
-                        setSearchQuery('');
-                        setAssignedToMeOnly(false);
-                        setSpecialDeadlineFilter('all');
-                      }}
-                      className="ml-auto px-2.5 py-1 text-xs font-sans text-orange hover:underline font-semibold whitespace-nowrap cursor-pointer shrink-0"
-                    >
-                      Reset Filters
-                    </button>
-                  )}
-                </div>
-                {/* Right subtle fade indicator for mobile/narrow horizontal scroll */}
-                <div className="absolute right-0 top-3 bottom-0 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none md:hidden" />
-              </div>
-
-            </div>
-
-            {/* Kanban Columns */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-              {STATUS_COLUMNS.map((col) => {
-                const columnTasks = filteredTasks.filter((t) => t.status === col.id);
-
-                return (
-                  <div
-                    key={col.id}
-                    className="bg-white border border-jet-black/10 rounded-2xl p-4 sm:p-5 flex flex-col min-h-[200px] h-fit shadow-sm"
-                  >
-                    {/* Column Header */}
-                    <div className="flex items-center justify-between pb-3.5 mb-3.5 border-b border-jet-black/10">
-                      <div className="flex items-center gap-2">
-                        <span className={`w-2.5 h-2.5 rounded-full ${col.dotColor}`}></span>
-                        <h3 className="text-sm font-sans font-bold text-zinc-800">
-                          {col.label}
-                        </h3>
-                      </div>
-                      <span className="text-xs font-sans px-2.5 py-0.5 rounded-full bg-alice-blue text-zinc-700 font-bold border border-jet-black/10">
-                        {columnTasks.length}
-                      </span>
-                    </div>
-
-                    {/* Cards List */}
-                    <div className="space-y-3.5 flex-1 overflow-y-auto pr-0.5">
-                      {columnTasks.length === 0 ? (
-                        <div className="py-8 px-4 border border-dashed border-zinc-200 rounded-xl flex flex-col items-center justify-center text-center">
-                          <span className="text-xs font-sans text-zinc-500 font-medium">
-                            {filteredTasks.length === 0 && (selectedSubsystemFilter !== 'all' || searchQuery || specialDeadlineFilter !== 'all')
-                              ? 'No matching deliverables'
-                              : `No tasks in ${col.label}`}
-                          </span>
-                          <span className="text-[11px] font-sans text-zinc-400 mt-1">
-                            Drag or advance deliverables here
-                          </span>
-                        </div>
-                      ) : (
-                        columnTasks.map((task) => {
-                          const taskTeam = TEAMS[task.teamId];
-                          const priorityInfo = PRIORITY_BADGES[task.priority] || PRIORITY_BADGES.medium;
-                          const isTaskAssignedToMe = isTaskAssignedToUser(task, user);
-                          const canManageThisTask = isCoreAdmin || user.teamId === task.teamId || isTaskAssignedToMe;
-
-                          return (
-                            <div
-                              key={task.id}
-                              onClick={() => handleOpenTaskDetail(task)}
-                              className="group bg-alice-blue/40 hover:bg-white border border-jet-black/10 hover:border-orange/60 rounded-xl p-3.5 sm:p-4 shadow-2xs hover:shadow-md transition-all space-y-3 cursor-pointer relative"
-                            >
-                              {/* Team & Priority Row */}
-                              <div className="flex items-center justify-between gap-2">
-                                <span className={`px-2 py-0.5 rounded-md text-[11px] font-sans font-semibold border whitespace-nowrap flex-shrink-0 ${taskTeam?.badgeBg || 'bg-zinc-100 text-zinc-800 border-zinc-200'}`}>
-                                  {taskTeam?.shortName || task.teamId}
-                                </span>
-
-                                <div className="flex items-center gap-1.5 whitespace-nowrap flex-shrink-0">
-                                  {task.isBlocked && (
-                                    <span className="px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-500/30 text-rose-700 text-[10px] font-sans font-bold flex items-center gap-1" title={task.blockerReason || 'Blocked deliverable'}>
-                                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Blocked
-                                    </span>
-                                  )}
-                                  <span className={`px-2 py-0.5 rounded text-[10px] font-sans font-bold uppercase tracking-wider ${priorityInfo.bg}`}>
-                                    {priorityInfo.label}
-                                  </span>
-                                </div>
-                              </div>
-
-                              {/* Title & Desc */}
-                              <div>
-                                <h4 className="text-sm font-sans font-semibold text-jet-black leading-snug group-hover:text-orange transition-colors">
-                                  {task.title}
-                                </h4>
-                                {task.description && (
-                                  <p className="text-xs text-zinc-600 mt-1 font-normal line-clamp-2 leading-relaxed">
-                                    {task.description}
-                                  </p>
-                                )}
-                              </div>
-
-                              {/* Subtasks Progress Bar */}
-                              {task.subtasks && task.subtasks.length > 0 && (
-                                <div className="space-y-1 pt-0.5">
-                                  <div className="flex items-center justify-between text-[11px] font-sans text-zinc-500">
-                                    <span>Checklist</span>
-                                    <span className="font-semibold text-zinc-800">
-                                      {task.subtasks.filter((st) => st.completed).length}/{task.subtasks.length}
-                                    </span>
-                                  </div>
-                                  <div className="w-full h-1.5 bg-jet-black/10 rounded-full overflow-hidden">
-                                    <div
-                                      className="h-full bg-emerald-500 transition-all duration-300"
-                                      style={{
-                                        width: `${Math.round((task.subtasks.filter((st) => st.completed).length / task.subtasks.length) * 100)}%`,
-                                      }}
-                                    />
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Assignees & Relative Due Date */}
-                              <div className="pt-2.5 border-t border-jet-black/5 flex items-center justify-between gap-2">
-                                {/* Assignee Avatar Circles */}
-                                <div className="flex items-center gap-1.5">
-                                  {task.assignedMembers && task.assignedMembers.length > 0 ? (
-                                    <div className="flex items-center -space-x-1.5" title={Array.isArray(task.assignedMembers) ? task.assignedMembers.join(', ') : task.assignedMembers}>
-                                      {(Array.isArray(task.assignedMembers) ? task.assignedMembers : [task.assignedMembers]).slice(0, 3).map((member, idx) => (
-                                        <span
-                                          key={idx}
-                                          className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold border-2 border-white shadow-2xs ${getAvatarColorClass(member)}`}
-                                          title={member}
-                                        >
-                                          {getMemberInitials(member)}
-                                        </span>
-                                      ))}
-                                      {Array.isArray(task.assignedMembers) && task.assignedMembers.length > 3 && (
-                                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[9px] font-bold bg-zinc-200 text-zinc-700 border-2 border-white">
-                                          +{task.assignedMembers.length - 3}
-                                        </span>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <span className="inline-flex items-center gap-1 text-[11px] text-zinc-400 italic font-sans">
-                                      <span className="w-5 h-5 rounded-full border border-dashed border-zinc-300 flex items-center justify-center text-[9px] text-zinc-400">?</span>
-                                      Unassigned
-                                    </span>
-                                  )}
-
-                                  {/* Comments & Hours info */}
-                                  {task.comments && task.comments.length > 0 && (
-                                    <span className="px-1.5 py-0.5 rounded bg-white border border-jet-black/10 text-zinc-500 font-bold flex items-center gap-0.5 text-[10px]">
-                                      💬 {task.comments.length}
-                                    </span>
-                                  )}
-                                  {Boolean(task.actualHours) && (
-                                    <span className="px-1.5 py-0.5 rounded bg-white border border-jet-black/10 text-zinc-500 font-medium text-[10px]">
-                                      {task.actualHours}h
-                                    </span>
-                                  )}
-
-                                  {!isTaskAssignedToMe && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => handleQuickAssignToMe(e, task)}
-                                      className="px-2 py-0.5 rounded-md bg-zinc-100 hover:bg-orange hover:text-white border border-zinc-200 text-[10px] font-sans font-medium text-zinc-600 transition-all cursor-pointer"
-                                      title="Assign this task to yourself"
-                                    >
-                                      + Claim
-                                    </button>
-                                  )}
-                                </div>
-
-                                {/* Relative Due Date badge */}
-                                <div>
-                                  {(() => {
-                                    const dueInfo = formatRelativeDueDate(task.dueDate);
-                                    if (!dueInfo) return <span className="text-[11px] font-sans text-zinc-400 italic">No deadline</span>;
-                                    return (
-                                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-sans ${dueInfo.className}`}>
-                                        {dueInfo.isOverdue && <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span>}
-                                        {dueInfo.text}
-                                      </span>
-                                    );
-                                  })()}
-                                </div>
-                              </div>
-
-                              {/* Quick Move Status Controls & Open Details / More Menu */}
-                              <div className="pt-2.5 border-t border-jet-black/5 flex items-center justify-between">
-                                <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                                  {col.id !== 'todo' && (
-                                    <button
-                                      type="button"
-                                      disabled={!canManageThisTask}
-                                      onClick={(e) => {
-                                        const prevIdx = STATUS_COLUMNS.findIndex((c) => c.id === col.id) - 1;
-                                        if (prevIdx >= 0) handleMoveStatus(e, task.id, STATUS_COLUMNS[prevIdx].id);
-                                      }}
-                                      title="Move back"
-                                      className="px-2 py-1 text-xs font-sans font-medium bg-white hover:bg-zinc-100 rounded-lg border border-zinc-200 text-zinc-600 cursor-pointer transition-colors disabled:opacity-40"
-                                    >
-                                      ←
-                                    </button>
-                                  )}
-                                  {col.id !== 'done' && (
-                                    <button
-                                      type="button"
-                                      disabled={!canManageThisTask}
-                                      onClick={(e) => {
-                                        const nextIdx = STATUS_COLUMNS.findIndex((c) => c.id === col.id) + 1;
-                                        if (nextIdx < STATUS_COLUMNS.length) handleMoveStatus(e, task.id, STATUS_COLUMNS[nextIdx].id);
-                                      }}
-                                      title="Move forward"
-                                      className="px-2.5 py-1 text-xs font-sans font-medium border border-zinc-300 hover:border-orange hover:bg-orange/10 hover:text-orange text-zinc-700 bg-white rounded-lg transition-colors cursor-pointer disabled:opacity-40"
-                                    >
-                                      Advance →
-                                    </button>
-                                  )}
-                                </div>
-
-                                <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenTaskDetail(task)}
-                                    className="text-xs font-sans text-zinc-500 hover:text-orange font-semibold transition-colors px-1.5 py-1 cursor-pointer"
-                                  >
-                                    Details ↗
-                                  </button>
-
-                                  {canManageThisTask && (
-                                    <div className="relative">
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setCardMenuTaskId(cardMenuTaskId === task.id ? null : task.id);
-                                        }}
-                                        className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 transition-colors text-xs cursor-pointer font-bold"
-                                        title="Task options"
-                                      >
-                                        ···
-                                      </button>
-
-                                      {cardMenuTaskId === task.id && (
-                                        <>
-                                          <div
-                                            className="fixed inset-0 z-20"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setCardMenuTaskId(null);
-                                            }}
-                                          />
-                                          <div className="absolute right-0 bottom-full mb-1 w-40 bg-white border border-zinc-200 rounded-xl shadow-xl py-1 z-30 animate-in fade-in zoom-in-95">
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setCardMenuTaskId(null);
-                                                handleOpenTaskDetail(task);
-                                              }}
-                                              className="w-full text-left px-3 py-1.5 text-xs font-sans text-zinc-700 hover:bg-zinc-50 flex items-center gap-2 cursor-pointer"
-                                            >
-                                              <span>Task Details</span>
-                                            </button>
-                                            <Link
-                                              href={`/log?team=${task.teamId}&task=${encodeURIComponent(task.title)}`}
-                                              onClick={() => setCardMenuTaskId(null)}
-                                              className="w-full text-left px-3 py-1.5 text-xs font-sans text-zinc-700 hover:bg-zinc-50 flex items-center gap-2 cursor-pointer"
-                                            >
-                                              <span>Log Build Step</span>
-                                            </Link>
-                                            <div className="border-t border-zinc-100 my-1"></div>
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setCardMenuTaskId(null);
-                                                promptDeleteTask(e, task);
-                                              }}
-                                              className="w-full text-left px-3 py-1.5 text-xs font-sans text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium cursor-pointer"
-                                            >
-                                              <span>Delete Task...</span>
-                                            </button>
-                                          </div>
-                                        </>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-          </div>
-        )}
-
-        {/* =========================================================================
-            TAB 2: 9-TEAM SUBSYSTEM OVERVIEW
-            Interactive subsystem cards with live task breakdown & jump to tasks
-           ========================================================================= */}
+        {/* Tab 4: Subsystem Overview */}
         {activeTab === 'teams' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {TEAMS_LIST.map((team) => {
-              const teamTasks = tasks.filter((t) => t.teamId === team.id);
-              const teamLogs = logs.filter((l) => l.teamId === team.id);
-              const completedCount = teamTasks.filter((t) => t.status === 'done').length;
-              const inProgressCount = teamTasks.filter((t) => t.status === 'in_progress').length;
-              const hours = teamLogs.reduce((acc, l) => acc + (l.hoursSpent || 0), 0);
-              const latestLog = teamLogs[0];
-              const progressPct = teamTasks.length > 0 ? Math.round((completedCount / teamTasks.length) * 100) : 0;
-
-              return (
-                <div
-                  key={team.id}
-                  className="bg-white border border-jet-black/10 rounded-2xl p-6 shadow-sm hover:border-orange/50 transition-all flex flex-col justify-between h-full"
-                >
-                  <div className="space-y-4 flex-1 flex flex-col">
-                    {/* Header — uniform height */}
-                    <div className="flex items-start justify-between gap-3 min-h-[52px]">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-mono uppercase px-2 py-0.5 rounded bg-jet-black/5 text-jet-black font-bold">
-                            {team.code}
-                          </span>
-                          <h4 className="text-base font-bold text-jet-black leading-tight">{team.name}</h4>
-                        </div>
-                        {team.lead && (
-                          <span className="text-xs font-mono text-orange block mt-1 font-semibold">
-                            Lead: {team.lead}
-                          </span>
-                        )}
-                      </div>
-                      <span className={`px-2.5 py-0.5 rounded text-[10px] font-mono uppercase font-bold shrink-0 ${
-                        team.role === 'admin' ? 'bg-orange/20 text-orange' : 'bg-jet-black/5 text-jet-black'
-                      }`}>
-                        {team.role}
-                      </span>
-                    </div>
-
-                    {/* Progress Bar */}
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-[11px] font-mono">
-                        <span className="text-grey">Deliverables Progress</span>
-                        <span className="font-bold text-jet-black">{progressPct}%</span>
-                      </div>
-                      <div className="w-full h-2 bg-alice-blue rounded-full overflow-hidden border border-jet-black/5">
-                        <div
-                          className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                          style={{ width: `${progressPct}%` }}
-                        ></div>
-                      </div>
-                    </div>
-
-                    {/* Stats bar */}
-                    <div className="grid grid-cols-4 gap-2 p-3 bg-alice-blue/60 rounded-xl text-center font-mono text-xs border border-jet-black/5">
-                      <div>
-                        <div className="font-black text-jet-black text-sm">{teamTasks.length}</div>
-                        <div className="text-[9px] text-grey uppercase tracking-wider">Total</div>
-                      </div>
-                      <div>
-                        <div className="font-black text-orange text-sm">{inProgressCount}</div>
-                        <div className="text-[9px] text-grey uppercase tracking-wider">Active</div>
-                      </div>
-                      <div>
-                        <div className="font-black text-emerald-600 text-sm">{completedCount}</div>
-                        <div className="text-[9px] text-grey uppercase tracking-wider">Done</div>
-                      </div>
-                      <div>
-                        <div className="font-black text-jet-black text-sm">{hours.toFixed(0)}h</div>
-                        <div className="text-[9px] text-grey uppercase tracking-wider">Hours</div>
-                      </div>
-                    </div>
-
-                    {/* Assigned Deliverables Section — uniform height across all cards */}
-                    <div className="space-y-1.5 pt-1">
-                      <span className="text-[10px] font-mono uppercase tracking-widest text-grey block">
-                        Assigned Deliverables:
-                      </span>
-                      {teamTasks.length > 0 ? (
-                        <div className="space-y-1.5 h-[68px] overflow-y-auto pr-1">
-                          {teamTasks.slice(0, 2).map((t) => (
-                            <button
-                              key={t.id}
-                              type="button"
-                              onClick={() => handleOpenTaskDetail(t)}
-                              className="w-full text-left p-2 rounded-lg bg-alice-blue/30 hover:bg-alice-blue border border-jet-black/5 text-xs font-mono text-jet-black truncate flex items-center justify-between cursor-pointer"
-                            >
-                              <span className="truncate">{t.title}</span>
-                              <span className="text-[9px] uppercase px-1.5 py-0.5 rounded font-bold ml-1.5 shrink-0 bg-white border border-jet-black/10">
-                                {t.status}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-xs text-grey/60 italic font-mono p-2 bg-alice-blue/20 rounded-xl border border-dashed border-jet-black/10 text-center h-[68px] flex items-center justify-center">
-                          No active deliverables
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Latest Move Card — uniform height across all cards */}
-                    {latestLog ? (
-                      <div className="p-3 bg-alice-blue/30 rounded-xl border border-jet-black/5 text-xs space-y-1 h-[58px] flex flex-col justify-center">
-                        <span className="text-[10px] font-mono uppercase tracking-widest text-grey block">
-                          Latest Move ({latestLog.date}):
-                        </span>
-                        <span className="font-semibold text-jet-black line-clamp-1 block">
-                          {latestLog.stepTitle}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="text-xs text-grey/60 italic font-mono p-3 bg-alice-blue/20 rounded-xl border border-dashed border-jet-black/10 text-center h-[58px] flex items-center justify-center">
-                        No log entries recorded yet
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Card Bottom Actions */}
-                  <div className="pt-4 border-t border-jet-black/5 flex items-center justify-between mt-4">
-                    <button
-                      type="button"
-                      onClick={() => handleViewTeamTasksInKanban(team.id)}
-                      className="text-xs font-mono text-jet-black hover:text-orange font-bold transition-colors inline-flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>View Team Tasks</span>
-                      <span>→</span>
-                    </button>
-
-                    {(isCore || isLead) ? (
-                      <Link
-                        href={`/log?team=${team.id}`}
-                        className="text-xs font-mono text-orange hover:text-jet-black font-bold transition-colors inline-flex items-center gap-1"
-                      >
-                        <span>Build Log</span>
-                        <span>↗</span>
-                      </Link>
-                    ) : (
-                      <span className="text-[10px] font-mono uppercase text-grey">
-                        Squad View
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <SubsystemsTab
+            tasks={tasks}
+            logs={logs}
+            isCore={isCore}
+            isLead={isLead}
+            handleOpenTaskDetail={handleOpenTaskDetail}
+            handleViewTeamTasksInKanban={handleViewTeamTasksInKanban}
+          />
         )}
 
-        {/* =========================================================================
-            TAB 3: MASTER VIDEO GALLERY
-            Spacious media cards with inline players and filtering
-           ========================================================================= */}
-        {activeTab === 'videos' && (
-          <div className="space-y-6">
-            
-            {videoLogsCount === 0 ? (
-              <div className="bg-white border border-jet-black/10 rounded-2xl p-16 text-center text-grey shadow-sm space-y-3">
-                <div className="w-12 h-12 rounded-full bg-alice-blue flex items-center justify-center mx-auto text-grey">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <h4 className="text-base font-bold text-jet-black">No Videos Uploaded Yet</h4>
-                <p className="text-xs max-w-md mx-auto leading-relaxed">
-                  When teams record daily engineering moves and attach video evidence, they will stream directly here from your personal Google Drive!
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {logs
-                  .filter((l) => Boolean(l.videoUrl))
-                  .map((log) => {
-                    const embedInfo = getEmbeddableVideoUrl(log.videoUrl);
-                    const teamInfo = TEAMS[log.teamId];
+        {/* Tab 5: Video Archive */}
+        {activeTab === 'videos' && <VideoArchiveTab logs={logs} />}
 
-                    return (
-                      <div
-                        key={log.id}
-                        className="bg-white border border-jet-black/10 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between hover:border-orange/50 transition-all"
-                      >
-                        <div>
-                          {/* Video player embed */}
-                          <div className="aspect-video w-full bg-black relative">
-                            {embedInfo ? (
-                              embedInfo.source === 'drive' || embedInfo.source === 'youtube' ? (
-                                <iframe
-                                  src={embedInfo.embedUrl}
-                                  className="w-full h-full border-0"
-                                  allow="autoplay; encrypted-media; fullscreen"
-                                  allowFullScreen
-                                  title={log.stepTitle}
-                                ></iframe>
-                              ) : (
-                                <video
-                                  controls
-                                  src={embedInfo.embedUrl}
-                                  className="w-full h-full object-contain"
-                                />
-                              )
-                            ) : null}
-                          </div>
-
-                          <div className="p-5 space-y-2">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border ${teamInfo?.badgeBg || 'bg-jet-black/5 text-jet-black'}`}>
-                                [{teamInfo?.code}] {log.teamName}
-                              </span>
-                              <span className="text-[10px] font-mono text-grey">
-                                {log.date}
-                              </span>
-                            </div>
-
-                            <h4 className="text-sm font-bold text-jet-black line-clamp-1">
-                              {log.stepTitle}
-                            </h4>
-
-                            <p className="text-xs text-grey font-light line-clamp-2 leading-relaxed">
-                              {log.description}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="px-5 py-3 bg-alice-blue/60 border-t border-jet-black/5 flex items-center justify-between text-xs font-mono">
-                          <span className="text-grey font-bold">STEP #{log.stepNumber}</span>
-                          <a
-                            href={log.videoUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-orange hover:underline font-bold"
-                          >
-                            Open in Google Drive ↗
-                          </a>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* =========================================================================
-            TAB 4: TEAM VELOCITY & METRICS LEADERBOARD
-            Comprehensive analytics, squad progress bars, and member rankings
-           ========================================================================= */}
+        {/* Tab 6: Metrics & Velocity */}
         {activeTab === 'metrics' && (
-          <div className="space-y-6">
-
-            {/* Header & KPI Summary */}
-            <div className="bg-white border border-jet-black/10 rounded-2xl p-6 sm:p-8 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-orange animate-pulse" />
-                    <span className="text-[11px] font-mono uppercase tracking-widest text-grey font-bold">
-                      Team Velocity &amp; Accountability
-                    </span>
-                  </div>
-                  <h3 className="text-xl sm:text-2xl font-black text-jet-black tracking-tight mt-1">
-                    Engineering Contribution Leaderboard<span className="text-orange">.</span>
-                  </h3>
-                  <p className="text-xs sm:text-sm text-grey font-light mt-0.5">
-                    Real-time performance metrics across all 23 team innovators and 9 engineering subsystems for SIEP 2026–27.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleManualSync}
-                    disabled={isManualSyncing}
-                    className="px-3.5 py-2 rounded-xl border border-jet-black/15 bg-alice-blue/60 hover:bg-alice-blue text-jet-black text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5"
-                  >
-                    <svg className={`w-3.5 h-3.5 ${isManualSyncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    <span>{isManualSyncing ? 'Syncing...' : 'Refresh Metrics'}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 4-Stat Metric Row */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-jet-black/5">
-                <div className="p-3.5 rounded-xl bg-alice-blue/40 border border-jet-black/5">
-                  <div className="text-[10px] font-mono uppercase text-grey font-bold">Workshop Hours</div>
-                  <div className="text-2xl font-black font-mono text-jet-black mt-1">
-                    {totalHours.toFixed(1)} <span className="text-xs font-bold text-grey">hrs</span>
-                  </div>
-                  <div className="text-[10px] font-mono text-grey mt-0.5">{logs.length} build steps logged</div>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-alice-blue/40 border border-jet-black/5">
-                  <div className="text-[10px] font-mono uppercase text-grey font-bold">Overall Progress</div>
-                  <div className="text-2xl font-black font-mono text-emerald-600 mt-1">
-                    {tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0}%
-                  </div>
-                  <div className="text-[10px] font-mono text-grey mt-0.5">{completedTasks} of {tasks.length} deliverables</div>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-alice-blue/40 border border-jet-black/5">
-                  <div className="text-[10px] font-mono uppercase text-grey font-bold">Active Pipeline</div>
-                  <div className="text-2xl font-black font-mono text-orange mt-1">
-                    {inProgressTasks}
-                  </div>
-                  <div className="text-[10px] font-mono text-grey mt-0.5">in progress or review</div>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-alice-blue/40 border border-jet-black/5">
-                  <div className="text-[10px] font-mono uppercase text-grey font-bold">Blocker Radar</div>
-                  <div className={`text-2xl font-black font-mono mt-1 ${
-                    blockedRadarTasks.length > 0 ? 'text-rose-600' : 'text-emerald-600'
-                  }`}>
-                    {blockedRadarTasks.length}
-                  </div>
-                  <div className="text-[10px] font-mono text-grey mt-0.5">
-                    {blockedRadarTasks.length === 0 ? 'All subsystems clear' : 'Attention required'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Blocker Radar Section */}
-            {blockedRadarTasks.length > 0 ? (
-              <div className="bg-rose-50/70 border border-rose-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-rose-800">
-                    <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse"></span>
-                    <h4 className="text-sm font-mono font-bold uppercase tracking-wider">
-                      Active Blocker Radar ({blockedRadarTasks.length})
-                    </h4>
-                  </div>
-                  <span className="text-[10px] font-mono text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full font-bold">
-                    Action Required
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {blockedRadarTasks.map((bt) => {
-                    const btTeam = TEAMS[bt.teamId];
-                    return (
-                      <div
-                        key={bt.id}
-                        onClick={() => handleOpenTaskDetail(bt)}
-                        className="bg-white border border-rose-200 hover:border-rose-400 rounded-xl p-3.5 shadow-2xs hover:shadow-sm cursor-pointer transition-all space-y-2"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${btTeam?.badgeBg || 'bg-jet-black/5 text-jet-black'}`}>
-                            [{btTeam?.code}] {btTeam?.shortName}
-                          </span>
-                          <span className="text-[10px] font-mono text-rose-600 font-bold">
-                            Resolve Blocker ↗
-                          </span>
-                        </div>
-                        <h5 className="text-xs font-bold text-jet-black">{bt.title}</h5>
-                        {bt.blockerReason && (
-                          <div className="p-2 rounded-lg bg-rose-50 border border-rose-100 text-[11px] font-mono text-rose-800">
-                            <strong>Reason:</strong> {bt.blockerReason}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-3 text-emerald-900 text-xs font-mono shadow-sm">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                  <span>
-                    <strong>Blocker Radar Clear:</strong> All 9 engineering subsystems are running without active impediments.
-                  </span>
-                </div>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">
-                  0 BLOCKED
-                </span>
-              </div>
-            )}
-
-            {/* Subsystem Squad Velocity Matrix */}
-            <div className="bg-white border border-jet-black/10 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-jet-black/10">
-                <div>
-                  <h4 className="text-base font-bold text-jet-black tracking-tight">
-                    Subsystem Velocity Matrix
-                  </h4>
-                  <p className="text-xs text-grey font-mono mt-0.5">
-                    Completion rate and deliverables status across all 9 technical squads
-                  </p>
-                </div>
-                <span className="text-xs font-mono text-grey">
-                  Sorted by completion velocity
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                {squadMetrics.map((sq) => {
-                  return (
-                    <div
-                      key={sq.team.id}
-                      className="p-4 rounded-xl border border-jet-black/10 bg-alice-blue/20 hover:bg-white hover:border-orange/50 transition-all shadow-2xs space-y-3"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${sq.team.badgeBg}`}>
-                            [{sq.team.code}]
-                          </span>
-                          <span className="text-xs font-bold text-jet-black truncate">
-                            {sq.team.shortName}
-                          </span>
-                        </div>
-                        <span className="text-xs font-mono font-black text-jet-black">
-                          {sq.completionPercent}%
-                        </span>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div className="w-full h-2 bg-jet-black/10 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-emerald-500 transition-all duration-300"
-                          style={{ width: `${sq.completionPercent}%` }}
-                        />
-                      </div>
-
-                      {/* Details row */}
-                      <div className="flex items-center justify-between text-[10px] font-mono text-grey pt-1">
-                        <div>
-                          <span className="text-emerald-700 font-bold">{sq.doneTasks} done</span>
-                          <span className="mx-1">•</span>
-                          <span>{sq.inProgressTasks} active</span>
-                          {sq.blockedTasks > 0 && (
-                            <>
-                              <span className="mx-1">•</span>
-                              <span className="text-rose-600 font-bold">{sq.blockedTasks} blocked</span>
-                            </>
-                          )}
-                        </div>
-                        <div className="font-bold text-jet-black">
-                          {sq.squadHours} hrs
-                        </div>
-                      </div>
-
-                      <div className="pt-2 border-t border-jet-black/5 flex items-center justify-between text-[10px] font-mono">
-                        <span className="text-grey truncate">
-                          Lead: <strong className="text-jet-black">{sq.lead?.name || 'Assigned'}</strong>
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedSubsystemFilter(sq.team.id);
-                            setActiveTab('kanban');
-                          }}
-                          className="text-orange hover:text-jet-black font-bold cursor-pointer"
-                        >
-                          View Tasks &rarr;
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Member Contribution Leaderboard */}
-            <div className="bg-white border border-jet-black/10 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-jet-black/10">
-                <div>
-                  <h4 className="text-base sm:text-lg font-bold text-jet-black tracking-tight">
-                    Member Contribution Leaderboard
-                  </h4>
-                  <p className="text-xs text-grey font-mono mt-0.5">
-                    Rankings based on logged workshop hours, completed deliverables, and active checklist moves
-                  </p>
-                </div>
-
-                {/* Filters */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    type="text"
-                    value={memberSearchQuery}
-                    onChange={(e) => setMemberSearchQuery(e.target.value)}
-                    placeholder="Search innovator..."
-                    className="px-3 py-1.5 rounded-xl border border-jet-black/15 bg-alice-blue/40 text-xs font-mono focus:outline-none focus:border-orange w-36 sm:w-44"
-                  />
-
-                  <select
-                    value={leaderboardSquadFilter}
-                    onChange={(e) => setLeaderboardSquadFilter(e.target.value)}
-                    className="px-2.5 py-1.5 rounded-xl border border-jet-black/15 bg-alice-blue/40 text-xs font-mono focus:outline-none focus:border-orange cursor-pointer"
-                  >
-                    <option value="all">All Squads ({ROSTER_MEMBERS.length})</option>
-                    {TEAMS_LIST.map((tm) => (
-                      <option key={tm.id} value={tm.id}>
-                        [{tm.code}] {tm.shortName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Leaderboard Table / Cards */}
-              <div className="space-y-2">
-                {filteredMemberMetrics.length === 0 ? (
-                  <div className="py-12 text-center text-xs font-mono text-grey">
-                    No team innovators match the current filter.
-                  </div>
-                ) : (
-                  filteredMemberMetrics.map((item, index) => {
-                    const memberTeam = TEAMS[item.member.teamId];
-                    const isTop1 = index === 0 && item.velocityScore > 0;
-                    const isTop2 = index === 1 && item.velocityScore > 0;
-                    const isTop3 = index === 2 && item.velocityScore > 0;
-
-                    const rankBadge = isTop1 ? '#1' : isTop2 ? '#2' : isTop3 ? '#3' : `#${index + 1}`;
-
-                    return (
-                      <div
-                        key={item.member.id}
-                        className={`p-3.5 sm:p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                          isTop1
-                            ? 'bg-amber-500/10 border-amber-500/30 shadow-2xs'
-                            : isTop2
-                            ? 'bg-slate-100/70 border-slate-300'
-                            : isTop3
-                            ? 'bg-amber-700/5 border-amber-700/20'
-                            : 'bg-alice-blue/20 border-jet-black/10 hover:bg-white'
-                        }`}
-                      >
-                        {/* Member Identity */}
-                        <div className="flex items-center gap-3">
-                          <span className={`w-8 h-8 rounded-xl font-mono text-xs font-black flex items-center justify-center shrink-0 ${
-                            isTop1
-                              ? 'bg-amber-500 text-white shadow-sm'
-                              : isTop2
-                              ? 'bg-slate-400 text-white shadow-sm'
-                              : isTop3
-                              ? 'bg-amber-700 text-white shadow-sm'
-                              : 'bg-jet-black/5 text-jet-black'
-                          }`}>
-                            {rankBadge}
-                          </span>
-
-                          <div className="w-9 h-9 rounded-full bg-jet-black text-alice-blue font-mono font-bold text-xs flex items-center justify-center shrink-0">
-                            {item.member.name.slice(0, 2).toUpperCase()}
-                          </div>
-
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h5 className="text-sm font-bold text-jet-black">
-                                {item.member.name}
-                              </h5>
-                              <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold border ${memberTeam?.badgeBg}`}>
-                                [{memberTeam?.code || item.member.teamId.toUpperCase()}]
-                              </span>
-                              {item.member.isLead && (
-                                <span className="text-[9px] font-mono text-orange font-bold uppercase">
-                                  Lead
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[11px] font-mono text-grey truncate max-w-xs sm:max-w-sm">
-                              {item.member.role}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Metrics Breakdown */}
-                        <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-6 pt-2 sm:pt-0 border-t sm:border-t-0 border-jet-black/5 text-xs font-mono">
-                          <div className="text-center sm:text-right">
-                            <span className="text-[10px] text-grey uppercase block">Workshop</span>
-                            <strong className="text-jet-black font-black text-sm">{item.totalHours} hrs</strong>
-                          </div>
-
-                          <div className="text-center sm:text-right">
-                            <span className="text-[10px] text-grey uppercase block">Done</span>
-                            <strong className="text-emerald-600 font-black text-sm">{item.completedTasksCount}</strong>
-                          </div>
-
-                          <div className="text-center sm:text-right">
-                            <span className="text-[10px] text-grey uppercase block">Active</span>
-                            <strong className="text-orange font-black text-sm">{item.activeTasksCount}</strong>
-                          </div>
-
-                          <div className="text-center sm:text-right">
-                            <span className="text-[10px] text-grey uppercase block">Score</span>
-                            <span className="px-2 py-0.5 rounded-full bg-jet-black text-alice-blue font-bold text-xs shadow-2xs">
-                              {item.velocityScore}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-
-          </div>
+          <VelocityMetricsTab
+            tasks={tasks}
+            logs={logs}
+            handleManualSync={handleManualSync}
+            isManualSyncing={isManualSyncing}
+            handleOpenTaskDetail={handleOpenTaskDetail}
+            setSelectedSubsystemFilter={setSelectedSubsystemFilter}
+            setActiveTab={setActiveTab}
+          />
         )}
 
-        {/* =========================================================================
-            TAB 5: CREDENTIALS & ACCESS DIRECTORY (Core Leadership Only)
-            Exclusively restricted to Core Leadership (Tier 1)
-           ========================================================================= */}
+        {/* Tab 7: Core Admin Credentials Vault */}
         {activeTab === 'accounts' && isCoreAdmin && (
-          <div className="bg-white border border-jet-black/10 rounded-2xl overflow-hidden shadow-sm space-y-0">
-            <div className="p-6 sm:p-8 border-b border-jet-black/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-bold text-jet-black font-sans">
-                  SIEP Access &amp; Credential Directory
-                </h3>
-                <p className="text-xs text-zinc-600 font-sans mt-0.5">
-                  Core Leadership master control: View member 6-digit PINs, roles, and access tiers
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-                {/* View Mode Toggle */}
-                <div className="p-1 rounded-xl bg-alice-blue border border-jet-black/10 flex items-center gap-1 text-xs font-sans">
-                  <button
-                    type="button"
-                    onClick={() => setAccountsViewMode('members')}
-                    className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
-                      accountsViewMode === 'members'
-                        ? 'bg-jet-black text-alice-blue shadow-sm'
-                        : 'text-zinc-600 hover:text-jet-black'
-                    }`}
-                  >
-                    Members ({ROSTER_MEMBERS.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAccountsViewMode('teams')}
-                    className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
-                      accountsViewMode === 'teams'
-                        ? 'bg-jet-black text-alice-blue shadow-sm'
-                        : 'text-zinc-600 hover:text-jet-black'
-                    }`}
-                  >
-                    Squads ({ALL_TEAMS.length})
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={loadCredentials}
-                  className="text-xs font-sans px-3 py-2 bg-alice-blue text-jet-black hover:bg-jet-black hover:text-white border border-jet-black/10 rounded-xl font-semibold transition-all cursor-pointer"
-                  title="Reload from Google Cloud Firestore"
-                >
-                  Refresh
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowCredentialsPasswords(!showCredentialsPasswords)}
-                  className="text-xs font-sans px-3.5 py-2 bg-alice-blue text-jet-black hover:bg-jet-black hover:text-white border border-jet-black/10 rounded-xl font-semibold transition-all cursor-pointer"
-                >
-                  {showCredentialsPasswords ? 'Mask PINs' : 'Show PINs'}
-                </button>
-              </div>
-            </div>
-
-            {/* Enterprise Security Notice */}
-            <div className="mx-6 sm:mx-8 my-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
-              <span className="text-amber-600 text-base">🔒</span>
-              <div className="space-y-1 text-xs font-sans">
-                <p className="font-semibold text-jet-black">
-                  Protected Core Credential Vault (Server-Side Verified)
-                </p>
-                <p className="text-zinc-600 leading-relaxed">
-                  Access is strictly authorized server-side on <code className="bg-amber-100/80 px-1 py-0.5 rounded text-[11px] font-mono">/api/passwords</code>. Plaintext is never exposed publicly and credentials are encrypted in transit. Recommended practice: synchronize shared team credentials with <a href="https://bitwarden.com" target="_blank" rel="noopener noreferrer" className="text-orange hover:underline font-semibold">Bitwarden Vault</a>.
-                </p>
-              </div>
-            </div>
-
-            {/* ─── VIEW 1: 23 PERSONAL MEMBER LOGINS ─────────────────────────── */}
-            {accountsViewMode === 'members' && (
-              <>
-                {/* Desktop Member Table */}
-                <div className="hidden sm:block overflow-x-auto">
-                  <table className="w-full text-left text-xs font-mono">
-                    <thead className="bg-alice-blue border-b border-jet-black/10 text-grey uppercase tracking-wider">
-                      <tr>
-                        <th className="py-4 px-6">Member Name</th>
-                        <th className="py-4 px-6">Personal Gmail</th>
-                        <th className="py-4 px-6">Role &amp; Domain</th>
-                        <th className="py-4 px-6">Access Tier</th>
-                        <th className="py-4 px-6">6-Digit PIN</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-jet-black/5">
-                      {ROSTER_MEMBERS.map((m) => {
-                        const cred = memberCredentials.find((c) => c.email.toLowerCase() === m.email.toLowerCase());
-                        const activePin = cred?.password || '935200';
-                        const isCustom = Boolean(cred?.isCustom);
-
-                        return (
-                          <tr key={m.id} className="hover:bg-alice-blue/40 transition-colors">
-                            <td className="py-4 px-6 font-bold text-jet-black font-sans text-sm">
-                              {m.name}
-                            </td>
-                            <td className="py-4 px-6 text-grey font-mono select-all">
-                              {m.email}
-                            </td>
-                            <td className="py-4 px-6">
-                              <span className="font-semibold text-jet-black">{m.role}</span>
-                              <span className="text-[10px] text-zinc-500 ml-1.5 font-mono">{m.teamId.toUpperCase()}</span>
-                            </td>
-                            <td className="py-4 px-6">
-                              {m.isCore ? (
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-orange/20 text-orange border border-orange/30">
-                                  Tier 1 • Core Master
-                                </span>
-                              ) : m.isLead ? (
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-sky-500/15 text-sky-700 border border-sky-300">
-                                  Tier 2 • Domain Lead
-                                </span>
-                              ) : (
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-jet-black/10 text-grey">
-                                  Tier 3 • Member
-                                </span>
-                              )}
-                            </td>
-                            <td className="py-4 px-6 font-mono text-orange font-bold select-all">
-                              <div className="flex items-center gap-2">
-                                <span className="tracking-widest">
-                                  {showCredentialsPasswords ? activePin : '••••••'}
-                                </span>
-                                {isCustom ? (
-                                  <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-mono font-bold">
-                                    CUSTOM
-                                  </span>
-                                ) : (
-                                  <span className="px-1.5 py-0.5 rounded bg-jet-black/5 text-grey text-[9px] font-mono">
-                                    DEFAULT
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Mobile Member Cards */}
-                <div className="sm:hidden space-y-3 p-4">
-                  {ROSTER_MEMBERS.map((m) => {
-                    const cred = memberCredentials.find((c) => c.email.toLowerCase() === m.email.toLowerCase());
-                    const activePin = cred?.password || '935200';
-                    const isCustom = Boolean(cred?.isCustom);
-
-                    return (
-                      <div key={m.id} className="bg-alice-blue/40 border border-jet-black/10 rounded-2xl p-4 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-jet-black text-sm">{m.name}</span>
-                          {m.isCore ? (
-                            <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase bg-orange/20 text-orange">
-                              Tier 1 • Core
-                            </span>
-                          ) : m.isLead ? (
-                            <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase bg-sky-500/15 text-sky-700">
-                              Tier 2 • Lead
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase bg-jet-black/10 text-grey">
-                              Tier 3
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs font-mono text-grey break-all select-all">{m.email}</div>
-                        <div className="text-xs text-jet-black">
-                          {m.role} <span className="text-zinc-500 font-mono text-[11px]">{m.teamId.toUpperCase()}</span>
-                        </div>
-                        <div className="flex items-center justify-between bg-white rounded-xl px-3 py-2 border border-jet-black/10">
-                          <span className="text-[10px] font-mono uppercase text-grey">6-Digit PIN:</span>
-                          <div className="flex items-center gap-2">
-                            <code className="text-sm font-bold font-mono text-orange tracking-widest select-all">
-                              {showCredentialsPasswords ? activePin : '••••••'}
-                            </code>
-                            {isCustom ? (
-                              <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[8px] font-mono font-bold">
-                                CUSTOM
-                              </span>
-                            ) : (
-                              <span className="px-1.5 py-0.5 rounded bg-jet-black/5 text-grey text-[8px] font-mono">
-                                DEFAULT
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-
-            {/* ─── VIEW 2: LEGACY SUBSYSTEM SQUADS ───────────────────────────── */}
-            {accountsViewMode === 'teams' && (
-              <>
-                {/* Desktop Table View */}
-                <div className="hidden sm:block overflow-x-auto">
-                  <table className="w-full text-left text-xs font-mono">
-                    <thead className="bg-alice-blue border-b border-jet-black/10 text-grey uppercase tracking-wider">
-                      <tr>
-                        <th className="py-4 px-6">Subsystem Team</th>
-                        <th className="py-4 px-6">Login Email</th>
-                        <th className="py-4 px-6">Password</th>
-                        <th className="py-4 px-6">Access Level</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-jet-black/5">
-                      {ALL_TEAMS.map((team) => {
-                        const cred = teamCredentials[team.id];
-                        const activePass = cred?.password || team.defaultPass;
-                        const isCustom = Boolean(cred?.isCustom);
-
-                        return (
-                          <tr key={team.id} className="hover:bg-alice-blue/40 transition-colors">
-                            <td className="py-4 px-6 font-bold text-jet-black">
-                              <span className="text-[10px] text-grey mr-2">[{team.code}]</span>
-                              <span>{team.name}</span>
-                            </td>
-                            <td className="py-4 px-6 text-grey font-mono select-all">
-                              {team.email}
-                            </td>
-                            <td className="py-4 px-6 font-mono text-orange font-bold select-all">
-                              <div className="flex items-center gap-2">
-                                <span>{showCredentialsPasswords ? activePass : '••••••••••••'}</span>
-                                {isCustom && (
-                                  <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-mono font-bold tracking-wider">
-                                    UPDATED
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                            <td className="py-4 px-6">
-                              <span className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase ${
-                                team.id === 'core'
-                                  ? 'bg-orange/20 text-orange'
-                                  : 'bg-jet-black/10 text-jet-black'
-                              }`}>
-                                {team.id === 'core' ? 'Core Leadership' : 'Subsystem Squad'}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Mobile Card View */}
-                <div className="sm:hidden space-y-3 p-4">
-                  {ALL_TEAMS.map((team) => {
-                    const cred = teamCredentials[team.id];
-                    const activePass = cred?.password || team.defaultPass;
-                    const isCustom = Boolean(cred?.isCustom);
-
-                    return (
-                      <div key={team.id} className="bg-alice-blue/40 border border-jet-black/10 rounded-xl p-4 space-y-2.5">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-jet-black/10 font-bold">[{team.code}]</span>
-                            <span className="text-sm font-bold text-jet-black">{team.name}</span>
-                          </div>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                            team.id === 'core' ? 'bg-orange/20 text-orange' : 'bg-jet-black/10 text-jet-black'
-                          }`}>
-                            {team.id === 'core' ? 'Admin' : 'Squad'}
-                          </span>
-                        </div>
-                        <div className="text-xs font-mono text-grey break-all select-all">{team.email}</div>
-                        <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-jet-black/10">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-mono uppercase text-grey font-medium">Pass:</span>
-                            {isCustom && (
-                              <span className="px-1 py-0.2 rounded bg-emerald-100 text-emerald-800 text-[8px] font-mono font-bold">
-                                UPDATED
-                              </span>
-                            )}
-                          </div>
-                          <code className="text-sm font-bold font-mono text-orange select-all">
-                            {showCredentialsPasswords ? activePass : '••••••••'}
-                          </code>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-          </div>
+          <CredentialsVaultTab
+            memberCredentials={memberCredentials}
+            teamCredentials={teamCredentials}
+            loadCredentials={loadCredentials}
+          />
         )}
 
+        {/* Tab 8: Personal Profile */}
+        {activeTab === 'profile' && (
+          <ProfileView
+            user={user}
+            tier={tier}
+            logout={logout}
+            isInstalled={isInstalled}
+            installApp={installApp}
+          />
+        )}
       </div>
 
-      {/* =========================================================================
-          TASK DETAIL MODAL
-          View deliverables, change status, edit details, or log work
-         ========================================================================= */}
-      <TaskDetailModal
-        task={selectedTask}
-        isOpen={isDetailModalOpen}
-        onClose={() => {
-          setIsDetailModalOpen(false);
-          setSelectedTask(null);
-        }}
-        onTaskUpdated={handleModalTaskUpdated}
-        onTaskDeleted={handleModalTaskDeleted}
-        canEdit={isCoreAdmin || (selectedTask ? user.teamId === selectedTask.teamId : false)}
-        canDelete={isCoreAdmin || (selectedTask ? user.teamId === selectedTask.teamId : false)}
-        isAdmin={isCoreAdmin}
-        onCompleteWithVideo={(task) => {
-          setIsDetailModalOpen(false);
-          setSelectedTask(null);
-          setTaskToComplete(task);
-          setIsCompleteModalOpen(true);
+      {/* Task Detail Modal */}
+      {selectedTask && (
+        <TaskDetailModal
+          isOpen={isDetailModalOpen}
+          onClose={() => {
+            setIsDetailModalOpen(false);
+            setSelectedTask(null);
+          }}
+          task={selectedTask}
+          canEdit={Boolean(isCoreAdmin || (user && (user.teamId === selectedTask.teamId || isTaskAssignedToUser(selectedTask, user))))}
+          canDelete={Boolean(isCoreAdmin || (user && user.teamId === selectedTask.teamId))}
+          isAdmin={isCoreAdmin}
+          onTaskUpdated={handleModalTaskUpdated}
+          onTaskDeleted={handleModalTaskDeleted}
+        />
+      )}
+
+      {/* Complete Task with Video Proof Modal */}
+      {taskToComplete && (
+        <TaskCompleteModal
+          isOpen={isCompleteModalOpen}
+          onClose={() => {
+            setIsCompleteModalOpen(false);
+            setTaskToComplete(null);
+          }}
+          task={taskToComplete}
+          onTaskCompleted={(updated: Task, createdLog?: WorkLog) => {
+            handleModalTaskUpdated(updated);
+            if (createdLog) {
+              setLogs((prev) => [createdLog, ...prev]);
+            }
+            setIsCompleteModalOpen(false);
+            setTaskToComplete(null);
+          }}
+        />
+      )}
+
+      {/* Create Deliverable Modal */}
+      <CreateTaskModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        isCoreAdmin={isCoreAdmin}
+        defaultTeam={user.teamId !== 'core' ? user.teamId : 'mechanical'}
+        onSubmit={handleCreateTask}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteTaskModal
+        task={cardTaskToDelete}
+        isDeleting={isDeletingCardTask}
+        onCancel={() => setCardTaskToDelete(null)}
+        onConfirm={confirmDeleteCardTask}
+      />
+
+      {/* Core Admin Database Backup & Reset Modal */}
+      <BackupSyncModal
+        isOpen={isBackupModalOpen && isCoreAdmin}
+        onClose={() => setIsBackupModalOpen(false)}
+        backupStatus={backupStatus}
+        isResetting={isResetting}
+        onExportBackup={handleExportBackup}
+        onResetDatabase={handleResetDatabase}
+      />
+
+      {/* Real-time Team Moves Activity Drawer */}
+      <ActivityDrawer
+        isOpen={isActivityDrawerOpen}
+        onClose={() => setIsActivityDrawerOpen(false)}
+        activities={activities}
+        tasks={tasks}
+        activitySubsystemFilter={activitySubsystemFilter}
+        setActivitySubsystemFilter={setActivitySubsystemFilter}
+        onOpenTaskDetail={handleOpenTaskDetail}
+        onMarkRead={() => {
+          const now = Date.now();
+          setLastReadActivityTimestamp(now);
+          localStorage.setItem('siep_last_read_activity', String(now));
         }}
       />
 
-      {/* =========================================================================
-          TASK COMPLETE WITH VIDEO EVIDENCE MODAL
-          When marking a task done, allows uploading video or pasting link,
-          with all metadata carried forward into the work log!
-         ========================================================================= */}
-      <TaskCompleteModal
-        task={taskToComplete}
-        isOpen={isCompleteModalOpen}
-        onClose={() => {
-          setIsCompleteModalOpen(false);
-          setTaskToComplete(null);
-        }}
-        onTaskCompleted={(updatedTask, createdLog) => {
-          const nextTasks = tasks.map((t) => (t.id === updatedTask.id ? updatedTask : t));
-          persistTasksLocal(nextTasks);
-          if (createdLog) {
-            setLogs((prev) => [createdLog, ...prev]);
-          }
-          setIsCompleteModalOpen(false);
-          setTaskToComplete(null);
+      {/* Floating Status Reversal Toast */}
+      <UndoToast
+        undoState={undoState}
+        onUndo={handleUndoMoveStatus}
+        onDismiss={() => setUndoState(null)}
+      />
+
+      {/* Slide-Up Operations Hub Modal */}
+      <OperationsHubModal
+        isOpen={isMobileQuickMenuOpen}
+        onClose={() => setIsMobileQuickMenuOpen(false)}
+        user={user}
+        isOnline={isOnline}
+        pendingQueueCount={pendingQueueCount}
+        isCore={isCore}
+        isLead={isLead}
+        isCoreAdmin={isCoreAdmin}
+        tasks={tasks}
+        myAssignedCount={myAssignedCount}
+        videoLogsCount={videoLogsCount}
+        activities={activities}
+        unreadActivitiesCount={unreadActivitiesCount}
+        completedTasks={completedTasks}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        setIsActivityDrawerOpen={setIsActivityDrawerOpen}
+        setIsCreateModalOpen={setIsCreateModalOpen}
+        setIsBackupModalOpen={setIsBackupModalOpen}
+        handleOpenActivityDrawer={handleOpenActivityDrawer}
+        selectedSubsystemFilter={selectedSubsystemFilter}
+        setSelectedSubsystemFilter={setSelectedSubsystemFilter}
+        isManualSyncing={isManualSyncing}
+        handleManualSync={handleManualSync}
+        isInstalled={isInstalled}
+        installApp={installApp}
+        onSignOut={async () => {
+          setIsMobileQuickMenuOpen(false);
+          await logout();
+          router.push('/login');
         }}
       />
 
-      {/* =========================================================================
-          CREATE TASK MODAL
-          Clean modal with validation, member checkbox list, and due date
-         ========================================================================= */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-[200] bg-jet-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white border-2 border-orange/40 rounded-2xl w-full max-w-lg p-4 sm:p-8 max-h-[90vh] my-auto overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200 space-y-5">
-            
-            <div className="flex items-center justify-between pb-4 border-b border-jet-black/10">
-              <div>
-                <h3 className="text-lg font-bold text-jet-black">
-                  Create New Task
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsCreateModalOpen(false)}
-                className="text-grey hover:text-jet-black text-sm p-1.5 cursor-pointer rounded-lg hover:bg-alice-blue"
-              >
-                ✕
-              </button>
-            </div>
-
-            {createError && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 font-mono">
-                {createError}
-              </div>
-            )}
-
-            <form onSubmit={handleCreateTask} className="space-y-4">
-              
-              <div>
-                <label className="block text-xs font-mono uppercase text-grey mb-1.5 font-medium">
-                  Task Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newTaskTitle}
-                  onChange={(e) => setNewTaskTitle(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-sm font-medium focus:ring-2 focus:ring-orange focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono uppercase text-grey mb-1.5 font-medium">
-                  Task Scope / Deliverables
-                </label>
-                <textarea
-                  rows={2}
-                  value={newTaskDesc}
-                  onChange={(e) => setNewTaskDesc(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs focus:ring-2 focus:ring-orange focus:outline-none leading-relaxed"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-mono uppercase text-grey mb-1.5 font-medium">
-                    Assign Subsystem Team
-                  </label>
-                  <select
-                    disabled={!isCoreAdmin}
-                    value={newTaskTeam}
-                    onChange={(e) => {
-                      setNewTaskTeam(e.target.value as TeamId);
-                      setNewTaskMembers([]);
-                    }}
-                    className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none disabled:bg-zinc-100"
-                  >
-                    {TEAMS_LIST.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        [{t.code}] {t.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-mono uppercase text-grey mb-1.5 font-medium">
-                    Priority Level
-                  </label>
-                  <select
-                    value={newTaskPriority}
-                    onChange={(e) => setNewTaskPriority(e.target.value as TaskPriority)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
-                  >
-                    <option value="low">Low Priority</option>
-                    <option value="medium">Medium Priority</option>
-                    <option value="high">High Priority</option>
-                    <option value="urgent">Urgent</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Checkbox member selector */}
-              <div>
-                <label className="block text-xs font-mono uppercase text-grey mb-1.5 font-medium">
-                  Assigned Members (Tick from list)
-                </label>
-                <MemberSelect
-                  teamId={newTaskTeam}
-                  selectedMembers={newTaskMembers}
-                  onChange={setNewTaskMembers}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-mono uppercase text-grey mb-1.5 font-medium">
-                    Initial Status
-                  </label>
-                  <select
-                    value={newTaskStatus}
-                    onChange={(e) => setNewTaskStatus(e.target.value as TaskStatus)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
-                  >
-                    <option value="todo">To Do</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="review">Under Review</option>
-                    <option value="done">Completed</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-mono uppercase text-grey mb-1.5 font-medium">
-                    Target Due Date
-                  </label>
-                  <input
-                    type="date"
-                    value={newTaskDueDate}
-                    onChange={(e) => setNewTaskDueDate(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-jet-black/15 text-base sm:text-xs font-mono focus:ring-2 focus:ring-orange focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-jet-black/10 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl border border-jet-black/20 text-xs font-mono uppercase cursor-pointer hover:bg-alice-blue transition-colors font-medium w-full sm:w-auto text-center"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmittingTask}
-                  className="px-6 py-3 sm:py-2.5 rounded-xl bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 w-full sm:w-auto"
-                >
-                  {isSubmittingTask ? 'Assigning...' : 'Assign Task →'}
-                </button>
-              </div>
-
-            </form>
-
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          DATABASE BACKUP / RESTORE MODAL (Core/Admin Only)
-         ========================================================================= */}
-      {isBackupModalOpen && isCoreAdmin && (
-        <div className="fixed inset-0 z-[200] bg-jet-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white border-2 border-jet-black/20 rounded-2xl w-full max-w-md p-6 sm:p-8 max-h-[90vh] my-auto overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200 space-y-5">
-            
-            <div className="flex items-center justify-between pb-4 border-b border-jet-black/10">
-              <div>
-                <span className="text-[10px] font-mono uppercase tracking-widest text-orange font-bold block">
-                  Admin Utilities
-                </span>
-                <h3 className="text-lg font-bold text-jet-black">
-                  Database Backup &amp; Sync
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsBackupModalOpen(false)}
-                className="text-grey hover:text-jet-black text-sm p-1.5 cursor-pointer rounded-lg hover:bg-alice-blue"
-              >
-                ✕
-              </button>
-            </div>
-
-            {backupStatus && (
-              <div className="p-3 bg-alice-blue border border-jet-black/10 rounded-xl text-xs font-mono text-jet-black">
-                {backupStatus}
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <div className="p-4 bg-alice-blue/50 rounded-xl border border-jet-black/5 space-y-2">
-                <h4 className="text-xs font-mono font-bold uppercase text-jet-black">
-                  1. Download Database Backup
-                </h4>
-                <p className="text-xs text-grey leading-relaxed">
-                  Export all current tasks, work logs, and team inquiries into a JSON backup file for safe keeping.
-                </p>
-                <button
-                  type="button"
-                  onClick={handleExportBackup}
-                  className="w-full py-2.5 px-4 bg-jet-black text-alice-blue hover:bg-orange transition-all font-bold text-xs uppercase font-mono rounded-xl shadow-sm cursor-pointer"
-                >
-                  Download .JSON Backup ⤓
-                </button>
-              </div>
-
-              <div className="p-4 bg-red-50/50 rounded-xl border border-red-200/60 space-y-2">
-                <h4 className="text-xs font-mono font-bold uppercase text-red-600">
-                  2. Clear &amp; Reset Database
-                </h4>
-                <p className="text-xs text-grey leading-relaxed">
-                  Reset the database to a clean, empty state with zero tasks and logs.
-                </p>
-                <button
-                  type="button"
-                  disabled={isResetting}
-                  onClick={handleResetDatabase}
-                  className="w-full py-2.5 px-4 bg-white text-red-600 border border-red-300 hover:bg-red-600 hover:text-white transition-all font-bold text-xs uppercase font-mono rounded-xl cursor-pointer disabled:opacity-50"
-                >
-                  {isResetting ? 'Resetting...' : 'Clear Database ↺'}
-                </button>
-              </div>
-            </div>
-
-            <div className="pt-2 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setIsBackupModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-mono uppercase text-grey hover:text-jet-black cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          CUSTOM DELETE TASK CONFIRMATION MODAL (Board Cards)
-         ========================================================================= */}
-      {cardTaskToDelete && (
-        <div className="fixed inset-0 z-[250] bg-jet-black/75 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white border-2 border-red-500/30 rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-150 space-y-4">
-            
-            <div className="flex items-start gap-3.5">
-              <div className="w-11 h-11 rounded-xl bg-red-50 border border-red-200/80 text-red-600 flex items-center justify-center shrink-0">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </div>
-              <div className="space-y-1">
-                <h4 className="text-base font-bold text-jet-black tracking-tight">
-                  Delete Task Permanently?
-                </h4>
-                <p className="text-xs text-grey leading-relaxed">
-                  Are you sure you want to delete this task? This action cannot be undone and will remove it from Cloud Firestore.
-                </p>
-              </div>
-            </div>
-
-            <div className="p-3 bg-alice-blue/70 rounded-xl border border-jet-black/10 space-y-1.5">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-grey block font-bold">Task:</span>
-              <p className="text-sm font-bold text-jet-black line-clamp-2 leading-snug">{cardTaskToDelete.title}</p>
-              <div className="flex items-center gap-2 pt-0.5">
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-jet-black/5 text-jet-black border border-jet-black/10">
-                  Team: {cardTaskToDelete.teamId}
-                </span>
-                <span className="text-[10px] font-mono text-grey">ID: {cardTaskToDelete.id}</span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-jet-black/10">
-              <button
-                type="button"
-                disabled={isDeletingCardTask}
-                onClick={() => setCardTaskToDelete(null)}
-                className="px-4 py-2.5 rounded-xl border border-jet-black/15 text-xs font-mono font-bold text-grey hover:text-jet-black hover:bg-alice-blue transition-all cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={isDeletingCardTask}
-                onClick={confirmDeleteCardTask}
-                className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-mono font-bold transition-all shadow-sm cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-              >
-                {isDeletingCardTask ? (
-                  <>
-                    <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                    </svg>
-                    <span>Deleting...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Confirm Delete</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          FLOATING UNDO ACTION TOAST
-          Appears when a task status is advanced or moved, allowing quick 1-click reversal
-         ========================================================================= */}
-      {undoState && (
-        <div className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-[300] bg-jet-black text-white px-4 py-3 rounded-2xl shadow-2xl border border-white/10 flex items-center gap-3.5 text-xs font-sans animate-in fade-in slide-in-from-bottom-3 duration-200">
-          <span className="w-2 h-2 rounded-full bg-orange animate-pulse"></span>
-          <span className="max-w-[240px] sm:max-w-md truncate text-zinc-200 font-medium">
-            {undoState.message}
-          </span>
-          <button
-            type="button"
-            onClick={handleUndoMoveStatus}
-            className="px-3 py-1.5 rounded-lg bg-orange text-jet-black font-bold hover:bg-amber-400 active:scale-95 transition-all cursor-pointer text-xs"
-          >
-            Undo
-          </button>
-          <button
-            type="button"
-            onClick={() => setUndoState(null)}
-            className="text-zinc-400 hover:text-white p-1 cursor-pointer transition-colors text-xs"
-            title="Dismiss"
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
-      {/* =========================================================================
-          SLIDE-OVER TEAM ACTIVITY DRAWER
-          Real-time chronological audit trail of all squad moves
-         ========================================================================= */}
-      {isActivityDrawerOpen && (
-        <div className="fixed inset-0 z-[250] flex justify-end">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-jet-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
-            onClick={() => setIsActivityDrawerOpen(false)}
-          />
-
-          {/* Drawer Panel */}
-          <div className="relative w-full max-w-md h-full bg-white border-l-2 border-jet-black/15 shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-300">
-            {/* Drawer Header */}
-            <div className="p-5 border-b border-jet-black/10 bg-alice-blue/60 flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-orange animate-pulse"></span>
-                  <h3 className="text-base font-black text-jet-black tracking-tight">
-                    Squad Moves &amp; Live Activity
-                  </h3>
-                </div>
-                <p className="text-[11px] font-mono text-grey mt-0.5">
-                  Real-time audit log across all 8 squads + Core
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsActivityDrawerOpen(false)}
-                className="p-2 rounded-xl text-grey hover:text-jet-black hover:bg-jet-black/5 text-sm cursor-pointer"
-                aria-label="Close activity feed"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Subsystem Filter Pills */}
-            <div className="p-3 border-b border-jet-black/5 bg-white flex items-center gap-1.5 overflow-x-auto text-xs font-mono">
-              <button
-                type="button"
-                onClick={() => setActivitySubsystemFilter('all')}
-                className={`px-2.5 py-1 rounded-lg font-bold text-[10px] uppercase transition-all cursor-pointer shrink-0 ${
-                  activitySubsystemFilter === 'all'
-                    ? 'bg-jet-black text-white'
-                    : 'bg-alice-blue/60 text-grey hover:text-jet-black'
-                }`}
-              >
-                All Squads
-              </button>
-              {TEAMS_LIST.map((team) => (
-                <button
-                  key={team.id}
-                  type="button"
-                  onClick={() => setActivitySubsystemFilter(team.id)}
-                  className={`px-2 py-1 rounded-lg font-bold text-[10px] uppercase transition-all cursor-pointer shrink-0 ${
-                    activitySubsystemFilter === team.id
-                      ? 'bg-orange text-white'
-                      : 'bg-alice-blue/60 text-grey hover:text-jet-black'
-                  }`}
-                >
-                  [{team.code}]
-                </button>
-              ))}
-            </div>
-
-            {/* Activity Events List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {filteredActivities.length === 0 ? (
-                <div className="text-center py-16 text-grey text-xs font-mono space-y-2">
-                  <div className="w-10 h-10 mx-auto rounded-xl bg-jet-black/5 text-jet-black flex items-center justify-center font-bold text-xs tracking-wider border border-jet-black/10">
-                    FEED
-                  </div>
-                  <p className="font-semibold text-jet-black">No recent moves found</p>
-                  <p className="text-[11px] text-grey/70">
-                    Activity events automatically stream in as members check off deliverables and log work.
-                  </p>
-                </div>
-              ) : (
-                filteredActivities.map((act) => {
-                  const actTeam = TEAMS[act.teamId];
-                  const typeTagMap: Record<string, { label: string; color: string }> = {
-                    subtask_toggled: { label: 'CHECK', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-                    comment_added: { label: 'NOTE', color: 'bg-sky-50 text-sky-700 border-sky-200' },
-                    task_blocked: { label: 'BLOCKED', color: 'bg-red-50 text-red-700 border-red-200' },
-                    task_status: { label: 'STATUS', color: 'bg-purple-50 text-purple-700 border-purple-200' },
-                    task_created: { label: 'NEW', color: 'bg-orange/10 text-orange border-orange/20' },
-                    hours_logged: { label: 'HOURS', color: 'bg-amber-50 text-amber-700 border-amber-200' },
-                    log_submitted: { label: 'REPORT', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
-                  };
-                  const tag = typeTagMap[act.type] || { label: 'LOG', color: 'bg-alice-blue text-jet-black border-jet-black/10' };
-
-                  return (
-                    <div
-                      key={act.id}
-                      onClick={() => {
-                        if (act.taskId) {
-                          const target = tasks.find((t) => t.id === act.taskId);
-                          if (target) {
-                            setIsActivityDrawerOpen(false);
-                            handleOpenTaskDetail(target);
-                          }
-                        }
-                      }}
-                      className={`p-3.5 rounded-xl border transition-all text-xs font-mono space-y-1.5 ${
-                        act.taskId
-                          ? 'bg-alice-blue/30 border-jet-black/5 hover:border-orange/50 hover:bg-white cursor-pointer shadow-2xs'
-                          : 'bg-white border-jet-black/5'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="font-bold flex items-center gap-1.5">
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded border font-mono tracking-wider font-semibold ${tag.color}`}>
-                            {tag.label}
-                          </span>
-                          <span className="text-orange">[{actTeam?.code || act.teamId.toUpperCase()}]</span>
-                          <span className="text-jet-black">{act.memberName}</span>
-                        </span>
-                        <span className="text-grey/70">
-                          {new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-
-                      <div className="pl-1 text-jet-black/90 font-medium">
-                        {act.detail || act.title}
-                      </div>
-
-                      {act.title && act.detail !== act.title && (
-                        <div className="pl-1 text-[10px] text-grey truncate">
-                          Task: <strong>{act.title}</strong>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-            {/* Drawer Footer */}
-            <div className="p-4 border-t border-jet-black/10 bg-alice-blue/30 flex items-center justify-between text-[11px] font-mono text-grey">
-              <span>{filteredActivities.length} recent moves</span>
-              <button
-                type="button"
-                onClick={() => {
-                  const now = Date.now();
-                  setLastReadActivityTimestamp(now);
-                  localStorage.setItem('siep_last_read_activity', String(now));
-                }}
-                className="text-orange hover:text-jet-black font-bold cursor-pointer"
-              >
-                Mark Read
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          FLOATING QUICK FILTER PILL: MY TASKS (Kanban view)
-         ========================================================================= */}
-      {activeTab === 'kanban' && !isMobileQuickMenuOpen && !isActivityDrawerOpen && !isInputFocused && user && (
-        <div className="fixed bottom-20 sm:bottom-24 left-1/2 -translate-x-1/2 z-40 pointer-events-auto">
-          <button
-            type="button"
-            onClick={() => setAssignedToMeOnly(!assignedToMeOnly)}
-            className={`px-4 py-2 rounded-full text-xs font-mono font-bold shadow-lg transition-all flex items-center gap-2 border active:scale-95 cursor-pointer ${
-              assignedToMeOnly
-                ? 'bg-orange text-white border-orange shadow-orange/30'
-                : 'bg-white/95 backdrop-blur-md text-jet-black border-jet-black/15 shadow-black/10 hover:border-orange'
-            }`}
-          >
-            <span className={`w-2 h-2 rounded-full ${assignedToMeOnly ? 'bg-white' : 'bg-orange'}`} />
-            <span>{assignedToMeOnly ? 'Showing: My Deliverables' : `Filter: My Tasks (${myAssignedCount})`}</span>
-            {assignedToMeOnly && (
-              <span className="text-[10px] opacity-90 underline ml-0.5">Show All</span>
-            )}
-          </button>
-        </div>
-      )}
-
-      {/* =========================================================================
-          INSTAGRAM-STYLE BOTTOM NAVIGATION DOCK
-          Visible across all devices: flush at bottom on mobile, floating dock on desktop.
-         ========================================================================= */}
-      <nav
-        aria-label="Instagram Bottom Navigation"
-        className={`fixed z-50 transition-all duration-300 ${
-          isInputFocused ? 'translate-y-32 pointer-events-none opacity-0' : 'translate-y-0 opacity-100'
-        } bottom-0 left-0 right-0 sm:bottom-5 sm:left-1/2 sm:-translate-x-1/2 sm:w-[94%] sm:max-w-md sm:rounded-2xl sm:shadow-[0_12px_45px_rgba(0,0,0,0.18)] sm:border sm:border-jet-black/15 bg-white/95 backdrop-blur-xl border-t border-jet-black/10 px-3 pt-2 sm:py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]`}
-      >
-          <div className="flex items-center justify-between max-w-md mx-auto px-1 sm:px-2">
-            
-            {/* 1. Home / Task Board */}
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('kanban');
-                setIsActivityDrawerOpen(false);
-                setIsMobileQuickMenuOpen(false);
-              }}
-              title="Task Board"
-              className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all cursor-pointer group ${
-                activeTab === 'kanban' && !isActivityDrawerOpen && !isMobileQuickMenuOpen
-                  ? 'text-jet-black scale-105'
-                  : 'text-grey hover:text-jet-black'
-              }`}
-            >
-              <div className="relative">
-                {activeTab === 'kanban' && !isActivityDrawerOpen && !isMobileQuickMenuOpen ? (
-                  <svg className="w-6 h-6 text-jet-black" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-                  </svg>
-                ) : (
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                  </svg>
-                )}
-                {tasks.length > 0 && (
-                  <span className="absolute -top-1 -right-2 px-1 py-0.2 bg-jet-black/10 text-jet-black text-[9px] font-mono rounded-full font-bold">
-                    {tasks.length}
-                  </span>
-                )}
-              </div>
-              <span className={`text-[10px] font-mono tracking-tight mt-0.5 ${
-                activeTab === 'kanban' && !isActivityDrawerOpen && !isMobileQuickMenuOpen ? 'font-bold text-jet-black' : 'font-medium'
-              }`}>
-                Board
-              </span>
-            </button>
-
-            {/* 2. Explore / Squads */}
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('teams');
-                setIsActivityDrawerOpen(false);
-                setIsMobileQuickMenuOpen(false);
-              }}
-              title="Engineering Squads"
-              className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all cursor-pointer group ${
-                activeTab === 'teams' && !isActivityDrawerOpen && !isMobileQuickMenuOpen
-                  ? 'text-jet-black scale-105'
-                  : 'text-grey hover:text-jet-black'
-              }`}
-            >
-              <div className="relative">
-                {activeTab === 'teams' && !isActivityDrawerOpen && !isMobileQuickMenuOpen ? (
-                  <svg className="w-6 h-6 text-jet-black" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.88 9.54l-4.5 1.76a.5.5 0 01-.64-.64l1.76-4.5a.5.5 0 01.32-.32l4.5-1.76a.5.5 0 01.64.64l-1.76 4.5a.5.5 0 01-.32.32z" />
-                  </svg>
-                ) : (
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="9" strokeWidth="2" />
-                    <polygon points="16 8 13.5 13.5 8 16 10.5 10.5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </div>
-              <span className={`text-[10px] font-mono tracking-tight mt-0.5 ${
-                activeTab === 'teams' && !isActivityDrawerOpen && !isMobileQuickMenuOpen ? 'font-bold text-jet-black' : 'font-medium'
-              }`}>
-                Squads
-              </span>
-            </button>
-
-            {/* 3. Center Create [+] (The Signature Instagram Square Plus) */}
-            <button
-              type="button"
-              onClick={() => setIsMobileQuickMenuOpen(!isMobileQuickMenuOpen)}
-              title="Create & Hub"
-              className="flex flex-col items-center justify-center py-0.5 px-2 cursor-pointer group active:scale-95 transition-transform"
-            >
-              <div className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all ${
-                isMobileQuickMenuOpen
-                  ? 'border-orange bg-orange text-white rotate-45 shadow-md shadow-orange/30 scale-105'
-                  : 'border-jet-black bg-white text-jet-black group-hover:border-orange group-hover:text-orange group-hover:scale-105 shadow-2xs'
-              }`}>
-                <svg className="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
-                </svg>
-              </div>
-              <span className="text-[10px] font-mono tracking-tight mt-0.5 font-bold text-jet-black">
-                {isMobileQuickMenuOpen ? 'Close' : 'Create'}
-              </span>
-            </button>
-
-            {/* 4. Heart / Live Moves Activity */}
-            <button
-              type="button"
-              onClick={() => {
-                handleOpenActivityDrawer();
-                setIsMobileQuickMenuOpen(false);
-              }}
-              title="Team Moves & Alerts"
-              className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all cursor-pointer group ${
-                isActivityDrawerOpen
-                  ? 'text-rose-500 scale-105'
-                  : 'text-grey hover:text-jet-black'
-              }`}
-            >
-              <div className="relative">
-                <svg
-                  className={`w-6 h-6 transition-all ${
-                    isActivityDrawerOpen
-                      ? 'fill-rose-500 text-rose-500'
-                      : 'fill-none text-jet-black group-hover:text-rose-500'
-                  }`}
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-                {unreadActivitiesCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-white animate-pulse" />
-                )}
-              </div>
-              <span className={`text-[10px] font-mono tracking-tight mt-0.5 ${
-                isActivityDrawerOpen ? 'font-bold text-rose-500' : 'font-medium'
-              }`}>
-                Activity
-              </span>
-            </button>
-
-            {/* 5. Profile / Personal Workbench */}
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('my_tasks');
-                setIsActivityDrawerOpen(false);
-                setIsMobileQuickMenuOpen(false);
-              }}
-              title="My Assigned Tasks"
-              className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all cursor-pointer group ${
-                activeTab === 'my_tasks' && !isActivityDrawerOpen && !isMobileQuickMenuOpen
-                  ? 'scale-105'
-                  : 'text-grey hover:text-jet-black'
-              }`}
-            >
-              <div className="relative">
-                <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
-                  activeTab === 'my_tasks' && !isActivityDrawerOpen && !isMobileQuickMenuOpen
-                    ? 'border-orange ring-2 ring-orange/30 bg-orange/10'
-                    : 'border-jet-black/40 group-hover:border-jet-black bg-alice-blue/80'
-                }`}>
-                  <span className="text-[10px] font-mono font-bold uppercase text-jet-black">
-                    {user?.displayName ? user.displayName.slice(0, 2).toUpperCase() : 'ME'}
-                  </span>
-                </div>
-                {myAssignedCount > 0 && (
-                  <span className="absolute -top-1 -right-1.5 px-1.5 py-0.2 bg-orange text-white text-[9px] font-mono rounded-full font-bold">
-                    {myAssignedCount}
-                  </span>
-                )}
-              </div>
-              <span className={`text-[10px] font-mono tracking-tight mt-0.5 ${
-                activeTab === 'my_tasks' && !isActivityDrawerOpen && !isMobileQuickMenuOpen ? 'font-bold text-jet-black' : 'font-medium'
-              }`}>
-                Profile
-              </span>
-            </button>
-
-          </div>
-        </nav>
-
-      {/* =========================================================================
-          OPERATIONS HUB & CREATE SHEET (Instagram Style)
-          Slides up on mobile, centered modal dock on desktop.
-         ========================================================================= */}
-      {isMobileQuickMenuOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end sm:items-center sm:justify-center p-0 sm:p-4">
-          {/* Backdrop */}
-          <div
-            onClick={() => setIsMobileQuickMenuOpen(false)}
-            className="fixed inset-0 bg-jet-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
-          />
-
-          {/* Bottom Sheet Modal */}
-          <div className="relative bg-white rounded-t-3xl sm:rounded-2xl max-h-[85vh] sm:max-h-[80vh] w-full sm:max-w-lg flex flex-col shadow-2xl border border-jet-black/15 z-10 animate-in slide-in-from-bottom duration-200 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            {/* Handle & Header */}
-            <div className="pt-3 pb-2.5 px-5 flex flex-col items-center border-b border-jet-black/10">
-              <div className="w-12 h-1.5 bg-jet-black/20 rounded-full mb-3" />
-              <div className="w-full flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-orange animate-pulse" />
-                  <h3 className="text-sm font-mono font-bold uppercase tracking-wider text-jet-black">
-                    Operations Hub
-                  </h3>
-                  {isOnline ? (
-                    <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
-                      LIVE
-                    </span>
-                  ) : (
-                    <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 font-bold border border-amber-200">
-                      OFFLINE ({pendingQueueCount})
-                    </span>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsMobileQuickMenuOpen(false)}
-                  className="w-7 h-7 rounded-full bg-alice-blue flex items-center justify-center text-grey hover:text-jet-black font-bold text-xs cursor-pointer"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="w-full mt-2 flex items-center justify-between text-[11px] font-mono text-grey">
-                <span>Signed in: <strong className="text-jet-black">{user.displayName}</strong></span>
-                <span className="px-1.5 py-0.5 rounded bg-jet-black/5 text-jet-black font-bold uppercase">
-                  {user.teamId}
-                </span>
-              </div>
-            </div>
-
-            {/* Sheet Content Scrollable Area */}
-            <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(85vh-100px)]">
-
-              {/* Primary Action Buttons */}
-              <div className="grid grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsMobileQuickMenuOpen(false);
-                    setIsCreateModalOpen(true);
-                  }}
-                  className="p-3 rounded-2xl bg-orange text-white font-mono text-xs font-bold shadow-md shadow-orange/20 flex items-center justify-center gap-2 cursor-pointer active:scale-98 transition-transform"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span>New Deliverable</span>
-                </button>
-
-                {(isCore || isLead) ? (
-                  <Link
-                    href="/log"
-                    onClick={() => setIsMobileQuickMenuOpen(false)}
-                    className="p-3 rounded-2xl bg-jet-black text-alice-blue font-mono text-xs font-bold shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-98 transition-transform"
-                  >
-                    <span>Open Build Log</span>
-                    <span>→</span>
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleManualSync}
-                    disabled={isManualSyncing}
-                    className="p-3 rounded-2xl bg-alice-blue border border-jet-black/10 text-jet-black font-mono text-xs font-bold flex items-center justify-center gap-2 cursor-pointer active:scale-98 transition-transform"
-                  >
-                    <svg className={`w-4 h-4 ${isManualSyncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    <span>{isManualSyncing ? 'Syncing...' : 'Sync Database'}</span>
-                  </button>
-                )}
-              </div>
-
-              {/* All Views Grid */}
-              <div className="space-y-1.5">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-grey font-bold">
-                  All Portals &amp; Views
-                </span>
-                <div className="grid grid-cols-2 gap-2">
-                  
-                  {/* Task Board */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab('kanban');
-                      setIsActivityDrawerOpen(false);
-                      setIsMobileQuickMenuOpen(false);
-                    }}
-                    className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
-                      activeTab === 'kanban' && !isActivityDrawerOpen
-                        ? 'border-orange bg-orange/5 text-jet-black font-bold'
-                        : 'border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black'
-                    }`}
-                  >
-                    <svg className="w-5 h-5 text-jet-black shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-                    </svg>
-                    <div className="truncate">
-                      <div className="text-xs font-mono font-bold truncate">Task Board</div>
-                      <div className="text-[10px] text-grey font-mono truncate">{tasks.length} deliverables</div>
-                    </div>
-                  </button>
-
-                  {/* My Tasks */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab('my_tasks');
-                      setIsActivityDrawerOpen(false);
-                      setIsMobileQuickMenuOpen(false);
-                    }}
-                    className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
-                      activeTab === 'my_tasks' && !isActivityDrawerOpen
-                        ? 'border-orange bg-orange/5 text-jet-black font-bold'
-                        : 'border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black'
-                    }`}
-                  >
-                    <svg className="w-5 h-5 text-jet-black shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                    </svg>
-                    <div className="truncate">
-                      <div className="text-xs font-mono font-bold truncate">My Workbench</div>
-                      <div className="text-[10px] text-orange font-mono font-bold truncate">{myAssignedCount} assigned</div>
-                    </div>
-                  </button>
-
-                  {/* Squads */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab('teams');
-                      setIsActivityDrawerOpen(false);
-                      setIsMobileQuickMenuOpen(false);
-                    }}
-                    className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
-                      activeTab === 'teams' && !isActivityDrawerOpen
-                        ? 'border-orange bg-orange/5 text-jet-black font-bold'
-                        : 'border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black'
-                    }`}
-                  >
-                    <svg className="w-5 h-5 text-jet-black shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <circle cx="12" cy="12" r="9" strokeWidth="2" />
-                      <polygon points="16 8 13.5 13.5 8 16 10.5 10.5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <div className="truncate">
-                      <div className="text-xs font-mono font-bold truncate">9 Subsystems</div>
-                      <div className="text-[10px] text-grey font-mono truncate">Squad leads &amp; tasks</div>
-                    </div>
-                  </button>
-
-                  {/* Master Video Gallery */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab('videos');
-                      setIsActivityDrawerOpen(false);
-                      setIsMobileQuickMenuOpen(false);
-                    }}
-                    className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
-                      activeTab === 'videos' && !isActivityDrawerOpen
-                        ? 'border-orange bg-orange/5 text-jet-black font-bold'
-                        : 'border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black'
-                    }`}
-                  >
-                    <svg className="w-5 h-5 text-jet-black shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    <div className="truncate">
-                      <div className="text-xs font-mono font-bold truncate">Video Archive</div>
-                      <div className="text-[10px] text-grey font-mono truncate">{videoLogsCount} clips stream</div>
-                    </div>
-                  </button>
-
-                  {/* Live Moves Feed */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleOpenActivityDrawer();
-                      setIsMobileQuickMenuOpen(false);
-                    }}
-                    className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
-                      isActivityDrawerOpen
-                        ? 'border-orange bg-orange/5 text-jet-black font-bold'
-                        : 'border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black'
-                    }`}
-                  >
-                    <svg className="w-5 h-5 text-jet-black shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    <div className="truncate">
-                      <div className="text-xs font-mono font-bold truncate">Live Moves Feed</div>
-                      <div className="text-[10px] text-grey font-mono truncate">
-                        {unreadActivitiesCount > 0 ? `${unreadActivitiesCount} unread` : `${activities.length} moves`}
-                      </div>
-                    </div>
-                  </button>
-
-                  {/* Team Metrics & Velocity */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab('metrics');
-                      setIsActivityDrawerOpen(false);
-                      setIsMobileQuickMenuOpen(false);
-                    }}
-                    className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
-                      activeTab === 'metrics' && !isActivityDrawerOpen
-                        ? 'border-orange bg-orange/5 text-jet-black font-bold'
-                        : 'border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black'
-                    }`}
-                  >
-                    <svg className="w-5 h-5 text-jet-black shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    <div className="truncate">
-                      <div className="text-xs font-mono font-bold truncate">Velocity &amp; Metrics</div>
-                      <div className="text-[10px] text-grey font-mono truncate">{completedTasks}/{tasks.length} done</div>
-                    </div>
-                  </button>
-
-                  {/* Core Admin Credentials */}
-                  {isCoreAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('accounts');
-                        setIsActivityDrawerOpen(false);
-                        setIsMobileQuickMenuOpen(false);
-                      }}
-                      className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
-                        activeTab === 'accounts' && !isActivityDrawerOpen
-                          ? 'border-orange bg-orange/5 text-jet-black font-bold'
-                          : 'border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black'
-                      }`}
-                    >
-                      <svg className="w-5 h-5 text-jet-black shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                      </svg>
-                      <div className="truncate">
-                        <div className="text-xs font-mono font-bold truncate">Team Credentials</div>
-                        <div className="text-[10px] text-orange font-mono font-bold truncate">Core Admin Only</div>
-                      </div>
-                    </button>
-                  )}
-
-                  {/* Core Admin Backup & Sync */}
-                  {isCoreAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsMobileQuickMenuOpen(false);
-                        setIsBackupModalOpen(true);
-                      }}
-                      className="p-3 rounded-xl border border-jet-black/10 bg-white hover:bg-alice-blue/60 text-jet-black text-left flex items-center gap-2.5 transition-all cursor-pointer"
-                    >
-                      <svg className="w-5 h-5 text-jet-black shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
-                      </svg>
-                      <div className="truncate">
-                        <div className="text-xs font-mono font-bold truncate">Backup / Sync</div>
-                        <div className="text-[10px] text-grey font-mono truncate">JSON export &amp; reset</div>
-                      </div>
-                    </button>
-                  )}
-
-                </div>
-              </div>
-
-              {/* Instant Subsystem Filter Row */}
-              <div className="space-y-1.5 pt-1 border-t border-jet-black/10">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-grey font-bold">
-                    Instant Squad Filter on Board
-                  </span>
-                  {selectedSubsystemFilter !== 'all' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedSubsystemFilter('all');
-                        setActiveTab('kanban');
-                        setIsMobileQuickMenuOpen(false);
-                      }}
-                      className="text-[10px] font-mono text-orange font-bold cursor-pointer underline"
-                    >
-                      Clear Filter
-                    </button>
-                  )}
-                </div>
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 hide-scrollbar">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedSubsystemFilter('all');
-                      setActiveTab('kanban');
-                      setIsMobileQuickMenuOpen(false);
-                    }}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-mono whitespace-nowrap cursor-pointer transition-all ${
-                      selectedSubsystemFilter === 'all'
-                        ? 'bg-jet-black text-white font-bold'
-                        : 'bg-alice-blue text-jet-black border border-jet-black/10'
-                    }`}
-                  >
-                    All Squads
-                  </button>
-                  {TEAMS_LIST.map((tm) => (
-                    <button
-                      key={tm.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedSubsystemFilter(tm.id);
-                        setActiveTab('kanban');
-                        setIsMobileQuickMenuOpen(false);
-                      }}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-mono whitespace-nowrap cursor-pointer transition-all flex items-center gap-1 ${
-                        selectedSubsystemFilter === tm.id
-                          ? 'bg-orange text-white font-bold'
-                          : 'bg-alice-blue text-jet-black border border-jet-black/10'
-                      }`}
-                    >
-                      <span>[{tm.code}]</span>
-                      <span>{tm.shortName}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Mobile Utilities & Sign Out */}
-              <div className="pt-2 border-t border-jet-black/10 flex items-center justify-between gap-3 text-xs font-mono">
-                {!isInstalled && installApp ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      installApp();
-                      setIsMobileQuickMenuOpen(false);
-                    }}
-                    className="px-3 py-2 rounded-xl bg-jet-black text-alice-blue font-bold flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    <span>Install Web App</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleManualSync}
-                    disabled={isManualSyncing}
-                    className="text-grey hover:text-jet-black flex items-center gap-1 cursor-pointer"
-                  >
-                    <svg className={`w-3.5 h-3.5 ${isManualSyncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    <span>{isManualSyncing ? 'Syncing...' : 'Force Sync'}</span>
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setIsMobileQuickMenuOpen(false);
-                    await logout();
-                    router.push('/login');
-                  }}
-                  className="text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1.5 cursor-pointer py-1 px-2 rounded-lg hover:bg-rose-50"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  <span>Sign Out</span>
-                </button>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Instagram-Style Bottom Navigation Dock */}
+      <BottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        filteredTasksCount={filteredTasks.length}
+        myAssignedCount={myAssignedCount}
+        isCore={isCore}
+        isLead={isLead}
+        userDisplayName={user.displayName}
+        isInputFocused={isInputFocused}
+        isCreateActionSheetOpen={isCreateActionSheetOpen}
+        setIsCreateActionSheetOpen={setIsCreateActionSheetOpen}
+        setIsActivityDrawerOpen={setIsActivityDrawerOpen}
+        setIsMobileQuickMenuOpen={setIsMobileQuickMenuOpen}
+        openCreateModal={() => setIsCreateModalOpen(true)}
+      />
     </main>
   );
 }

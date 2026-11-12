@@ -497,40 +497,39 @@ export default function Navigation() {
             {user ? (
               /* Authenticated Member Instagram Bottom Bar */
               <>
-                {/* 1. Board */}
+                {/* 1. Dashboard */}
                 <Link
-                  href="/dashboard"
-                  title="Task Board"
+                  href="/dashboard?tab=dashboard"
+                  title="Executive Dashboard"
                   className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all group ${
                     pathname === '/dashboard' ? 'text-jet-black font-bold scale-105' : 'text-grey hover:text-jet-black'
                   }`}
                 >
                   <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                    <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
                   </svg>
                   <span className="text-[10px] font-mono tracking-tight mt-0.5 font-bold text-jet-black">
-                    Board
+                    Dashboard
                   </span>
                 </Link>
 
-                {/* 2. Squads */}
+                {/* 2. Team Tasks (Scoped to User's Domains) */}
                 <Link
-                  href="/dashboard?tab=teams"
-                  title="Engineering Squads"
+                  href="/dashboard?tab=team_tasks"
+                  title="Team Deliverables & Tasks"
                   className="flex flex-col items-center justify-center py-1 px-2.5 transition-all text-grey hover:text-jet-black group"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="9" strokeWidth="2" />
-                    <polygon points="16 8 13.5 13.5 8 16 10.5 10.5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                   </svg>
-                  <span className="text-[10px] font-mono tracking-tight mt-0.5">Squads</span>
+                  <span className="text-[10px] font-mono tracking-tight mt-0.5">Team Tasks</span>
                 </Link>
 
-                {/* 3. Center Create [+] */}
-                {(isCore || isLead) ? (
+                {/* 3. Center Create [+] (VISIBLE ONLY FOR LEADS & CORE - NEVER FOR NORMAL USERS) */}
+                {(isCore || isLead) && (
                   <Link
                     href="/log"
-                    title="Engineering Build Log"
+                    title="Log Build Step & Video Proof"
                     className="flex flex-col items-center justify-center py-0.5 px-2 group active:scale-95 transition-transform"
                   >
                     <div className="w-8 h-8 rounded-xl border-2 border-jet-black bg-jet-black text-alice-blue flex items-center justify-center font-bold hover:bg-orange hover:border-orange transition-all shadow-2xs">
@@ -542,46 +541,29 @@ export default function Navigation() {
                       Log
                     </span>
                   </Link>
-                ) : (
-                  <Link
-                    href="/dashboard"
-                    title="Tasks & Deliverables"
-                    className="flex flex-col items-center justify-center py-0.5 px-2 group active:scale-95 transition-transform"
-                  >
-                    <div className="w-8 h-8 rounded-xl border-2 border-jet-black bg-white text-jet-black flex items-center justify-center font-bold hover:bg-orange hover:text-white hover:border-orange transition-all shadow-2xs">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
-                      </svg>
-                    </div>
-                    <span className="text-[10px] font-mono tracking-tight mt-0.5 font-bold text-jet-black">
-                      Action
-                    </span>
-                  </Link>
                 )}
 
-                {/* 4. Main Site */}
-                <Link
-                  href="/"
-                  title="Main Website"
-                  className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all group ${
-                    pathname === '/' ? 'text-orange font-bold' : 'text-grey hover:text-jet-black'
-                  }`}
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
-                  </svg>
-                  <span className="text-[10px] font-mono tracking-tight mt-0.5">Site</span>
-                </Link>
-
-                {/* 5. Profile / My Tasks */}
+                {/* 4. Assigned to Me */}
                 <Link
                   href="/dashboard?tab=my_tasks"
-                  title="My Workbench"
+                  title="Tasks Assigned to Me"
+                  className="flex flex-col items-center justify-center py-1 px-2.5 transition-all group text-grey hover:text-jet-black"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span className="text-[10px] font-mono tracking-tight mt-0.5">Assigned</span>
+                </Link>
+
+                {/* 5. Personal Profile */}
+                <Link
+                  href="/dashboard?tab=profile"
+                  title="My Profile & Security"
                   className="flex flex-col items-center justify-center py-1 px-2.5 transition-all group text-grey hover:text-jet-black"
                 >
                   <div className="w-7 h-7 rounded-full border-2 border-jet-black/40 group-hover:border-jet-black bg-alice-blue/80 flex items-center justify-center">
                     <span className="text-[10px] font-mono font-bold uppercase text-jet-black">
-                      {user.displayName.slice(0, 2).toUpperCase()}
+                      {user.displayName ? user.displayName.slice(0, 2).toUpperCase() : 'ME'}
                     </span>
                   </div>
                   <span className="text-[10px] font-mono tracking-tight mt-0.5">Profile</span>

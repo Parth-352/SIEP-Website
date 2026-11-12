@@ -32,6 +32,7 @@ export interface UserProfile {
   displayName: string;
   role: UserRole;
   teamId: TeamId;
+  secondaryTeams?: TeamId[];
   teamName: string;
   isCore?: boolean;
   isLead?: boolean;
