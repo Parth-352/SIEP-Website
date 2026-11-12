@@ -6,10 +6,11 @@
 ---
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
-- **Git Head:** In progress (staged for commit) - `feat(hierarchy): restrict task completion under review to Leads and Core members`.
+- **Git Head:** `f73624c` - `feat(hierarchy): restrict task completion under review to Leads and Core members`.
 - **TypeScript Verification:** ✅ Clean (`cd web && npx tsc --noEmit` passes with 0 errors).
 - **Production Build:** ✅ Next.js 16.4.5 Turbopack build (`npm run build`) compiles successfully (20/20 static pages generated, 0 errors).
 - **Architecture Synchronization:** ✅ ADR-014 and ADR-015 recorded in `.context/DECISIONS.md`.
+- **Vercel Production Deployment:** ✅ Live at `https://ridersbay.vercel.app` (Deployment `web-rnhwktbg4-parths-projects-421c4665.vercel.app`).
 
 ---
 
