@@ -6,10 +6,11 @@
 ---
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
-- **Git Head:** In progress (staged for commit) - `feat(nav): implement modern slide-over burger menu matching reference design`.
+- **Git Head:** `cb2c626` - `feat(nav): implement modern slide-over burger menu matching reference design`.
 - **TypeScript Verification:** ✅ Clean (`cd web && npx tsc --noEmit` passes with 0 errors).
 - **Production Build:** ✅ Next.js 16.4.5 Turbopack build (`npm run build`) compiles successfully (20/20 static pages generated, 0 errors).
 - **Architecture Synchronization:** ✅ ADR-014, ADR-015, and ADR-016 recorded in `.context/DECISIONS.md`.
+- **Vercel Production Deployment:** ✅ Live at `https://ridersbay.vercel.app` (Deployment `web-n9q1h2uzo-parths-projects-421c4665.vercel.app`).
 
 ---
 
