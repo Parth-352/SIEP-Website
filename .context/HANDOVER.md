@@ -6,10 +6,11 @@
 ---
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
-- **Git Head:** ✅ In-flight commit for Mobile UI Rework (PRD v1.0).
+- **Git Head:** ✅ Committed and pushed to `origin/main` (`27aa83e`).
 - **TypeScript Verification:** ✅ Clean (`cd web && npx tsc --noEmit` passes with 0 errors).
 - **Production Build:** ✅ Next.js 16.4.5 Turbopack build (`npm run build`) compiles successfully (20/20 static pages generated, 0 errors).
 - **Architecture Synchronization:** ✅ ADR-012 recorded in `.context/DECISIONS.md`.
+- **Vercel Production Deployment:** In-flight deployment building for `https://ridersbay.vercel.app` & `https://riders-bay.vercel.app`.
 
 ---
 
