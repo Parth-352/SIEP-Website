@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { UserProfile, Task, TaskStatus } from '@/lib/types';
+import { UserProfile, Task, TaskStatus, TeamId } from '@/lib/types';
 import { TEAMS, TEAMS_LIST } from '@/lib/teams';
 import { STATUS_COLUMNS } from '@/constants/dashboard';
 import { DashboardTab } from '@/types/dashboard';
@@ -16,6 +16,9 @@ interface MyWorkbenchTabProps {
   handleOpenTaskDetail: (task: Task) => void;
   handleMoveStatus: (e: React.MouseEvent, taskId: string, newStatus: TaskStatus) => void;
   setActiveTab: (tab: DashboardTab) => void;
+  memberDomainIds?: TeamId[];
+  isCoreAdmin?: boolean;
+  domainViewScope?: 'assigned' | 'all';
 }
 
 function getDomainBadge(teamId: string) {
@@ -85,6 +88,9 @@ export default function MyWorkbenchTab({
   handleOpenTaskDetail,
   handleMoveStatus,
   setActiveTab,
+  memberDomainIds,
+  isCoreAdmin,
+  domainViewScope,
 }: MyWorkbenchTabProps) {
   // Mobile-specific state
   const [mobileSearchQuery, setMobileSearchQuery] = useState('');
@@ -100,9 +106,18 @@ export default function MyWorkbenchTab({
 
   // Unique domains represented in user's assigned tasks
   const userTaskDomains = useMemo(() => {
+    if (isCoreAdmin && domainViewScope === 'all') {
+      const ids = Array.from(new Set(myAssignedTasks.map((t) => t.teamId)));
+      return TEAMS_LIST.filter((team) => ids.includes(team.id));
+    }
     const ids = Array.from(new Set(myAssignedTasks.map((t) => t.teamId)));
+    if (memberDomainIds && Array.isArray(memberDomainIds)) {
+      memberDomainIds.forEach((id) => {
+        if (!ids.includes(id)) ids.push(id);
+      });
+    }
     return TEAMS_LIST.filter((team) => ids.includes(team.id));
-  }, [myAssignedTasks]);
+  }, [myAssignedTasks, isCoreAdmin, domainViewScope, memberDomainIds]);
 
   // Mobile filtered personal tasks
   const visibleMobileTasks = useMemo(() => {
@@ -144,10 +159,16 @@ export default function MyWorkbenchTab({
           </div>
         </div>
 
-        {/* 2. Personal Task Summary (4 Tiles in 1 Row) */}
+        {/* 2. Personal Task Summary (4 Tiles in 1 Row) - 100% Uniform */}
         <div className="grid grid-cols-4 gap-2">
           {/* Total */}
-          <div className="bg-white border border-jet-black/10 rounded-2xl p-2.5 shadow-2xs flex flex-col items-center text-center">
+          <button
+            type="button"
+            onClick={() => setMobileStatusTab('todo')}
+            className={`bg-white border rounded-2xl p-2.5 shadow-2xs flex flex-col items-center text-center cursor-pointer transition-all active:scale-95 ${
+              mobileStatusTab === 'todo' ? 'border-zinc-900 ring-2 ring-zinc-900/20' : 'border-jet-black/10'
+            }`}
+          >
             <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 mb-1">
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -159,10 +180,16 @@ export default function MyWorkbenchTab({
             <span className="text-[10px] font-sans text-zinc-500 font-medium mt-1 truncate">
               Total
             </span>
-          </div>
+          </button>
 
           {/* In Progress */}
-          <div className="bg-white border border-jet-black/10 rounded-2xl p-2.5 shadow-2xs flex flex-col items-center text-center">
+          <button
+            type="button"
+            onClick={() => setMobileStatusTab('in_progress')}
+            className={`bg-white border rounded-2xl p-2.5 shadow-2xs flex flex-col items-center text-center cursor-pointer transition-all active:scale-95 ${
+              mobileStatusTab === 'in_progress' ? 'border-orange ring-2 ring-orange/30 bg-orange/5' : 'border-jet-black/10'
+            }`}
+          >
             <div className="w-7 h-7 rounded-lg bg-orange/10 border border-orange/20 flex items-center justify-center text-orange mb-1">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -174,29 +201,41 @@ export default function MyWorkbenchTab({
             <span className="text-[10px] font-sans text-zinc-500 font-medium mt-1 truncate">
               In Progress
             </span>
-          </div>
+          </button>
 
-          {/* Review */}
-          <div className="bg-white border border-jet-black/10 rounded-2xl p-2.5 shadow-2xs flex flex-col items-center text-center">
+          {/* Under Review */}
+          <button
+            type="button"
+            onClick={() => setMobileStatusTab('review')}
+            className={`bg-white border rounded-2xl p-2.5 shadow-2xs flex flex-col items-center text-center cursor-pointer transition-all active:scale-95 ${
+              mobileStatusTab === 'review' ? 'border-purple-600 ring-2 ring-purple-600/30 bg-purple-50/50' : 'border-jet-black/10'
+            }`}
+          >
             <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-600 mb-1">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
             </div>
             <span className="text-base font-black font-sans text-jet-black tabular-nums leading-none">
               {reviewCount}
             </span>
             <span className="text-[10px] font-sans text-zinc-500 font-medium mt-1 truncate">
-              Review
+              Under Review
             </span>
-          </div>
+          </button>
 
           {/* Completed */}
-          <div className="bg-white border border-jet-black/10 rounded-2xl p-2.5 shadow-2xs flex flex-col items-center text-center">
+          <button
+            type="button"
+            onClick={() => setMobileStatusTab('done')}
+            className={`bg-white border rounded-2xl p-2.5 shadow-2xs flex flex-col items-center text-center cursor-pointer transition-all active:scale-95 ${
+              mobileStatusTab === 'done' ? 'border-emerald-600 ring-2 ring-emerald-600/30 bg-emerald-50/50' : 'border-jet-black/10'
+            }`}
+          >
             <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 mb-1">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
             <span className="text-base font-black font-sans text-jet-black tabular-nums leading-none">
@@ -205,7 +244,7 @@ export default function MyWorkbenchTab({
             <span className="text-[10px] font-sans text-zinc-500 font-medium mt-1 truncate">
               Completed
             </span>
-          </div>
+          </button>
         </div>
 
         {/* 3. Search Bar */}
@@ -214,7 +253,7 @@ export default function MyWorkbenchTab({
             type="text"
             value={mobileSearchQuery}
             onChange={(e) => setMobileSearchQuery(e.target.value)}
-            placeholder="Search my tasks..."
+            placeholder="Search my tasks (title, keyword...)"
             className="w-full pl-10 pr-9 py-2.5 rounded-2xl bg-white border border-jet-black/15 text-xs font-sans text-zinc-800 placeholder:text-zinc-400 focus:ring-2 focus:ring-orange focus:outline-none shadow-2xs"
           />
           <svg
@@ -243,7 +282,7 @@ export default function MyWorkbenchTab({
             onChange={(e) => setMobileDomainFilter(e.target.value)}
             className="px-3 py-2 rounded-xl bg-white border border-jet-black/15 text-xs font-sans text-zinc-700 font-semibold focus:ring-2 focus:ring-orange focus:outline-none cursor-pointer truncate shadow-2xs"
           >
-            <option value="all">All Domains</option>
+            <option value="all">{userTaskDomains.length > 1 ? `All Assigned Squads (${userTaskDomains.length})` : 'All Assigned Squads'}</option>
             {userTaskDomains.map((team) => (
               <option key={team.id} value={team.id}>
                 {team.shortName}
@@ -256,7 +295,7 @@ export default function MyWorkbenchTab({
             onChange={(e) => setMobilePriorityFilter(e.target.value)}
             className="px-3 py-2 rounded-xl bg-white border border-jet-black/15 text-xs font-sans text-zinc-700 font-semibold focus:ring-2 focus:ring-orange focus:outline-none cursor-pointer truncate shadow-2xs"
           >
-            <option value="all">Priority</option>
+            <option value="all">All Priorities</option>
             <option value="urgent">Urgent</option>
             <option value="high">High</option>
             <option value="medium">Medium</option>

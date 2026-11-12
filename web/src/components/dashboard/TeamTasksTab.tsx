@@ -135,6 +135,14 @@ export default function TeamTasksTab({
   const reviewCount = useMemo(() => filteredTasks.filter((t) => t.status === 'review').length, [filteredTasks]);
   const doneCount = useMemo(() => filteredTasks.filter((t) => t.status === 'done').length, [filteredTasks]);
 
+  // Squads available to active member (strictly assigned domains unless Core Admin in 'all' view)
+  const availableSquads = useMemo(() => {
+    if (isCoreAdmin && domainViewScope === 'all') {
+      return TEAMS_LIST;
+    }
+    return TEAMS_LIST.filter((team) => memberDomainIds.includes(team.id));
+  }, [isCoreAdmin, domainViewScope, memberDomainIds]);
+
   // Tasks visible in the selected mobile status tab
   const visibleMobileTasks = useMemo(
     () => filteredTasks.filter((t) => t.status === mobileStatusTab),
@@ -165,52 +173,92 @@ export default function TeamTasksTab({
           </div>
         </div>
 
-        {/* 2. Compact Team Summary (3 KPI Tiles in 1 Row) */}
-        <div className="grid grid-cols-3 gap-2.5">
+        {/* 2. Compact Team Summary (4 Tiles in 1 Row) - 100% Uniform */}
+        <div className="grid grid-cols-4 gap-2">
           {/* Tile 1: Total */}
-          <div className="bg-white border border-jet-black/10 rounded-2xl p-3 shadow-2xs flex flex-col items-center text-center">
-            <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 mb-1.5">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <button
+            type="button"
+            onClick={() => setMobileStatusTab('todo')}
+            className={`bg-white border rounded-2xl p-2.5 shadow-2xs flex flex-col items-center text-center cursor-pointer transition-all active:scale-95 ${
+              mobileStatusTab === 'todo' ? 'border-zinc-900 ring-2 ring-zinc-900/20' : 'border-jet-black/10'
+            }`}
+          >
+            <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 mb-1">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <span className="text-lg font-black font-sans text-jet-black tabular-nums leading-none">
+            <span className="text-base font-black font-sans text-jet-black tabular-nums leading-none">
               {filteredTasks.length}
             </span>
-            <span className="text-[11px] font-sans text-zinc-500 font-medium mt-1">
+            <span className="text-[10px] font-sans text-zinc-500 font-medium mt-1 truncate">
               Total
             </span>
-          </div>
+          </button>
 
           {/* Tile 2: In Progress */}
-          <div className="bg-white border border-jet-black/10 rounded-2xl p-3 shadow-2xs flex flex-col items-center text-center">
-            <div className="w-8 h-8 rounded-xl bg-orange/10 border border-orange/20 flex items-center justify-center text-orange mb-1.5">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <button
+            type="button"
+            onClick={() => setMobileStatusTab('in_progress')}
+            className={`bg-white border rounded-2xl p-2.5 shadow-2xs flex flex-col items-center text-center cursor-pointer transition-all active:scale-95 ${
+              mobileStatusTab === 'in_progress' ? 'border-orange ring-2 ring-orange/30 bg-orange/5' : 'border-jet-black/10'
+            }`}
+          >
+            <div className="w-7 h-7 rounded-lg bg-orange/10 border border-orange/20 flex items-center justify-center text-orange mb-1">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <span className="text-lg font-black font-sans text-jet-black tabular-nums leading-none">
+            <span className="text-base font-black font-sans text-jet-black tabular-nums leading-none">
               {inProgressCount}
             </span>
-            <span className="text-[11px] font-sans text-zinc-500 font-medium mt-1">
+            <span className="text-[10px] font-sans text-zinc-500 font-medium mt-1 truncate">
               In Progress
             </span>
-          </div>
+          </button>
 
-          {/* Tile 3: Completed */}
-          <div className="bg-white border border-jet-black/10 rounded-2xl p-3 shadow-2xs flex flex-col items-center text-center">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 mb-1.5">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+          {/* Tile 3: Under Review */}
+          <button
+            type="button"
+            onClick={() => setMobileStatusTab('review')}
+            className={`bg-white border rounded-2xl p-2.5 shadow-2xs flex flex-col items-center text-center cursor-pointer transition-all active:scale-95 ${
+              mobileStatusTab === 'review' ? 'border-purple-600 ring-2 ring-purple-600/30 bg-purple-50/50' : 'border-jet-black/10'
+            }`}
+          >
+            <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-600 mb-1">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
             </div>
-            <span className="text-lg font-black font-sans text-jet-black tabular-nums leading-none">
+            <span className="text-base font-black font-sans text-jet-black tabular-nums leading-none">
+              {reviewCount}
+            </span>
+            <span className="text-[10px] font-sans text-zinc-500 font-medium mt-1 truncate">
+              Under Review
+            </span>
+          </button>
+
+          {/* Tile 4: Completed */}
+          <button
+            type="button"
+            onClick={() => setMobileStatusTab('done')}
+            className={`bg-white border rounded-2xl p-2.5 shadow-2xs flex flex-col items-center text-center cursor-pointer transition-all active:scale-95 ${
+              mobileStatusTab === 'done' ? 'border-emerald-600 ring-2 ring-emerald-600/30 bg-emerald-50/50' : 'border-jet-black/10'
+            }`}
+          >
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 mb-1">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <span className="text-base font-black font-sans text-jet-black tabular-nums leading-none">
               {doneCount}
             </span>
-            <span className="text-[11px] font-sans text-zinc-500 font-medium mt-1">
+            <span className="text-[10px] font-sans text-zinc-500 font-medium mt-1 truncate">
               Completed
             </span>
-          </div>
+          </button>
         </div>
 
         {/* 3. Search Bar */}
@@ -219,7 +267,7 @@ export default function TeamTasksTab({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search tasks (title, keyword...)"
+            placeholder="Search team tasks (title, keyword...)"
             className="w-full pl-10 pr-9 py-2.5 rounded-2xl bg-white border border-jet-black/15 text-xs font-sans text-zinc-800 placeholder:text-zinc-400 focus:ring-2 focus:ring-orange focus:outline-none shadow-2xs"
           />
           <svg
@@ -251,8 +299,10 @@ export default function TeamTasksTab({
             }}
             className="px-3 py-2 rounded-xl bg-white border border-jet-black/15 text-xs font-sans text-zinc-700 font-semibold focus:ring-2 focus:ring-orange focus:outline-none cursor-pointer truncate shadow-2xs"
           >
-            <option value="all">All Squads</option>
-            {TEAMS_LIST.map((team) => (
+            <option value="all">
+              {availableSquads.length > 1 ? `All Assigned Squads (${availableSquads.length})` : 'All Assigned Squads'}
+            </option>
+            {availableSquads.map((team) => (
               <option key={team.id} value={team.id}>
                 {team.shortName}
               </option>
@@ -559,7 +609,7 @@ export default function TeamTasksTab({
                 </span>
               </button>
 
-              {TEAMS_LIST.map((team) => {
+              {availableSquads.map((team) => {
                 const count = tasks.filter((t) => t.teamId === team.id).length;
                 const isSelected = selectedSubsystemFilter === team.id && !assignedToMeOnly;
 

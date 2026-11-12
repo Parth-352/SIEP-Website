@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { TEAMS_LIST } from '@/lib/teams';
 import { Task, WorkLog, TeamId, TaskStatus, TaskPriority, ActivityEvent } from '@/lib/types';
+import { getMemberByEmail } from '@/lib/members';
 import TaskDetailModal from '@/components/TaskDetailModal';
 import TaskCompleteModal from '@/components/TaskCompleteModal';
 import { usePwaInstall } from '@/components/PwaInstallProvider';
@@ -83,7 +84,7 @@ function DashboardContent() {
   // Domain view scope for Team Tasks ('assigned' = member's squads only; 'all' = all 9 squads)
   const [domainViewScope, setDomainViewScope] = useState<'assigned' | 'all'>('assigned');
 
-  // Member's assigned domain IDs (primary + secondary)
+  // Member's assigned domain IDs (primary + secondary, verified against roster)
   const memberDomainIds: TeamId[] = useMemo(() => {
     if (!user) return [];
     const list: TeamId[] = [user.teamId];
@@ -91,6 +92,15 @@ function DashboardContent() {
       user.secondaryTeams.forEach((t) => {
         if (!list.includes(t)) list.push(t);
       });
+    }
+    const member = getMemberByEmail(user.email);
+    if (member) {
+      if (!list.includes(member.teamId)) list.push(member.teamId);
+      if (member.secondaryTeams && Array.isArray(member.secondaryTeams)) {
+        member.secondaryTeams.forEach((t) => {
+          if (!list.includes(t)) list.push(t);
+        });
+      }
     }
     return list;
   }, [user]);
@@ -365,11 +375,18 @@ function DashboardContent() {
     }
   };
 
-  // Dedicated memo for all tasks assigned to the current member
+  // Dedicated memo for all tasks assigned to the current member within their assigned domain(s)
   const myAssignedTasks = useMemo(() => {
     if (!user) return [];
-    return tasks.filter((t) => isTaskAssignedToUser(t, user));
-  }, [tasks, user]);
+    return tasks.filter((t) => {
+      if (!isTaskAssignedToUser(t, user)) return false;
+      // Scoped to member's assigned domain(s)
+      if (!isCoreAdmin || domainViewScope === 'assigned') {
+        if (!memberDomainIds.includes(t.teamId)) return false;
+      }
+      return true;
+    });
+  }, [tasks, user, isCoreAdmin, domainViewScope, memberDomainIds]);
 
   const myAssignedCount = myAssignedTasks.length;
 
@@ -422,13 +439,11 @@ function DashboardContent() {
       if (assignedToMeOnly && user) {
         if (!isTaskAssignedToUser(task, user)) return false;
       }
-      // Domain-scoped filtering for Team Tasks (Item 2)
+      // Domain-scoped filtering for Team Tasks (only assigned domain's tasks visible)
       if ((activeTab === 'team_tasks' || activeTab === 'kanban') && !assignedToMeOnly) {
         if (!isCoreAdmin || domainViewScope === 'assigned') {
-          if (selectedSubsystemFilter === 'all') {
-            if (!memberDomainIds.includes(task.teamId)) {
-              return false;
-            }
+          if (!memberDomainIds.includes(task.teamId)) {
+            return false;
           }
         }
       }
@@ -910,6 +925,9 @@ function DashboardContent() {
             handleOpenTaskDetail={handleOpenTaskDetail}
             handleMoveStatus={handleMoveStatus}
             setActiveTab={setActiveTab}
+            memberDomainIds={memberDomainIds}
+            isCoreAdmin={isCoreAdmin}
+            domainViewScope={domainViewScope}
           />
         )}
 
