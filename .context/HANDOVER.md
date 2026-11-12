@@ -10,7 +10,7 @@
 - **TypeScript Verification:** ✅ Clean (`cd web && npx tsc --noEmit` passes with 0 errors).
 - **Production Build:** ✅ Next.js 16.4.5 Turbopack build (`npm run build`) compiles successfully (20/20 static pages generated, 0 errors).
 - **Dashboard Polish:** ✅ Subsystem Progress icons and typography fully unified with vector SVGs and uniform sizing. Domain badges and priority signal indicators harmonized across all mobile views.
-- **Vercel Production Deployment:** In-flight deployment.
+- **Vercel Production Deployment:** ✅ Live at `https://ridersbay.vercel.app` (Deployment `web-p4vcwrg6y-parths-projects-421c4665.vercel.app`).
 
 ---
 
