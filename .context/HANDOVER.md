@@ -1,17 +1,21 @@
 # 📋 ACTIVE SESSION HANDOVER & STATE
-> **Last Updated:** 2026-11-12 | **Branch:** `main` (commit `076561c`)  
-> **Production Live URL:** `https://riders-bay.vercel.app` (also `https://web-black-delta-34.vercel.app`)  
+> **Last Updated:** 2026-11-12 | **Branch:** `main` (commit `68bf935`)  
+> **Production Live URLs:** `https://ridersbay.vercel.app` and `https://riders-bay.vercel.app`  
 > *This document is the single source of truth for in-flight work across breaks. Agents and developers must read this before starting and update it before stopping.*
 
 ---
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
-- **Git Head:** ✅ `076561c` (`feat(security): enforce strict single-PIN invalidation, prioritize user squads & streamline create menu`).
+- **Git Head:** ✅ `68bf935` (`fix(auth): enforce single active PIN per email in Firebase, normalize alias emails & strip domain descriptions`).
 - **GitHub Remote:** ✅ Up to date with `origin/main`.
 - **TypeScript Verification:** ✅ Clean (`cd web && npx tsc --noEmit` passes with 0 errors).
 - **Production Build:** ✅ Next.js 16.4.5 Turbopack build (`npm run build`) compiles successfully (20/20 static pages generated, 0 errors).
-- **Automated Verification:** ✅ Live Vercel production API verified: default PIN `935200` rejected (`valid: false`), active PIN `202020` authenticated (`valid: true`), unrotated members work with default PIN.
-- **Vercel Production Deployment:** ✅ Live at `https://riders-bay.vercel.app`.
+- **Live Vercel Verification:** ✅ Tested both `ridersbay.vercel.app` and `riders-bay.vercel.app`:
+  - `935200` (default PIN) strictly rejected (`valid: false`).
+  - `202020` (active PIN) strictly authenticated (`valid: true`).
+  - Both email variations (`parthkshirsagr@gmail.com` and `parthkshirsagrr@gmail.com`) mapped to the single active PIN in Firestore.
+  - Domains in profile stripped of description text—heading and badge only.
+- **Vercel Production Deployment:** ✅ Live across all production domains.
 
 ---
 
