@@ -67,10 +67,12 @@ export function decodeSession(sessionStr?: string): SessionData | null {
     const team = TEAMS[data.teamId];
     if (!team) return null;
 
-    // Authoritative verification against official roster
-    const isCore = isMemberCore(data.email) || isMemberCore(data.name) || data.teamId === 'core';
-    const isLead = isMemberLead(data.email) || isMemberLead(data.name) || isCore;
-    const tier = getMemberTier(data.email);
+    // Authoritative verification against official roster + dynamic token preservation
+    const staticCore = isMemberCore(data.email) || isMemberCore(data.name) || data.teamId === 'core';
+    const isCore = Boolean(data.isCore || staticCore);
+    const staticLead = isMemberLead(data.email) || isMemberLead(data.name) || isCore;
+    const isLead = Boolean(data.isLead || staticLead || isCore);
+    const tier = (data.tier || getMemberTier(data.email) || (isCore ? 1 : isLead ? 2 : 3)) as 1 | 2 | 3;
 
     data.role = isCore ? 'admin' : 'team';
     data.isCore = isCore;

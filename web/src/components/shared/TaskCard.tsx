@@ -112,8 +112,11 @@ export default function TaskCard({
 
           {/* Comments & Hours */}
           {task.comments && task.comments.length > 0 && (
-            <span className="px-1.5 py-0.5 rounded bg-white border border-jet-black/10 text-zinc-500 font-bold flex items-center gap-0.5 text-[10px]">
-              💬 {task.comments.length}
+            <span className="px-1.5 py-0.5 rounded bg-white border border-jet-black/10 text-zinc-500 font-bold flex items-center gap-1 text-[10px]">
+              <svg className="w-3 h-3 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <span>{task.comments.length}</span>
             </span>
           )}
           {Boolean(task.actualHours) && (
@@ -170,9 +173,11 @@ export default function TaskCard({
             colId === 'review' && !canApproveCompletion ? (
               <span
                 title="Under Review: Only Squad Leads and Core Leadership can approve and mark as Completed"
-                className="px-2 py-1 text-[11px] font-sans font-semibold bg-purple-50 border border-purple-200 text-purple-700 rounded-lg flex items-center gap-1 cursor-default select-none shadow-2xs"
+                className="px-2 py-1 text-[11px] font-sans font-semibold bg-purple-50 border border-purple-200 text-purple-700 rounded-lg flex items-center gap-1.5 cursor-default select-none shadow-2xs"
               >
-                <span>🔒</span>
+                <svg className="w-3 h-3 text-purple-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
                 <span>Awaiting Lead Approval</span>
               </span>
             ) : (
@@ -247,7 +252,9 @@ export default function TaskCard({
                       }}
                       className="w-full px-3 py-2 text-left text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 cursor-pointer font-medium"
                     >
-                      <span>🗑</span>
+                      <svg className="w-3.5 h-3.5 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
                       <span>Delete Task...</span>
                     </button>
                   </div>

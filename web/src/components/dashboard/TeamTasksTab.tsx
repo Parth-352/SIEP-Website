@@ -884,12 +884,63 @@ export default function TeamTasksTab({
                             </span>
                           </td>
 
-                          {/* Status */}
-                          <td className="py-3.5 px-3">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${statusPill.class}`}>
-                              {statusPill.icon}
-                              <span>{statusPill.label}</span>
-                            </span>
+                          {/* Status & Review Workflow */}
+                          <td className="py-3.5 px-3" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex flex-col items-start gap-1.5">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${statusPill.class}`}>
+                                {statusPill.icon}
+                                <span>{statusPill.label}</span>
+                              </span>
+
+                              {/* Interactive Transition Actions for Desktop Parity */}
+                              {task.status === 'todo' && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleMoveStatus(e, task.id, 'in_progress')}
+                                  className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded border border-amber-200 transition-colors cursor-pointer"
+                                  title="Advance to In Progress"
+                                >
+                                  <span>Start Work &rarr;</span>
+                                </button>
+                              )}
+
+                              {task.status === 'in_progress' && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleMoveStatus(e, task.id, 'review')}
+                                  className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 hover:text-purple-800 bg-purple-50 hover:bg-purple-100 px-2 py-0.5 rounded border border-purple-200 transition-colors cursor-pointer"
+                                  title="Submit deliverable for lead review"
+                                >
+                                  <span>Submit for Review &rarr;</span>
+                                </button>
+                              )}
+
+                              {task.status === 'review' && (
+                                canApproveCompletion ? (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleMoveStatus(e, task.id, 'done')}
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 hover:text-emerald-900 bg-emerald-100/90 hover:bg-emerald-200 px-2.5 py-0.5 rounded-md border border-emerald-300 transition-colors cursor-pointer shadow-2xs"
+                                    title="Approve deliverable and record completion"
+                                  >
+                                    <svg className="w-2.5 h-2.5 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    <span>Approve &amp; Complete</span>
+                                  </button>
+                                ) : (
+                                  <span
+                                    className="inline-flex items-center gap-1 text-[9px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200"
+                                    title="Awaiting Squad Lead or Core Leadership sign-off"
+                                  >
+                                    <svg className="w-2.5 h-2.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                    <span>Awaiting Lead Approval</span>
+                                  </span>
+                                )
+                              )}
+                            </div>
                           </td>
 
                           {/* Assignees */}
@@ -928,16 +979,38 @@ export default function TeamTasksTab({
 
                           {/* Action */}
                           <td className="py-3.5 pr-6 pl-3 text-right" onClick={(e) => e.stopPropagation()}>
-                            <button
-                              type="button"
-                              onClick={() => handleOpenTaskDetail(task)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                              title="View Task Details"
-                            >
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-                              </svg>
-                            </button>
+                            <div className="flex items-center justify-end gap-1.5">
+                              {task.status === 'in_progress' && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleMoveStatus(e, task.id, 'review')}
+                                  className="px-2 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 text-[11px] font-bold border border-purple-200 transition-colors cursor-pointer"
+                                  title="Submit for Review"
+                                >
+                                  Submit Review
+                                </button>
+                              )}
+                              {task.status === 'review' && canApproveCompletion && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleMoveStatus(e, task.id, 'done')}
+                                  className="px-2 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold shadow-2xs transition-colors cursor-pointer"
+                                  title="Approve & Complete"
+                                >
+                                  Approve ✓
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleOpenTaskDetail(task)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                                title="View Task Details"
+                              >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+                                </svg>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -1062,16 +1135,67 @@ export default function TeamTasksTab({
 
                             <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 gap-2">
                               {dueInfo && <span className={`text-[11px] ${dueInfo.className}`}>{dueInfo.text}</span>}
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleOpenTaskDetail(task);
-                                }}
-                                className="text-xs text-slate-500 hover:text-slate-900"
-                              >
-                                Details &rarr;
-                              </button>
+                              
+                              <div className="flex items-center gap-1.5 ml-auto">
+                                {task.status === 'todo' && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMoveStatus(e, task.id, 'in_progress');
+                                    }}
+                                    className="px-2 py-0.5 rounded bg-amber-50 hover:bg-amber-100 text-amber-700 text-[10px] font-bold border border-amber-200 transition-colors cursor-pointer"
+                                    title="Start work"
+                                  >
+                                    Start &rarr;
+                                  </button>
+                                )}
+                                {task.status === 'in_progress' && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMoveStatus(e, task.id, 'review');
+                                    }}
+                                    className="px-2 py-0.5 rounded bg-purple-50 hover:bg-purple-100 text-purple-700 text-[10px] font-bold border border-purple-200 transition-colors cursor-pointer"
+                                    title="Submit deliverable for lead review"
+                                  >
+                                    Review &rarr;
+                                  </button>
+                                )}
+                                {task.status === 'review' && (
+                                  canApproveCompletion ? (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleMoveStatus(e, task.id, 'done');
+                                      }}
+                                      className="px-2 py-0.5 rounded bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold shadow-2xs transition-colors cursor-pointer"
+                                      title="Approve deliverable and record completion"
+                                    >
+                                      Approve ✓
+                                    </button>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-[9px] text-slate-400 font-medium">
+                                      <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                      </svg>
+                                      <span>Awaiting Lead</span>
+                                    </span>
+                                  )
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenTaskDetail(task);
+                                  }}
+                                  className="text-xs text-slate-500 hover:text-slate-900 cursor-pointer"
+                                >
+                                  Details &rarr;
+                                </button>
+                              </div>
                             </div>
                           </div>
                         );

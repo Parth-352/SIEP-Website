@@ -10,6 +10,7 @@ import {
 import {
   getFirestorePasswords,
   getFirestoreMemberPasswords,
+  getFirestoreMembers,
 } from '@/lib/firestoreService';
 import { SESSION_COOKIE_NAME, decodeSession } from '@/lib/session';
 import {
@@ -69,18 +70,25 @@ export async function GET(request: NextRequest) {
         };
       });
 
-      // 2. Member PINs for all 23 members
-      const allMemberCredentials = ROSTER_MEMBERS.map((m) => {
-        const custom = customMemberPasswords[m.email.toLowerCase()];
+      // 2. Member PINs for all 23 members (merged with live Firestore roles)
+      const fsMembers = await getFirestoreMembers();
+      const fsMemberMap = new Map(fsMembers.map((m) => [m.email.toLowerCase(), m]));
+
+      const allMemberCredentials = ROSTER_MEMBERS.map((staticM) => {
+        const dynamicM = fsMemberMap.get(staticM.email.toLowerCase()) || staticM;
+        const custom = customMemberPasswords[staticM.email.toLowerCase()] || dynamicM.password;
+        const isCore = Boolean(dynamicM.isCore !== undefined ? dynamicM.isCore : staticM.isCore);
+        const isLead = Boolean(dynamicM.isLead !== undefined ? dynamicM.isLead : staticM.isLead);
+        const tier = dynamicM.tier || getMemberTier(staticM.email);
         return {
-          id: m.id,
-          name: m.name,
-          email: m.email,
-          role: m.role,
-          teamId: m.teamId,
-          isCore: Boolean(m.isCore),
-          isLead: Boolean(m.isLead),
-          tier: getMemberTier(m.email),
+          id: dynamicM.id || staticM.id,
+          name: dynamicM.name || staticM.name,
+          email: dynamicM.email || staticM.email,
+          role: dynamicM.role || staticM.role,
+          teamId: dynamicM.teamId || staticM.teamId,
+          isCore,
+          isLead,
+          tier,
           password: custom || DEFAULT_MEMBER_PIN,
           isCustom: Boolean(custom),
         };
@@ -119,7 +127,9 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const member = getMemberByEmail(cleanEmail);
+      const fsMembers = await getFirestoreMembers();
+      const fsMember = fsMembers.find((m) => m.email.toLowerCase() === cleanEmail);
+      const member = fsMember || getMemberByEmail(cleanEmail);
       if (!member) {
         return NextResponse.json(
           {
@@ -132,7 +142,7 @@ export async function POST(request: NextRequest) {
 
       // Check Firestore member passwords first, then fallback to local store
       const fsMemberPasswords = await getFirestoreMemberPasswords();
-      const customPass = fsMemberPasswords[cleanEmail] || getMemberPassword(cleanEmail);
+      const customPass = fsMemberPasswords[cleanEmail] || member.password || getMemberPassword(cleanEmail);
       const activePass = customPass || DEFAULT_MEMBER_PIN;
 
       // Strict PIN validation: only the active PIN is valid.
@@ -149,9 +159,9 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      const isCore = isMemberCore(member.email);
-      const isLead = isMemberLead(member.email);
-      const tier = getMemberTier(member.email);
+      const isCore = Boolean(member.isCore !== undefined ? member.isCore : isMemberCore(member.email));
+      const isLead = Boolean(member.isLead !== undefined ? member.isLead : isMemberLead(member.email));
+      const tier = member.tier || getMemberTier(member.email) || (isCore ? 1 : isLead ? 2 : 3);
 
       return NextResponse.json({
         success: true,
@@ -163,9 +173,12 @@ export async function POST(request: NextRequest) {
           role: member.role,
           teamId: member.teamId,
           secondaryTeams: member.secondaryTeams || [],
+          domains: (member as any).domains || [member.teamId, ...(member.secondaryTeams || [])],
+          leadDomains: (member as any).leadDomains || [],
           isCore,
           isLead,
           tier,
+          photoUrl: member.photoUrl,
         },
         isCore,
         isLead,

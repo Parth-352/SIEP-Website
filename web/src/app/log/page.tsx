@@ -175,6 +175,15 @@ function LogPageContent() {
     user?.isLead ||
     user?.teamId === 'core'
   );
+  // Strict Hierarchy Rule: Only Leads and Core Leadership can publish build logs
+  const canCreateBuildLog = Boolean(
+    isCore ||
+    isLead ||
+    user?.isCore ||
+    user?.isLead ||
+    user?.teamId === 'core' ||
+    (user?.tier && user.tier <= 2)
+  );
 
   const [isMounted, setIsMounted] = useState(false);
   const [logs, setLogs] = useState<WorkLog[]>([]);
@@ -785,20 +794,30 @@ function LogPageContent() {
             </div>
           </div>
 
-          {/* 2. Prominent "+ Add Build Log" Button */}
-          <button
-            type="button"
-            onClick={() => {
-              setIsFormOpen(true);
-              setFormError(null);
-            }}
-            className="w-full py-3.5 px-5 rounded-2xl bg-[#1e232d] hover:bg-jet-black text-white font-sans font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.99] cursor-pointer"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
-            </svg>
-            <span>Add Build Log</span>
-          </button>
+          {/* 2. Prominent "+ Add Build Log" Button (Gated to Leads & Core Only) */}
+          {canCreateBuildLog ? (
+            <button
+              type="button"
+              onClick={() => {
+                setIsFormOpen(true);
+                setFormError(null);
+              }}
+              className="w-full py-3.5 px-5 rounded-2xl bg-[#1e232d] hover:bg-jet-black text-white font-sans font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.99] cursor-pointer"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Add Build Log</span>
+            </button>
+          ) : (
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-1">
+              <p className="text-xs font-bold text-slate-700">Official Build Logs Gated</p>
+              <p className="text-[11px] text-slate-500">
+                Build logs are published by Squad Leads &amp; Core Leadership. To submit technical research and reports, use{' '}
+                <Link href="/materials" className="text-orange font-bold hover:underline">Materials &rarr;</Link>
+              </p>
+            </div>
+          )}
 
           {/* 3. Five Work Status Tiles / Metric Cards (Responsive Grid Layout - Zero Horizontal Scroll) */}
           <div className="grid grid-cols-6 sm:grid-cols-5 gap-2">
@@ -1042,13 +1061,13 @@ function LogPageContent() {
             subtitle="PROJECT OPERATIONS"
             title="Build Log"
             description="Track builds, experiments, tests and major progress"
-            action={{
+            action={canCreateBuildLog ? {
               label: "+ Add Log",
               onClick: () => {
                 setIsFormOpen(true);
                 setFormError(null);
               },
-            }}
+            } : undefined}
           />
 
           {/* 4 Stat Cards in a Row Matching Mockup 3 */}
@@ -1569,67 +1588,90 @@ function LogPageContent() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsFormOpen(true);
-                      setStepTitle('Build: ');
-                    }}
-                    className="p-3 rounded-xl border border-slate-200 hover:border-orange-500 hover:bg-orange-50/40 transition-all flex flex-col items-center justify-center text-center gap-2 group cursor-pointer"
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      </svg>
-                    </div>
-                    <span className="text-[11px] font-bold text-slate-700 font-sans group-hover:text-orange-600">
-                      New Build Log
-                    </span>
-                  </button>
+                {canCreateBuildLog ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsFormOpen(true);
+                        setStepTitle('Build: ');
+                      }}
+                      className="p-3 rounded-xl border border-slate-200 hover:border-orange-500 hover:bg-orange-50/40 transition-all flex flex-col items-center justify-center text-center gap-2 group cursor-pointer"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        </svg>
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-700 font-sans group-hover:text-orange-600">
+                        New Build Log
+                      </span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsFormOpen(true);
-                      setStepTitle('Test: ');
-                      setTargetStatus('testing');
-                    }}
-                    className="p-3 rounded-xl border border-slate-200 hover:border-purple-500 hover:bg-purple-50/40 transition-all flex flex-col items-center justify-center text-center gap-2 group cursor-pointer"
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                      </svg>
-                    </div>
-                    <span className="text-[11px] font-bold text-slate-700 font-sans group-hover:text-purple-600">
-                      New Test Log
-                    </span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsFormOpen(true);
+                        setStepTitle('Test: ');
+                        setTargetStatus('testing');
+                      }}
+                      className="p-3 rounded-xl border border-slate-200 hover:border-purple-500 hover:bg-purple-50/40 transition-all flex flex-col items-center justify-center text-center gap-2 group cursor-pointer"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                        </svg>
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-700 font-sans group-hover:text-purple-600">
+                        New Test Log
+                      </span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setIsFormOpen(true)}
-                    className="p-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/40 transition-all flex flex-col items-center justify-center text-center gap-2 group cursor-pointer"
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <button
+                      type="button"
+                      onClick={() => setIsFormOpen(true)}
+                      className="p-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/40 transition-all flex flex-col items-center justify-center text-center gap-2 group cursor-pointer"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-700 font-sans group-hover:text-blue-600">
+                        Upload Media
+                      </span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-slate-200/80 text-slate-600 mx-auto flex items-center justify-center">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
                     </div>
-                    <span className="text-[11px] font-bold text-slate-700 font-sans group-hover:text-blue-600">
-                      Upload Media
-                    </span>
-                  </button>
-                </div>
+                    <p className="text-xs font-bold text-slate-800">Build Log Publishing Gated</p>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Only Squad Leads and Core Leadership can record build logs. Regular team members can contribute technical research, papers, and CAD deliverables via the Materials repository.
+                    </p>
+                    <Link
+                      href="/materials"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-[11px] font-bold transition-colors cursor-pointer"
+                    >
+                      <span>Go to Materials Hub</span>
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
         {/* =========================================================================
-            RECORD NEW STEP FORM DRAWER / MODAL
+            RECORD NEW STEP FORM DRAWER / MODAL (Leads & Core Leadership Only)
            ========================================================================= */}
-        {isFormOpen && (
+        {isFormOpen && canCreateBuildLog && (
           <div className="fixed inset-0 z-[200] bg-jet-black/70 backdrop-blur-xs flex flex-col justify-end p-0 sm:items-center sm:justify-center sm:p-4 overflow-y-auto animate-in fade-in duration-200">
             <div
               onClick={() => setIsFormOpen(false)}

@@ -1,20 +1,68 @@
 # 📋 ACTIVE SESSION HANDOVER & STATE
-> **Last Updated:** 2026-11-13 (Daily Context Sync) | **Branch:** `main`  
-> **Head Commit:** `6e08f0c` (*feat(roles): allow domain lead assignment for captain/vice captain, implement about page hierarchy & domain context, highlight lead domains, and remove parth-only text*)  
+> **Last Updated:** 2026-11-13 (Bug Audit & Permission Parity Sync) | **Branch:** `main`  
+> **Head Commit:** `787045d` -> In-flight resolution of BUG-001 through BUG-006  
 > **Production Live URLs:** `https://ridersbay.vercel.app` and `https://riders-bay.vercel.app`  
 > *This document is the single source of truth for in-flight work across breaks and sessions. Agents and developers must read this before starting and update it before stopping.*
 
 ---
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
-- **Git State:** Clean working tree, on `main` branch, fully synchronized with `origin/main`.
+- **Git State:** 11 modified/tracked files; clean compilation.
 - **TypeScript Verification:** ✅ Clean (`cd web && npx tsc --noEmit` passes with 0 errors).
 - **Context Verification:** ✅ Clean (`bash scripts/context-check.sh` passes 100%).
 - **Production Build:** ✅ Next.js 16.4.5 Turbopack build (`npm run build`) compiles successfully (30/30 static pages generated, 0 errors).
-- **Living Context Memory Hub:** ✅ 100% synchronized across [.context/ARCHITECTURE.md](file://.context/ARCHITECTURE.md), [.context/DATABASE.md](file://.context/DATABASE.md), [.context/CONTEXT.md](file://.context/CONTEXT.md), [.context/DECISIONS.md](file://.context/DECISIONS.md), and [.context/HANDOVER.md](file://.context/HANDOVER.md).
-- **Responsive Isolation:** ✅ Mobile views (`md:hidden`) strictly preserved without alterations; desktop redesign isolated under `hidden md:block` / `hidden md:flex`.
-- **Mock Data Elimination:** ✅ 100% eliminated across all tabs; all metrics, tables, timelines, charts, and media grids derive strictly from real Cloud Firestore / local baseline state.
-- **Icon Policy:** ✅ 100% vector SVG icons or clean text badges; zero emojis throughout all redesign views.
+- **Defect Ledger:** ✅ Authoritative append-only [`bugs.md`](file://bugs.md) fully initialized and updated with all 6 bugs marked completed `[x]` and logged in Section 3.
+- **Emoji Elimination:** ✅ 100% clean; automated Python scan confirms zero Unicode emojis across `web/src`.
+- **Platform Parity:** ✅ 100% parity between Phone PWA and Desktop Web App for login, permissions, and task review workflow.
+
+---
+
+## 🛠️ 2. ACTIVE SYSTEM CAPABILITIES & RECENT IMPLEMENTATIONS
+
+### A. Mobile/Desktop Permission Parity & Review Workflow (ADR-024, BUG-001, BUG-005)
+1. **Interactive Review Flow on Desktop Table & Kanban:**
+   - On the desktop Tasks table and Kanban columns, members can click "Submit for Review &rarr;" on in-progress tasks to advance them to `review`.
+   - On review tasks, regular members see a locked badge `Awaiting Lead Approval` with an SVG lock icon.
+   - Squad Leads and Core Leadership see an active `Approve & Complete ✓` button.
+   - Clicking `Approve & Complete` triggers `TaskCompleteModal` to attach fabrication video evidence.
+
+### B. Build Log Hierarchy Lockdown (BUG-002)
+1. **Leads & Core Only Publication:**
+   - Enforced in `POST`, `PATCH`, and `DELETE` on `/api/logs` (rejecting non-leads with HTTP 403 Forbidden).
+   - In `/log`, hidden `+ Add Log` on desktop and mobile `+ Add Entry` for regular members.
+   - Desktop Quick Actions replaced with an informational banner directing regular members to `/materials`.
+
+### C. Dynamic Authentication & Session Parity (BUG-003)
+1. **Live Firestore Roster Sync:**
+   - In `POST /api/passwords` and `GET /api/passwords`, member records are merged with `getFirestoreMembers()`.
+   - In `web/src/lib/session.ts`, `decodeSession()` preserves dynamically encoded `isLead`, `isCore`, and `tier` attributes rather than overwriting with static baseline arrays.
+   - In `AuthContext.tsx`, `getSavedUser()` preserves dynamic leadership promotions upon session restoration.
+
+### D. Security Hardening (BUG-004)
+1. **Session Boundary in Task Mutation:**
+   - Removed `!session` fallback from `isCoreAdmin` in `PATCH /api/tasks`.
+   - Unauthenticated requests receive HTTP 401 Unauthorized.
+
+### E. Zero-Emoji Standard (BUG-006)
+1. **100% SVG Vector Icons:**
+   - Replaced all 7 legacy emojis in `TaskCard.tsx`, `TaskDetailModal.tsx`, and `CredentialsVaultTab.tsx` with sleek SVG vector icons.
+
+---
+
+## 📂 3. EXACT FILES MODIFIED IN THIS TURN
+- `bugs.md` (Untracked -> Tracked append-only bug register)
+- `web/src/app/api/logs/route.ts` (Build log hierarchy gate)
+- `web/src/app/log/page.tsx` (Build log UI gating)
+- `web/src/app/api/passwords/route.ts` (Dynamic Firestore member query on login)
+- `web/src/lib/session.ts` (Session decode dynamic preservation)
+- `web/src/context/AuthContext.tsx` (Dynamic permissions preservation on storage read)
+- `web/src/app/api/tasks/route.ts` (Removed unauthenticated fallback, 401 gate)
+- `web/src/components/dashboard/TeamTasksTab.tsx` (Desktop table & Kanban review workflow)
+- `web/src/components/shared/TaskCard.tsx` (Zero-emoji vector icons)
+- `web/src/components/TaskDetailModal.tsx` (Zero-emoji vector icons)
+- `web/src/components/dashboard/CredentialsVaultTab.tsx` (Zero-emoji vector icon)
+- `.context/DECISIONS.md` (Recorded ADR-024)
+- `.context/HANDOVER.md` (Updated state and checklist)
 
 ---
 

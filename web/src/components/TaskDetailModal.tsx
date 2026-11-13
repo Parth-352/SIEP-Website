@@ -573,7 +573,9 @@ export default function TaskDetailModal({
                 >
                   {isCompletionBlocked ? (
                     <span className="flex items-center gap-1">
-                      <span>🔒</span>
+                      <svg className="w-3 h-3 text-zinc-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
                       <span>{status.label}</span>
                     </span>
                   ) : (
@@ -592,7 +594,12 @@ export default function TaskDetailModal({
         {task.status === 'review' && (
           <div className="p-4 rounded-xl bg-purple-50/90 border border-purple-200 text-purple-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
             <div className="flex items-start gap-2.5">
-              <span className="text-xl">👁️</span>
+              <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 mt-0.5">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </div>
               <div>
                 <p className="font-sans font-bold text-xs uppercase tracking-wider text-purple-800">
                   Under Observation &amp; Review
@@ -1020,7 +1027,9 @@ export default function TaskDetailModal({
                       title="Under Review: Only Squad Leads and Core Leadership can approve and complete deliverables"
                       className="h-10 px-4 rounded-xl bg-purple-100/80 border border-purple-200 text-purple-800 font-bold text-xs font-sans flex items-center justify-center gap-1.5 whitespace-nowrap select-none"
                     >
-                      <span>🔒</span>
+                      <svg className="w-3.5 h-3.5 text-purple-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
                       <span>Awaiting Lead Approval</span>
                     </div>
                   ) : (

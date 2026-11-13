@@ -64,19 +64,19 @@ function getSavedUser(): UserProfile | null {
     if (!saved) return null;
     const profile = JSON.parse(saved) as UserProfile;
 
-    // Re-verify against authoritative roster
+    // Re-verify against authoritative roster while preserving dynamic leadership promotions
     const member = getMemberByEmail(profile.email);
     if (member) {
       profile.displayName = profile.displayName || member.name;
-      profile.photoUrl = profile.photoUrl || undefined;
-      profile.isCore = member.isCore;
-      profile.isLead = member.isLead;
-      profile.tier = getMemberTier(member.email);
-      profile.role = member.isCore ? 'admin' : 'team';
-      profile.teamId = member.teamId;
-      profile.secondaryTeams = member.secondaryTeams || [];
-      profile.teamName = TEAMS[member.teamId]?.name || 'SIEP Squad';
-      profile.memberId = member.id;
+      profile.photoUrl = profile.photoUrl || member.photoUrl || undefined;
+      profile.isCore = Boolean(profile.isCore !== undefined ? profile.isCore : member.isCore);
+      profile.isLead = Boolean(profile.isLead !== undefined ? profile.isLead : member.isLead);
+      profile.tier = (profile.tier || getMemberTier(member.email) || (profile.isCore ? 1 : profile.isLead ? 2 : 3)) as 1 | 2 | 3;
+      profile.role = profile.isCore ? 'admin' : 'team';
+      profile.teamId = profile.teamId || member.teamId;
+      profile.secondaryTeams = profile.secondaryTeams?.length ? profile.secondaryTeams : (member.secondaryTeams || []);
+      profile.teamName = TEAMS[profile.teamId]?.name || TEAMS[member.teamId]?.name || 'SIEP Squad';
+      profile.memberId = profile.memberId || member.id;
     } else if (profile.teamId) {
       const canonicalTeam = getTeamById(profile.teamId);
       if (canonicalTeam) {
@@ -105,9 +105,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const member = getMemberByEmail(fbUser.email);
           const matchedTeam = getTeamByEmail(fbUser.email);
 
-          const isCore = isMemberCore(fbUser.email);
-          const isLead = isMemberLead(fbUser.email);
-          const tier = getMemberTier(fbUser.email);
+          const savedUser = getSavedUser();
+          const isCore = Boolean(savedUser?.isCore !== undefined ? savedUser.isCore : (member?.isCore ?? isMemberCore(fbUser.email)));
+          const isLead = Boolean(savedUser?.isLead !== undefined ? savedUser.isLead : (member?.isLead ?? isMemberLead(fbUser.email)));
+          const tier = (savedUser?.tier || (member?.tier ?? getMemberTier(fbUser.email)) || (isCore ? 1 : isLead ? 2 : 3)) as 1 | 2 | 3;
 
           const profile: UserProfile = {
             uid: member?.id || fbUser.uid,

@@ -179,6 +179,13 @@ export async function PATCH(request: NextRequest) {
     const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
     const session = decodeSession(sessionCookie);
 
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized: Please log in to update tasks.' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { id, action, ...updates } = body;
 
@@ -199,7 +206,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const isCoreAdmin = Boolean(
-      !session || session.isCore || session.role === 'admin' || session.teamId === 'core'
+      session.isCore || session.role === 'admin' || session.teamId === 'core'
     );
     const sessionName = (session?.name || '').toLowerCase().trim();
     const sessionEmail = (session?.email || '').toLowerCase().trim();

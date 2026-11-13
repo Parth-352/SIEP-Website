@@ -82,6 +82,24 @@ export async function POST(request: NextRequest) {
     const isCoreAdmin = Boolean(
       session.isCore || session.role === 'admin' || session.teamId === 'core'
     );
+    const isLeadOrCore = Boolean(
+      session.isCore ||
+      session.isLead ||
+      session.role === 'admin' ||
+      session.teamId === 'core' ||
+      (session.tier && session.tier <= 2)
+    );
+
+    // Strict Hierarchy Rule: Build logs can ONLY be created by Squad Leads and Core Leadership
+    if (!isLeadOrCore) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Hierarchy Rule: Build logs can only be created by Squad Leads and Core Leadership. Non-leads should upload technical research via Materials.',
+        },
+        { status: 403 }
+      );
+    }
 
     // Subsystem squads can ONLY submit logs for their own team
     if (!isCoreAdmin) {
@@ -144,6 +162,20 @@ export async function PATCH(request: NextRequest) {
     const isCoreAdmin = Boolean(
       session.isCore || session.role === 'admin' || session.teamId === 'core'
     );
+    const isLeadOrCore = Boolean(
+      session.isCore ||
+      session.isLead ||
+      session.role === 'admin' ||
+      session.teamId === 'core' ||
+      (session.tier && session.tier <= 2)
+    );
+
+    if (!isLeadOrCore) {
+      return NextResponse.json(
+        { success: false, error: 'Hierarchy Rule: Only Squad Leads and Core Leadership can modify build logs.' },
+        { status: 403 }
+      );
+    }
 
     const body = await request.json();
     const { id, ...updates } = body;
@@ -233,6 +265,20 @@ export async function DELETE(request: NextRequest) {
     const isCoreAdmin = Boolean(
       session.isCore || session.role === 'admin' || session.teamId === 'core'
     );
+    const isLeadOrCore = Boolean(
+      session.isCore ||
+      session.isLead ||
+      session.role === 'admin' ||
+      session.teamId === 'core' ||
+      (session.tier && session.tier <= 2)
+    );
+
+    if (!isLeadOrCore) {
+      return NextResponse.json(
+        { success: false, error: 'Hierarchy Rule: Only Squad Leads and Core Leadership can delete build logs.' },
+        { status: 403 }
+      );
+    }
 
     const existingLog = getLogById(id);
     if (!existingLog) {
