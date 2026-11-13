@@ -184,8 +184,8 @@ export function classifyDocumentHeuristically(
 }
 
 /**
- * Analyzes document with Google Gemini 1.5 Flash API when available,
- * gracefully falling back to technical heuristics.
+ * Analyzes document with Google's latest Gemini 2.0 Flash API (or configured GEMINI_MODEL),
+ * with automatic fallback to Gemini 1.5 Flash and resilient EV engineering heuristics.
  */
 export async function analyzeDocumentWithGemini(
   fileName: string,
@@ -201,8 +201,7 @@ export async function analyzeDocumentWithGemini(
     return classifyDocumentHeuristically(fileName, description);
   }
 
-  try {
-    const prompt = `You are a Chief EV Motorcycle Systems Engineer for "Riders Bay" (ISIEINDIA SIEP Season 7.0 Smart Scrambler Electric Bike).
+  const prompt = `You are a Chief EV Motorcycle Systems Engineer for "Riders Bay" (ISIEINDIA SIEP Season 7.0 Smart Scrambler Electric Bike).
 Analyze this engineering document:
 - File Name: "${fileName}"
 - Description: "${description || 'None'}"
@@ -216,61 +215,72 @@ Return a strictly valid JSON object with:
 
 Format: Only return raw JSON without markdown or backticks.`;
 
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  // Try latest Gemini 2.0 Flash first, followed by Gemini 1.5 Flash fallback
+  const preferredModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+  const modelsToTry = [preferredModel, 'gemini-1.5-flash'].filter((m, i, arr) => arr.indexOf(m) === i);
 
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [{ text: prompt }],
+  for (const model of modelsToTry) {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: prompt }],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.15,
+            maxOutputTokens: 350,
+            responseMimeType: 'application/json',
           },
-        ],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 300,
-        },
-      }),
-    });
+        }),
+      });
 
-    if (!res.ok) {
-      console.warn(`Gemini API returned status ${res.status}. Falling back to heuristic classifier.`);
-      return classifyDocumentHeuristically(fileName, description);
+      if (!res.ok) {
+        console.warn(`Gemini API (${model}) returned status ${res.status}. Trying next model/fallback.`);
+        continue;
+      }
+
+      const json = await res.json();
+      const candidateText =
+        json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+
+      if (!candidateText) continue;
+
+      // Strip markdown code fences if present
+      const cleanJson = candidateText.replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/i, '').trim();
+      const parsed = JSON.parse(cleanJson);
+
+      const validTeams: TeamId[] = [
+        'mechanical', 'entc', 'software', 'design', 'research',
+        'sponsorship', 'socialmedia', 'documentation', 'core'
+      ];
+      const validCategories: MaterialCategory[] = [
+        'research', 'specs', 'reports', 'datasheets', 'cad', 'other'
+      ];
+
+      const teamId: TeamId = validTeams.includes(parsed.teamId) ? parsed.teamId : 'research';
+      const category: MaterialCategory = validCategories.includes(parsed.category) ? parsed.category : 'research';
+      const tags: string[] = Array.isArray(parsed.tags) ? parsed.tags.slice(0, 8) : [];
+      const summary: string = parsed.summary || description || fileName;
+
+      return {
+        teamId,
+        teamName: TEAMS[teamId]?.name || teamId,
+        category,
+        tags,
+        summary,
+        source: 'gemini',
+        confidence: model.includes('2.0') ? 0.99 : 0.95,
+      };
+    } catch (err) {
+      console.warn(`Error running Gemini model ${model}:`, err);
     }
-
-    const json = await res.json();
-    const candidateText =
-      json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-
-    // Strip markdown code fences if present
-    const cleanJson = candidateText.replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/i, '').trim();
-    const parsed = JSON.parse(cleanJson);
-
-    const validTeams: TeamId[] = [
-      'mechanical', 'entc', 'software', 'design', 'research',
-      'sponsorship', 'socialmedia', 'documentation', 'core'
-    ];
-    const validCategories: MaterialCategory[] = [
-      'research', 'specs', 'reports', 'datasheets', 'cad', 'other'
-    ];
-
-    const teamId: TeamId = validTeams.includes(parsed.teamId) ? parsed.teamId : 'research';
-    const category: MaterialCategory = validCategories.includes(parsed.category) ? parsed.category : 'research';
-    const tags: string[] = Array.isArray(parsed.tags) ? parsed.tags.slice(0, 8) : [];
-    const summary: string = parsed.summary || description || fileName;
-
-    return {
-      teamId,
-      teamName: TEAMS[teamId]?.name || teamId,
-      category,
-      tags,
-      summary,
-      source: 'gemini',
-      confidence: 0.98,
-    };
-  } catch (error) {
-    console.warn('Gemini document analysis error, using fallback:', error);
-    return classifyDocumentHeuristically(fileName, description);
   }
+
+  return classifyDocumentHeuristically(fileName, description);
 }
