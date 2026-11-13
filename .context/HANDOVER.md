@@ -1,6 +1,6 @@
 # 📋 ACTIVE SESSION HANDOVER & STATE
-> **Last Updated:** 2026-11-13 20:25 IST | **Branch:** `main`  
-> **Head Commit:** `8977a9e` -> Staged batch upload, Gemini tag indexing, deck notifications (RES-006)  
+> **Last Updated:** 2026-11-13 20:34 IST | **Branch:** `main`  
+> **Head Commit:** `5aa96c3` -> Upgraded default AI model to Gemini 2.0 Flash with JSON mode  
 > **Production Live URLs:** `https://ridersbay.vercel.app` and `https://riders-bay.vercel.app`  
 > *This document is the single source of truth for in-flight work across breaks and sessions. Agents and developers must read this before starting and update it before stopping.*
 
