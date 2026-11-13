@@ -603,7 +603,7 @@ export default function RolesManagementTab({ user }: RolesManagementTabProps) {
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                    <th className="py-3 px-3.5 pl-4">Member Name &amp; Domains</th>
+                    <th className="py-3 px-3.5 pl-4">Member Name</th>
                     <th className="py-3 px-3">Role &amp; Title</th>
                     <th className="py-3 px-3">Assigned Domains</th>
                     <th className="py-3 px-3">PIN / Password</th>
@@ -664,30 +664,9 @@ export default function RolesManagementTab({ user }: RolesManagementTabProps) {
                               </div>
 
                               <div className="min-w-0">
-                                {/* Square brackets in front of name for all domains with zero partiality */}
-                                <div className="font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
-                                  <div className="inline-flex items-center gap-1">
-                                    {memberDomains.map((dom) => (
-                                      <span
-                                        key={dom}
-                                        className="font-mono text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200/80 px-1 py-0.2 rounded"
-                                      >
-                                        [{TEAMS[dom]?.code || dom.toUpperCase().slice(0, 4)}]
-                                      </span>
-                                    ))}
-                                  </div>
-                                  <span className="truncate">{member.name}</span>
-                                  {isCaptain && (
-                                    <span className="px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 font-extrabold text-[9px] uppercase border border-amber-300">
-                                      Captain
-                                    </span>
-                                  )}
-                                  {isViceCaptain && (
-                                    <span className="px-1.5 py-0.2 rounded-full bg-indigo-100 text-indigo-800 font-extrabold text-[9px] uppercase border border-indigo-300">
-                                      Vice Capt
-                                    </span>
-                                  )}
-                                </div>
+                                <p className="font-bold text-slate-900 truncate">
+                                  {member.name}
+                                </p>
                                 <p className="text-[11px] text-slate-500 truncate">{member.email}</p>
                               </div>
                             </div>
@@ -942,24 +921,6 @@ export default function RolesManagementTab({ user }: RolesManagementTabProps) {
                 {currentViceCaptain ? currentViceCaptain.email : 'Click promote to assign Vice Captain'}
               </p>
             </div>
-          </div>
-
-          {/* Card 2: Master Access Notice */}
-          <div className="bg-slate-900 rounded-2xl p-4 sm:p-5 text-white space-y-2.5 shadow-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-orange/20 border border-orange/40 flex items-center justify-center text-orange shrink-0">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-              <span className="text-[11px] font-black uppercase tracking-wider text-orange">
-                Single Authority Gate
-              </span>
-            </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Cryptographically restricted to <span className="text-white font-mono font-bold">parthkshirsagrr@gmail.com</span>.
-              All role promotions, password updates, domain allocations, and profile picture modifications persist instantly across Cloud Firestore and session validation tokens.
-            </p>
           </div>
         </div>
       </div>

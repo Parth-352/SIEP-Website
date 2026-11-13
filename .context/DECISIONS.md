@@ -2,7 +2,35 @@
 > **Permanent Record of Architectural Trade-offs and Invariant Constraints**  
 > *Project: Riders Bay Smart Scrambler E-Bike (SIEP Season 7.0)*  
 > *These decisions are intentional. Agents must consult these before proposing major refactorings.*  
-> *Last Synced:* 2026-11-12 (Daily Codebase Context Sync)
+> *Companion Documents:* [.context/ARCHITECTURE.md](file://.context/ARCHITECTURE.md) | [.context/DATABASE.md](file://.context/DATABASE.md) | [.context/CONTEXT.md](file://.context/CONTEXT.md) | [.context/HANDOVER.md](file://.context/HANDOVER.md)  
+> *Last Synced:* 2026-11-13 (Daily Codebase Context Sync)
+
+---
+
+## 📑 QUICK ADR INDEX (001 - 021)
+| ADR | Title | Date | Status |
+| :--- | :--- | :--- | :--- |
+| **ADR-001** | Next.js 16 App Router + React 19 + Tailwind CSS v4 | 2026-11-10 | Accepted |
+| **ADR-002** | Dual-Store Authentication & Session Engine (PIN + Firestore) | 2026-11-10 | Accepted |
+| **ADR-003** | Multi-Squad Member Assignment (`secondaryTeams`) *(Refined by ADR-021)* | 2026-11-10 | Superseded |
+| **ADR-004** | Direct Resumable Uploads for Large CAD Assets (5 GB Bypass) | 2026-11-10 | Accepted |
+| **ADR-005** | Decoupled 3D Asset Pipeline (Blender to Compressed WebGL) | 2026-11-10 | Accepted |
+| **ADR-006** | Version-Controlled Agent Context & Handover Standard | 2026-11-10 | Accepted |
+| **ADR-007** | Member Profile Customization, Canvas Image Compression & Roster Sync | 2026-11-11 | Accepted |
+| **ADR-008** | Mobile Profile UX Refinement, PWA Banner De-clutter & Native Photo Action Sheet | 2026-11-11 | Accepted |
+| **ADR-009** | Strict PIN Invalidation, Priority Squad Sorting & Minimal Bottom Action Sheet | 2026-11-11 | Accepted |
+| **ADR-010** | Equal Domain Representation in Member Profile | 2026-11-11 | Accepted |
+| **ADR-011** | Restrict Bottom Navigation Dock Strictly to Standalone Mobile Web App (PWA) | 2026-11-12 | Accepted |
+| **ADR-012** | Mobile UI Rework — Single Responsibility Operational Views | 2026-11-12 | Accepted |
+| **ADR-013** | Build Log Mobile Rework & 5-Status Engineering Workflow | 2026-11-13 | Accepted |
+| **ADR-014** | Strict Domain-Scoped Task Isolation & 4-Tile Status Uniformity | 2026-11-13 | Accepted |
+| **ADR-015** | Hierarchy-Gated Task Completion & Review Observation Protocol | 2026-11-13 | Accepted |
+| **ADR-016** | Modern Slide-Over Burger Menu & Navigation Parity | 2026-11-13 | Accepted |
+| **ADR-017** | Universal Build Log Access & Pure In-App Navigation Experience | 2026-11-13 | Accepted |
+| **ADR-018** | Desktop Portal Redesign (PRD v1.0 & 5 Reference Mockups) | 2026-11-13 | Accepted |
+| **ADR-019** | Dedicated Research & Materials Repository with Direct Google Drive Upload | 2026-11-13 | Accepted |
+| **ADR-020** | Master Role & Team Governance Console (Exclusively for Parth Kshirsagar) | 2026-11-13 | Accepted |
+| **ADR-021** | Role Editing Resilience, Absolute Domain Equality & Dynamic Public Roster Sync | 2026-11-13 | Accepted |
 
 ---
 
@@ -173,7 +201,7 @@
 
 ---
 
-## ADR-013: Build Log Mobile Rework & 5-Status Engineering Workflow
+## 🏛️ ADR-013: Build Log Mobile Rework & 5-Status Engineering Workflow
 - **Date:** 2026-11-13
 - **Status:** Accepted & Implemented
 - **Context:** User requested redesign of the `/log` page on mobile matching mockup `media_1794510271459_0a6999fe.jpg`, requiring one prominent "+ Add Build Log" button, 5 simple work statuses (`In Progress`, `Testing`, `Completed`, `On Hold`, `Needs Review`), single team dropdown, search and status filters together, chronological activity feed with video previews, compact cards, zero Deliverables terminology, and live backend data.

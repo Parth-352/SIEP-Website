@@ -1,93 +1,116 @@
 # 📋 ACTIVE SESSION HANDOVER & STATE
-> **Last Updated:** 2026-11-13 | **Branch:** `main`  
+> **Last Updated:** 2026-11-13 (Daily Context Sync) | **Branch:** `main`  
+> **Head Commit:** `f616bb7` (*feat(portal): resolve role editing data bug, eliminate primary/secondary domain hierarchy, enable password and PFP management, and sync dynamic roster across website*)  
 > **Production Live URLs:** `https://ridersbay.vercel.app` and `https://riders-bay.vercel.app`  
-> *This document is the single source of truth for in-flight work across breaks. Agents and developers must read this before starting and update it before stopping.*
+> *This document is the single source of truth for in-flight work across breaks and sessions. Agents and developers must read this before starting and update it before stopping.*
 
 ---
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
-- **Git State:** Clean, verified, ready for commit and push to `origin/main`.
+- **Git State:** Clean working tree, on `main` branch, fully synchronized with `origin/main`.
 - **TypeScript Verification:** ✅ Clean (`cd web && npx tsc --noEmit` passes with 0 errors).
+- **Context Verification:** ✅ Clean (`bash scripts/context-check.sh` passes 100%).
 - **Production Build:** ✅ Next.js 16.4.5 Turbopack build (`npm run build`) compiles successfully (30/30 static pages generated, 0 errors).
-- **Architecture Synchronization:** ✅ ADR-014 through ADR-021 recorded in [.context/DECISIONS.md](file://.context/DECISIONS.md).
-- **Vercel Production Deployment:** In-flight deployment to `https://ridersbay.vercel.app`.
-- **Responsive Isolation:** ✅ Mobile screens (`md:hidden`) strictly preserved without alterations; desktop redesign isolated under `hidden md:block` / `hidden md:flex`.
-- **Mock Data Elimination:** ✅ 100% eliminated across all tabs; all metrics, tables, timelines, charts, and media grids derive strictly from real Firestore/local state.
+- **Living Context Memory Hub:** ✅ 100% synchronized across [.context/ARCHITECTURE.md](file://.context/ARCHITECTURE.md), [.context/DATABASE.md](file://.context/DATABASE.md), [.context/CONTEXT.md](file://.context/CONTEXT.md), [.context/DECISIONS.md](file://.context/DECISIONS.md), and [.context/HANDOVER.md](file://.context/HANDOVER.md).
+- **Responsive Isolation:** ✅ Mobile views (`md:hidden`) strictly preserved without alterations; desktop redesign isolated under `hidden md:block` / `hidden md:flex`.
+- **Mock Data Elimination:** ✅ 100% eliminated across all tabs; all metrics, tables, timelines, charts, and media grids derive strictly from real Cloud Firestore / local baseline state.
 - **Icon Policy:** ✅ 100% vector SVG icons or clean text badges; zero emojis throughout all redesign views.
 
 ---
 
-## 🛠️ 2. RECENT ACCOMPLISHMENTS & IMPLEMENTATION DETAILS
+## 🛠️ 2. ACTIVE SYSTEM CAPABILITIES & RECENT IMPLEMENTATIONS
 
-### A. Role Editing Data Resilience (ADR-021)
-1. **Root Cause Resolved:**
-   - Previous issue: Clicking on the pencil icon reported "no data" because Firestore's `roster_members` collection only contained customized entries rather than the full 23-member baseline roster.
-   - Fixed by updating `getFirestoreMembers()` and `getStoreMembers()` to merge the authoritative `ROSTER_MEMBERS` baseline with Cloud Firestore documents. All 23 members are guaranteed to exist with full attributes.
-   - Updated `/api/roles` POST handler with resilient matching by `memberId`, normalized email, or normalized name, plus a self-healing fallback ensuring that editing a member never fails with a 404.
+### A. Dynamic Public Roster & Portal Synchronization (ADR-021)
+1. **Public Read-Only API (`/api/members`):**
+   - Serves real-time member records, roles, equal domains, and profile pictures (passwords securely omitted).
+2. **Public Marketing Website (`TeamSection.tsx` & `/about#team`):**
+   - Hydrates dynamically from `/api/members` on mount.
+   - Any appointment (Captain, Vice Captain, Domain Lead), role change, domain allocation, or profile picture change made by Parth in the Roles console instantly reflects on the live public website.
+3. **Teams / Subsystems Directory (`SubsystemsTab.tsx`):**
+   - Hydrates dynamically from `/api/members`.
+   - Uses member's dynamic role (`member.role`) with zero hardcoded badges.
 
-### B. Absolute Domain Equality (Zero Partiality)
-1. **Primary/Secondary Concept Removed:**
-   - Completely eradicated the distinction between "primary" and "secondary" domains across the entire site.
+### B. Master Role & Team Governance Console (ADR-020, ADR-021)
+1. **Strict Cryptographic Security Gate:**
+   - Exclusively accessible by Parth Kshirsagar (`parthkshirsagrr@gmail.com` and its alias `parthkshirsagr@gmail.com`) via `isParthMasterAdmin()`.
+   - Invisible in navigation to other users; direct `/roles` access or `/api/roles` queries receive HTTP 403 Forbidden.
+2. **Comprehensive Governance Actions:**
+   - 1-click Captain / Vice Captain appointments or custom executive titles.
+   - Domain lead toggling and multi-domain assignments.
+   - 1-click administrative permission revocation (reverts lead/core powers back to Tier 3 member).
+   - Password inspection & editing with masked toggle (`••••••` <-> plaintext `935200`).
+   - Profile picture management (view, upload new, or 1-click photo removal).
+
+### C. Absolute Domain Equality (Zero Partiality)
+1. **Hierarchy Elimination:**
+   - Completely eradicated the legacy concept of "primary vs. secondary" domains.
    - All assigned squads are represented equally via `domains: TeamId[]` with identical badges and equal prominence.
-   - No role or title is ever forced or inferred on the basis of a single domain.
+2. **Shortcode Isolation:**
+   - Square bracket shortcodes (e.g. `[MECH] [DSGN] [RES] Meet Samdadiya`) appear **strictly in the Roles Management console table** for quick scanning.
+   - Everywhere else (navigation, profile, Teams tab, task cards, public website), members have clean names with zero bracket prefixes.
 
-### C. Square Brackets Restriction & Clean Names
-1. **Shortcode Isolation:**
-   - As requested, square bracket squad codes (e.g. `[MECH] [DSGN] [RES] Meet Samdadiya`) appear **strictly in the Roles Management console table**.
-   - In all other locations (navigation, profile, Teams tab, task cards, public website), members have clean names with zero bracket prefixes.
+### D. Dedicated Research & Technical Materials Repository (ADR-019)
+1. **Dedicated Hub (`/materials`, `MaterialsTab.tsx`):**
+   - Centralized technical document library separate from daily fabrication build logs (`/log`).
+   - 4 stat cards, standalone filter bar (live search, category pills: Research, Specs, Reports, Datasheets, CAD), and materials table.
+2. **Universal Contributor Access:**
+   - All authenticated team members can upload technical documents regardless of squad tier.
+   - Large files up to 5 GB stream directly to Google Drive via Google Apps Script resumable upload sessions with real-time progress indicators.
+3. **Persistence:**
+   - Firestore collection `materials` with memory fallback in `store.ts`.
 
-### D. Dynamic Public Roster & Portal Synchronization
-1. **Public API Endpoint:**
-   - Created `/api/members` returning real-time members, roles, assigned domains, and profile pictures (passwords securely omitted).
-2. **Public Website (`TeamSection.tsx`):**
-   - Dynamically fetches `/api/members` on mount.
-   - Any appointment (Captain, Vice Captain, Domain Lead), role title change, domain allocation, or profile picture change made by Parth in the Roles console instantly reflects on the live public website (`/about` and homepage).
-3. **Teams / Subsystems Tab (`SubsystemsTab.tsx`):**
-   - Dynamically fetches `/api/members` on mount.
-   - Replaced all hardcoded role badges with dynamic role rendering (`member.role`).
-   - Renders all assigned squads with equal standing.
+### E. Desktop Portal Redesign Matching 5 Reference Mockups (ADR-018)
+1. **Dashboard Overview:** 4 stat cards, team progress bars, connected vertical activity timeline.
+2. **Tasks Workspace:** Unified view combining Team Tasks and My Tasks with tabular/kanban toggle, priority pills, and due dates.
+3. **Build Log Timeline:** 4 stat cards, timeline table with filters, 2x2 media grid, and quick actions.
+4. **Subsystems / Teams Directory:** Member directory table with active badges, joined dates, and squad overview cards.
+5. **Reports & Velocity:** Spline chart, squad progress distribution, downloadable PDF briefs, and 6 instant export tiles.
 
-### E. Master Password & Profile Picture Governance
-1. **Password Visibility:**
-   - Passwords/PINs are masked by default (`••••••`) in the table with an Eye icon to toggle plaintext PIN (`935200`).
-   - Edit modal includes PIN editing and reveal/hide toggle, syncing directly to Firestore `member_passwords`.
-2. **Profile Picture Control:**
-   - Edit modal supports viewing current photo, uploading a new photo, or 1-click "Remove Photo" (clearing photoUrl in `member_profiles` and in `roster_members`).
-
-### F. Tier Highlights Removed from Public View
-1. **Tier Label Isolation:**
-   - Removed "Tier 1, Tier 2, Tier 3" badges from the public website, user badges, navigation, and credentials tab. Tier remains strictly internal to the Master Roles management console.
+### F. Roles Console UI Simplification (Clean Table & Singularity Removal)
+1. **Removed Redundant Gray Domain Tags & Badges:**
+   - Eliminated the duplicate gray domain short-code tags (`[CORE] [E&E]`) and redundant mini-role badges (`CAPTAIN`, `VICE CAPT`) from the Member Name column.
+   - Column 1 now cleanly displays: Initials Avatar + Full Name + Email.
+   - Column 2 is dedicated to `ROLE & TITLE` (`Core Lead & Captain`, `Vice Captain`, `Software Lead`, `Team Member`).
+   - Column 3 is dedicated to `ASSIGNED DOMAINS` with the colorful pills representing all assigned squads with zero partiality.
+2. **Removed "Single Authority Gate" Card:**
+   - Completely removed the black "Single Authority Gate" card ("singularity wala stuff") from the right sidebar of the Roles console, leaving a clean, distraction-free view with the Executive Command appointments card.
 
 ---
 
-## 📁 3. MODIFIED & CREATED FILES IN WORKSPACE
-- `web/src/app/api/members/route.ts` *(new)* — Public dynamic team members endpoint.
-- `web/src/app/api/roles/route.ts` *(modified)* — Resilient member updating, self-healing fallback, and password/photo persistence.
-- `web/src/components/dashboard/RolesManagementTab.tsx` *(modified)* — Master role control console with password toggling, PFP management, equal domain multi-select, and bracket prefixes.
-- `web/src/components/dashboard/SubsystemsTab.tsx` *(modified)* — Dynamic members fetching from `/api/members`, dynamic role badges, and equal domain badges.
-- `web/src/components/TeamSection.tsx` *(modified)* — Dynamic public roster fetching, dynamic role badges (Captain, Vice Captain, Lead), and equal domain badges.
-- `web/src/components/profile/ProfileView.tsx` *(modified)* — Equal multi-domain rendering without primary domain bias.
-- `web/src/components/dashboard/CredentialsVaultTab.tsx` *(modified)* — Removed Tier highlights, updated headers to Access Level.
-- `web/src/components/Navigation.tsx` *(modified)* — Cleaned user badges without squad bracket prefixes.
-- `web/src/lib/members.ts` *(modified)* — Added `domains` array, `getMemberDomains()` helper, and `isParthMasterAdmin()`.
-- `web/src/lib/firestoreService.ts` *(modified)* — Baseline merging for `getFirestoreMembers()`, password & profile getters/setters.
-- `web/src/lib/store.ts` *(modified)* — In-memory store fallback with baseline merging.
-- `.context/DECISIONS.md` *(modified)* — Added ADR-021.
-- `.context/HANDOVER.md` *(modified)* — Updated session handover state.
+## 📁 3. CRITICAL CODEBASE DIRECTORY MAP
+- `.context/` — The living memory hub (`ARCHITECTURE.md`, `DATABASE.md`, `CONTEXT.md`, `DECISIONS.md`, `HANDOVER.md`).
+- `web/src/app/` — Next.js 16 App Router pages (`/materials`, `/roles`, `/tasks`, `/teams`, `/reports`, `/build-log`, `/about`, `/bike`, `/dashboard`).
+- `web/src/app/api/` — Serverless routes (`/api/members`, `/api/roles`, `/api/materials`, `/api/tasks`, `/api/logs`, `/api/profile`, `/api/passwords`).
+- `web/src/components/dashboard/` — Modular React 19 UI tabs (`MaterialsTab`, `RolesManagementTab`, `SubsystemsTab`, `TeamTasksTab`, `VelocityMetricsTab`).
+- `web/src/lib/firestoreService.ts` — Cloud Firestore connectors (`tasks`, `logs`, `materials`, `roster_members`, `member_profiles`, `member_passwords`).
+- `web/src/lib/members.ts` — 23-member baseline directory, `getMemberDomains()`, and `isParthMasterAdmin()`.
+- `web/src/lib/store.ts` — Offline fallback store with self-healing baseline merging.
+- `web/src/context/AuthContext.tsx` — Global session, member roles, and multi-domain permissions.
 
 ---
 
 ## 🏁 4. VERIFICATION COMMANDS
 ```bash
+# Workspace context and status check
+bash scripts/context-check.sh
+
 # TypeScript type check (web/)
 cd web && npx tsc --noEmit
 
-# Production build check (web/)
+# Production Turbopack build check (web/)
 cd web && npm run build
 
-# Verify /roles redirect
-curl -sI https://ridersbay.vercel.app/roles
+# Verify /api/members public response
+curl -s https://ridersbay.vercel.app/api/members | jq .
 
-# Verify /api/roles locked down
+# Verify /api/roles locked down (should return 401/403)
 curl -sI https://ridersbay.vercel.app/api/roles
 ```
+
+---
+
+## 📋 5. IMMEDIATE PICKUP POINTS & NEXT STEPS
+- [ ] Monitor Vercel production deployment status on `https://ridersbay.vercel.app`.
+- [ ] Validate live role editing and dynamic sync end-to-end on mobile and desktop viewports.
+- [ ] Verify Google Drive resumable streaming under low-bandwidth workshop conditions.
+- [ ] Maintain zero-mock-data invariant: keep all views wired strictly to real Firestore/store state.
