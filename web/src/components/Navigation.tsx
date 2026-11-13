@@ -701,8 +701,21 @@ export default function Navigation() {
             )}
           </div>
 
-          {/* Mobile Hamburger Button */}
-          <div className="flex md:hidden items-center gap-2.5">
+          {/* Mobile Header Actions & Hamburger Button */}
+          <div className="flex md:hidden items-center gap-2">
+            {/* Mobile Rulebook AI Button */}
+            <button
+              type="button"
+              onClick={() => setIsCopilotOpen(true)}
+              title="SIEP Season 7.0 Rulebook AI"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900 active:scale-95 text-white transition-all text-xs font-bold cursor-pointer shadow-2xs"
+            >
+              <svg className="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              <span className="text-[11px] font-sans">Rulebook AI</span>
+            </button>
+
             <button
               onClick={toggleMenu}
               className="w-10 h-10 rounded-xl bg-zinc-100/90 hover:bg-zinc-200 text-jet-black focus:outline-none flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs"
@@ -1082,6 +1095,35 @@ export default function Navigation() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
                   </svg>
                 </Link>
+
+                {/* 8. SIEP Rulebook Copilot */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeMenu();
+                    setIsCopilotOpen(true);
+                  }}
+                  className="w-full rounded-2xl p-3 sm:p-3.5 flex items-center justify-between gap-3.5 transition-all text-left bg-amber-50/70 hover:bg-amber-100/90 border border-amber-200/80 shadow-2xs cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-11 h-11 rounded-xl bg-slate-900 border border-slate-800 text-amber-400 flex items-center justify-center shrink-0">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[15px] sm:text-base font-bold text-zinc-900 tracking-tight block">
+                        Rulebook AI Copilot
+                      </span>
+                      <span className="text-[10px] text-amber-800 font-bold uppercase tracking-wider block">
+                        SIEP 7.0 Grounded
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-amber-200 text-amber-950 font-bold">
+                    AI
+                  </span>
+                </button>
               </div>
             ) : (
               <div className="space-y-2.5">
