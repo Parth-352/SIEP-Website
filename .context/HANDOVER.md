@@ -6,7 +6,7 @@
 ---
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
-- **Git State:** Clean compilation with uncommitted PRD v1.0 desktop portal redesign changes.
+- **Git State:** Committed and pushed to `origin/main` (`b06f4c7`).
 - **TypeScript Verification:** ✅ Clean (`cd web && npx tsc --noEmit` passes with 0 errors).
 - **Production Build:** ✅ Next.js 16.4.5 Turbopack build (`npm run build`) compiles successfully (25/25 static pages generated, 0 errors).
 - **Architecture Synchronization:** ✅ ADR-014, ADR-015, ADR-016, ADR-017, and ADR-018 recorded in `.context/DECISIONS.md`.
