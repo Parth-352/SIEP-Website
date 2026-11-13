@@ -9,6 +9,7 @@ export type DashboardTab =
   | 'teams'
   | 'videos'
   | 'metrics'
+  | 'materials'
   | 'accounts';
 
 export interface UndoState {

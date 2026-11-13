@@ -144,3 +144,30 @@ export interface DriveUploadResponse {
   embedUrl?: string;
   error?: string;
 }
+
+export type MaterialCategory =
+  | 'research'
+  | 'specs'
+  | 'reports'
+  | 'datasheets'
+  | 'cad'
+  | 'other';
+
+export interface ResearchMaterial {
+  id: string;
+  title: string;
+  description?: string;
+  category: MaterialCategory;
+  teamId: TeamId;
+  teamName: string;
+  authorEmail: string;
+  authorName: string;
+  fileName: string;
+  fileSize?: number;
+  mimeType?: string;
+  fileUrl: string; // Google Drive View URL or embed link
+  driveFileId?: string;
+  tags?: string[];
+  createdAt: number;
+  updatedAt?: number;
+}

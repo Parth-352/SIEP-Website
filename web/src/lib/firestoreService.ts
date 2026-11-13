@@ -6,7 +6,7 @@ import {
   setDoc, 
   deleteDoc, 
 } from 'firebase/firestore';
-import { Task, WorkLog, TeamId, TaskStatus, TaskPriority, MemberProfileData } from './types';
+import { Task, WorkLog, TeamId, TaskStatus, TaskPriority, MemberProfileData, ResearchMaterial } from './types';
 
 // ======================== TASKS FIRESTORE ========================
 
@@ -322,6 +322,88 @@ export async function saveFirestoreMemberProfile(
     return true;
   } catch (err) {
     console.warn('Firestore saveMemberProfile error:', err);
+    return false;
+  }
+}
+
+// ======================== MATERIALS FIRESTORE ========================
+
+export async function getFirestoreMaterials(teamId?: TeamId | string): Promise<ResearchMaterial[] | null> {
+  if (!isFirebaseConfigured() || !db) return null;
+  try {
+    const materialsCol = collection(db, 'materials');
+    const snapshot = await getDocs(materialsCol);
+    const materials: ResearchMaterial[] = [];
+    snapshot.forEach((d) => {
+      const data = d.data();
+      materials.push({
+        id: d.id,
+        title: data.title || '',
+        description: data.description || '',
+        category: data.category || 'other',
+        teamId: (data.teamId || 'core') as TeamId,
+        teamName: data.teamName || '',
+        authorEmail: data.authorEmail || '',
+        authorName: data.authorName || '',
+        fileName: data.fileName || '',
+        fileSize: Number(data.fileSize || 0),
+        mimeType: data.mimeType || '',
+        fileUrl: data.fileUrl || '',
+        driveFileId: data.driveFileId || '',
+        tags: Array.isArray(data.tags) ? data.tags : [],
+        createdAt: data.createdAt || Date.now(),
+        updatedAt: data.updatedAt || Date.now(),
+      });
+    });
+
+    if (!teamId || teamId === 'core' || teamId === 'all') {
+      return materials.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    }
+    return materials
+      .filter((m) => m.teamId === teamId)
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  } catch (err) {
+    console.warn('Firestore getMaterials error (falling back to local store):', err);
+    return null;
+  }
+}
+
+export async function saveFirestoreMaterial(material: ResearchMaterial): Promise<boolean> {
+  if (!isFirebaseConfigured() || !db) return false;
+  try {
+    const docRef = doc(db, 'materials', material.id);
+    await setDoc(docRef, {
+      title: material.title,
+      description: material.description || '',
+      category: material.category,
+      teamId: material.teamId,
+      teamName: material.teamName,
+      authorEmail: material.authorEmail,
+      authorName: material.authorName,
+      fileName: material.fileName,
+      fileSize: material.fileSize || 0,
+      mimeType: material.mimeType || '',
+      fileUrl: material.fileUrl,
+      driveFileId: material.driveFileId || '',
+      tags: material.tags || [],
+      createdAt: material.createdAt,
+      updatedAt: material.updatedAt || Date.now(),
+    }, { merge: true });
+    return true;
+  } catch (err) {
+    console.warn('Firestore saveMaterial error:', err);
+    return false;
+  }
+}
+
+export async function deleteFirestoreMaterial(id: string): Promise<boolean> {
+  if (!isFirebaseConfigured() || !db) return false;
+  try {
+    const docRef = doc(db, 'materials', id);
+    await deleteDoc(docRef);
+    return true;
+  } catch (err) {
+    console.warn('Firestore deleteMaterial error:', err);
     return false;
   }
 }

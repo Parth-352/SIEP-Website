@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { WorkLog, Task, TeamId, InAppNotification, ActivityEvent } from './types';
+import { WorkLog, Task, TeamId, InAppNotification, ActivityEvent, ResearchMaterial } from './types';
 
 export interface PartnerInquiry {
   id: string;
@@ -15,6 +15,7 @@ export interface PartnerInquiry {
 interface StoreData {
   logs: WorkLog[];
   tasks: Task[];
+  materials?: ResearchMaterial[];
   activities?: ActivityEvent[];
   inquiries?: PartnerInquiry[];
   passwords?: Record<string, string>;
@@ -384,6 +385,39 @@ export function recordActivity(event: Omit<ActivityEvent, 'id' | 'timestamp'>): 
   }
   writeStore(store);
   return created;
+}
+
+// ======================== MATERIALS API ========================
+
+export function getMaterials(teamId?: string): ResearchMaterial[] {
+  const store = readStore();
+  const list = store.materials || [];
+  if (!teamId || teamId === 'all' || teamId === 'core') {
+    return list;
+  }
+  return list.filter((m) => m.teamId === teamId);
+}
+
+export function createMaterial(material: ResearchMaterial): ResearchMaterial {
+  const store = readStore();
+  if (!store.materials) {
+    store.materials = [];
+  }
+  store.materials.unshift(material);
+  writeStore(store);
+  return material;
+}
+
+export function deleteMaterial(id: string): boolean {
+  const store = readStore();
+  if (!store.materials) return false;
+  const initialLength = store.materials.length;
+  store.materials = store.materials.filter((m) => m.id !== id);
+  if (store.materials.length !== initialLength) {
+    writeStore(store);
+    return true;
+  }
+  return false;
 }
 
 

@@ -32,6 +32,7 @@ import MyWorkbenchTab from '@/components/dashboard/MyWorkbenchTab';
 import SubsystemsTab from '@/components/dashboard/SubsystemsTab';
 import VideoArchiveTab from '@/components/dashboard/VideoArchiveTab';
 import VelocityMetricsTab from '@/components/dashboard/VelocityMetricsTab';
+import MaterialsTab from '@/components/dashboard/MaterialsTab';
 import CredentialsVaultTab from '@/components/dashboard/CredentialsVaultTab';
 import ProfileView from '@/components/profile/ProfileView';
 import CreateTaskModal from '@/components/shared/CreateTaskModal';
@@ -78,6 +79,7 @@ function DashboardContent() {
           'teams',
           'videos',
           'metrics',
+          'materials',
           'accounts',
         ].includes(tabParam)
       ) {
@@ -100,6 +102,7 @@ function DashboardContent() {
           'teams',
           'videos',
           'metrics',
+          'materials',
           'accounts',
         ].includes(detail)
       ) {
@@ -120,7 +123,7 @@ function DashboardContent() {
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get('tab') as DashboardTab;
-      if (tab && ['dashboard', 'team_tasks', 'my_tasks', 'profile', 'teams', 'videos', 'metrics', 'accounts'].includes(tab)) {
+      if (tab && ['dashboard', 'team_tasks', 'my_tasks', 'profile', 'teams', 'videos', 'metrics', 'materials', 'accounts'].includes(tab)) {
         setActiveTab(tab);
       }
     };
@@ -980,7 +983,12 @@ function DashboardContent() {
           />
         )}
 
-        {/* Tab 7: Core Admin Credentials Vault */}
+        {/* Tab 7: Dedicated Research & Materials Repository */}
+        {activeTab === 'materials' && (
+          <MaterialsTab user={user} isCore={isCore} isLead={isLead} />
+        )}
+
+        {/* Tab 8: Core Admin Credentials Vault */}
         {activeTab === 'accounts' && isCoreAdmin && (
           <CredentialsVaultTab
             memberCredentials={memberCredentials}
