@@ -347,3 +347,28 @@
 - **Consequences:**
   - Team members across all 9 squads have a dedicated, organized technical document repository without cluttering the daily build log.
   - Large technical files bypass serverless limitations and are stored reliably in the team Google Drive.
+
+---
+
+## 🏛️ ADR-020: Master Role & Team Governance Console (Exclusively for Parth Kshirsagar)
+- **Date:** 2026-11-13
+- **Status:** Accepted & Implemented
+- **Context:**
+  - The team required a centralized administrative console to manage team roles, appoint Captain and Vice Captain, designate Domain Leads, adjust squad allocations (primary + secondary), assign governance tiers, and revoke permissions.
+  - Strict Security Invariant: This console must be accessible **strictly and exclusively** by Parth Kshirsagar (`parthkshirsagrr@gmail.com`). No other member, lead, or core admin can access or execute role modifications.
+- **Decisions:**
+  1. **Strict Cryptographic Access Gate:**
+     - Evaluated via `isParthMasterAdmin(email)` checking `parthkshirsagrr@gmail.com` (and its normalized alias).
+     - Frontend UI: The `Roles` pill in top desktop navigation, the User Profile dropdown entry, and the mobile drawer link are completely invisible to all other users. If a non-authorized user navigates directly to `/roles` or `/dashboard?tab=roles`, a security guard screen blocks access with a lock icon.
+     - Backend API (`/api/roles`): Enforces HTTP 403 Forbidden with `session.email` verification on both `GET` and `POST`.
+  2. **Comprehensive Role Management Capabilities:**
+     - **Captain & Vice Captain Appointments:** 1-click promotion buttons or full custom titles (`Core Lead & Captain`, `Vice Captain`).
+     - **Domain Leads & Squad Allocation:** Manage primary `teamId` and secondary squads (`secondaryTeams`) across all 9 engineering squads.
+     - **Permission Revocation:** 1-click revocation dialog that removes Lead and Core administrative powers, instantly reverting the member to standard Tier 3 Team Member.
+     - **New Member Addition & Removal:** Add new innovators to the roster or remove archived members.
+  3. **Visual & Design Uniformity:**
+     - Matches the reference design system (Operations Hero Banner, 4 Stat Cards, Standalone Filter Bar with live search and category tabs, 2-column layout with Executive Hierarchy overview, zero emojis).
+  4. **Persistence Layer:**
+     - Backed by Cloud Firestore collection `roster_members` with local memory store fallback (`store.ts`) and audit logging (`recordActivity`).
+- **Consequences:**
+  - Full, unilateral executive authority over the team directory and permissions for Parth Kshirsagar without risk of unauthorized privilege escalation from other members.
