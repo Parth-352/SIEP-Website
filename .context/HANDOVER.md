@@ -1,6 +1,6 @@
 # 📋 ACTIVE SESSION HANDOVER & STATE
 > **Last Updated:** 2026-11-13 (Daily Context Sync) | **Branch:** `main`  
-> **Head Commit:** `59f25d9` (*fix(roles): remove duplicate gray domain badges and remove single authority gate card*)  
+> **Head Commit:** `6e08f0c` (*feat(roles): allow domain lead assignment for captain/vice captain, implement about page hierarchy & domain context, highlight lead domains, and remove parth-only text*)  
 > **Production Live URLs:** `https://ridersbay.vercel.app` and `https://riders-bay.vercel.app`  
 > *This document is the single source of truth for in-flight work across breaks and sessions. Agents and developers must read this before starting and update it before stopping.*
 
