@@ -6,11 +6,11 @@
 ---
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
-- **Git State:** Committed and pushed to `origin/main` (`f39e3ab`).
+- **Git State:** Committed and pushed to `origin/main` (`7f05e5f`).
 - **TypeScript Verification:** ✅ Clean (`cd web && npx tsc --noEmit` passes with 0 errors).
-- **Production Build:** ✅ Next.js 16.4.5 Turbopack build (`npm run build`) compiles successfully (25/25 static pages generated, 0 errors).
-- **Architecture Synchronization:** ✅ ADR-014, ADR-015, ADR-016, ADR-017, and ADR-018 recorded in `.context/DECISIONS.md`.
-- **Vercel Production Deployment:** ✅ Live at `https://ridersbay.vercel.app` (Deployment `web-7dil22bf6-parths-projects-421c4665.vercel.app`).
+- **Production Build:** ✅ Next.js 16.4.5 Turbopack build (`npm run build`) compiles successfully (27/27 static pages generated, 0 errors).
+- **Architecture Synchronization:** ✅ ADR-014 through ADR-019 recorded in [.context/DECISIONS.md](file://.context/DECISIONS.md).
+- **Vercel Production Deployment:** ✅ Live at `https://ridersbay.vercel.app` (Deployment `web-asd9mqyuc-parths-projects-421c4665.vercel.app`).
 - **Responsive Isolation:** ✅ Mobile screens (`md:hidden`) strictly preserved without alterations; desktop redesign isolated under `hidden md:block` / `hidden md:flex`.
 - **Mock Data Elimination:** ✅ 100% eliminated across all tabs; all metrics, tables, timelines, charts, and media grids derive strictly from real Firestore/local state.
 - **Icon Policy:** ✅ 100% vector SVG icons or clean text badges; zero emojis throughout all redesign views.
@@ -19,66 +19,42 @@
 
 ## 🛠️ 2. RECENT ACCOMPLISHMENTS & IMPLEMENTATION DETAILS
 
-### A. Desktop Portal Redesign — PRD v1.0 & 5 Reference Mockups (ADR-018)
-1. **Unified Persistent Desktop Navigation Bar (`Navigation.tsx`):**
-   - 5 primary navigation pills: `Dashboard`, `Tasks`, `Build Log`, `Teams`, `Reports`.
-   - Dark navy active pill indicator (`bg-[#0e131f] text-white shadow-xs`) with smooth transitions.
-   - Right-side utilities: Notification Bell (triggers `siep_open_activity_drawer`) and User Profile avatar circle with dropdown (`My Profile`, `Account & Security`, `Access Settings (Core Admin)`, and `Sign Out`).
-   - Browser back/forward navigation (`popstate`) and URL synchronization (`window.history.pushState`).
-   - Clean redirect routes created for direct URL access: `/tasks`, `/teams`, `/reports`, `/build-log`, `/profile`.
-2. **Operations Hero Banner & Uniform Stat Cards:**
-   - `OperationsBanner.tsx`: Dark gradient container with glowing golden-orange SVG arc wave, uppercase subtitle, bold title, and CTA action button.
-   - `StatCard.tsx`: Pastel icon squircles, tabular metric counters, subtle rounded borders, and optional mini progress bars.
-3. **Mockup 1 — Dashboard (`DashboardOverviewTab.tsx`):**
-   - Operations Banner (`PROJECT OPERATIONS / DASHBOARD`).
-   - 4 Stat Cards: `Total Tasks` (blue check), `In Progress` (orange play), `Completed` (green check), `Overdue` (rose warning).
-   - 2-Column Grid:
-     - `Team Progress`: Squad codes (`SOFT`, `E&E`, `MECH`, `DSGN`, `RBDI`, `SPON`, `DOCS`, `SOCM`), full names, orange progress bars, completion %, fractions, and `View Teams ->` shortcut.
-     - `Recent Activity`: Connected vertical timeline with dark node dots, squircle icons, squad badges, status pills, and relative timestamps.
-4. **Mockup 2 — Tasks Workspace (`TeamTasksTab.tsx`):**
-   - Single unified task management workspace combining Team Tasks and My Tasks.
-   - Operations Banner (`PROJECT OPERATIONS / Tasks / + New Task`).
-   - Filter Tabs: `All Tasks`, `My Tasks`, `Assigned`, `Review`, `Completed` with dynamic task counts.
-   - Search input (`Search tasks...`), Filters dropdown (squad, priority), and View switcher (Table / Kanban).
-   - Standardized Table: Checkbox, Task title, Team badge, Priority pill (`^ High`, `★ Medium`, `✽ Low`), Status pill (`✓ Completed`, `▶ In Progress`, `⚗ Under Review`, `○ To Do`), Assignee initials avatar circles, formatted Due Date, actions menu (`...`), and pagination footer.
-5. **Mockup 3 — Build Log (`web/src/app/log/page.tsx`):**
-   - Operations Banner (`PROJECT OPERATIONS / Build Log / + Add Log`).
-   - Standardized container to `max-w-7xl mx-auto` and `pb-12 sm:pb-16`, eliminating the horizontal layout jump when switching between tabs.
-   - 4 Stat Cards: `Total Logs`, `Builds`, `Tests`, `Validated`.
-   - Left Column: Standalone Filter Bar card matching Tasks and Teams with category filter tabs (`All Logs`, `Builds`, `Tests`, `Design`, `Analysis`), desktop search input (`Search build logs...`) with clear button, and time filter (`All Time ▾`).
-   - Comprehensive timeline table (`#`, `Log Title`, `Type`, `Team`, `Date`, `Status`, `...`) powered by dynamic `desktopFilteredLogs` memoized filter, and uniform pagination footer (`Showing X–Y of Z logs`).
-   - Right Column: Standardized card headers with orange squircle + subtitles for `Recent Build Media` (2x2 preview grid of thumbnails with `View All ->`) and `Quick Actions` (`New Build Log`, `New Test Log`, `Upload Media`).
-   - Preserved all log creation, editing, deletion, and video playback modals.
-6. **Mockup 4 — Teams Directory (`SubsystemsTab.tsx`):**
-   - Operations Banner (`PROJECT OPERATIONS / Teams / + Add Member`).
-   - 4 Stat Cards: `Total Members`, `Squads`, `Core Committee`, `Active Members`.
-   - Left Column: Directory tabs (`All Members`, `Squads`, `Core Committee`, `Roles`), search input, and Directory Table (Checkbox, Member with avatar initials + name + email, Role badge with icon, Squad, `● Active` status, Joined date, actions).
-   - Right Column: `Squad Overview` card with squads, member counts, task fractions, and orange progress bars.
-7. **Mockup 5 — Reports & Performance Insights (`VelocityMetricsTab.tsx`):**
-   - Operations Banner (`PROJECT OPERATIONS / Reports / Export Report`).
-   - 5 Stat Cards: `Overall Progress` (with mini orange bar), `Tasks Completed` (with mini green bar), `Tests Conducted`, `Validated`, `Build Logs`.
-   - Middle Row: `Progress Overview` (SVG spline area chart), `Squad Progress` bars, and `Recent Reports` (PDF badges with instant download).
-   - Bottom Row: `Quick Reports` featuring 6 action tiles (Progress Report, Test Report, Build Summary, Team Report, Cost Report, Custom Report) with client-side JSON/Markdown export.
-   - Retained Member Contributions table and Active Blockers radar.
+### A. Dedicated Research & Materials Repository (ADR-019)
+1. **User Requirement Met:**
+   - Members across all squads, including non-lead and non-core engineers, can upload technical whitepapers, component datasheets, CAD files, test reports, and research materials.
+   - Kept strictly separate from the engineering Build Log (`/log`).
+   - Integrated with the existing Google Drive Resumable Upload Gateway (`uploadFileToGoogleDrive`) to stream files up to 5 GB directly into team Google Drive storage.
+2. **Backend & Architecture:**
+   - `web/src/lib/types.ts`: Defined `ResearchMaterial` model and `MaterialCategory` (`'research' | 'specs' | 'reports' | 'datasheets' | 'cad' | 'other'`).
+   - `web/src/types/dashboard.ts`: Registered `'materials'` tab in `DashboardTab`.
+   - `web/src/lib/store.ts`: Added memory store methods (`getMaterials`, `createMaterial`, `deleteMaterial`).
+   - `web/src/lib/firestoreService.ts`: Added Firestore sync methods (`getFirestoreMaterials`, `saveFirestoreMaterial`, `deleteFirestoreMaterial`).
+   - `web/src/app/api/materials/route.ts`: Created REST endpoint for listing, saving (open to all authenticated members), and deleting materials.
+   - `web/src/app/materials/page.tsx`: Created clean redirect route to `/dashboard?tab=materials`.
+3. **Frontend UI Component (`MaterialsTab.tsx`):**
+   - **Operations Hero Banner:** `PROJECT OPERATIONS / Research & Materials / + Upload Material`.
+   - **4 Stat Cards:** `Total Documents` (sky icon), `Research Papers` (purple icon), `Technical Specs & CAD` (pink icon), `Reports & Briefs` (green icon).
+   - **Standalone Filter Bar:** Category filter pills (`All Materials`, `Research`, `Specs`, `Reports`, `Datasheets`, `CAD`), live search input with clear button, and squad selector.
+   - **Materials Table:** File type badges (`PDF`, `DOC`, `XLS`, `CAD`), document title, description preview, squad code badge, author name with relative date, Google Drive verified badge, and direct View/Download actions.
+   - **Right Column:** Quick upload dropzone, squad distribution progress bars, and Google Drive cloud storage information card.
+   - **Upload Modal:** Live 0–100% animated upload progress bar streaming directly into Google Drive via `uploadFileToGoogleDrive`, or pasting existing Google Drive share links.
+4. **Global Navigation Synchronization (`Navigation.tsx`):**
+   - Added persistent `Materials` navigation pill in the desktop header navbar (between `Reports` and Notification Bell).
+   - Added `Materials` navigation card in the slide-over mobile drawer menu.
 
 ---
 
 ## 📁 3. MODIFIED & CREATED FILES IN WORKSPACE
-- `web/src/components/dashboard/OperationsBanner.tsx` *(new)* — Reusable desktop banner with glowing golden-orange curve.
-- `web/src/components/dashboard/StatCard.tsx` *(new)* — Reusable desktop stat card with pastel icon squircle.
-- `web/src/components/Navigation.tsx` *(modified)* — 5-pill navbar, user avatar dropdown, notification bell, preserving mobile drawer.
-- `web/src/components/dashboard/DashboardOverviewTab.tsx` *(modified)* — Mockup 1 desktop layout (`hidden md:block`).
-- `web/src/components/dashboard/TeamTasksTab.tsx` *(modified)* — Mockup 2 desktop layout (`hidden md:block`).
-- `web/src/app/log/page.tsx` *(modified)* — Mockup 3 desktop layout (`hidden md:block`).
-- `web/src/components/dashboard/SubsystemsTab.tsx` *(modified)* — Mockup 4 desktop layout (`hidden md:block`).
-- `web/src/components/dashboard/VelocityMetricsTab.tsx` *(modified)* — Mockup 5 desktop layout (`hidden md:block`).
-- `web/src/app/dashboard/page.tsx` *(modified)* — Tab state sync, popstate listener, global modal triggers.
-- `web/src/app/tasks/page.tsx` *(new)* — Route redirect to `/dashboard?tab=team_tasks`.
-- `web/src/app/teams/page.tsx` *(new)* — Route redirect to `/dashboard?tab=teams`.
-- `web/src/app/reports/page.tsx` *(new)* — Route redirect to `/dashboard?tab=metrics`.
-- `web/src/app/build-log/page.tsx` *(new)* — Route redirect to `/log`.
-- `web/src/app/profile/page.tsx` *(new)* — Route redirect to `/dashboard?tab=profile`.
-- `.context/DECISIONS.md` *(modified)* — Added ADR-018.
+- `web/src/lib/types.ts` *(modified)* — Added `ResearchMaterial` interface and `MaterialCategory` type.
+- `web/src/types/dashboard.ts` *(modified)* — Registered `'materials'` in `DashboardTab`.
+- `web/src/lib/store.ts` *(modified)* — Added materials getters and persistence fallback methods.
+- `web/src/lib/firestoreService.ts` *(modified)* — Added Firestore queries and mutation for `research_materials`.
+- `web/src/app/api/materials/route.ts` *(new)* — API route for getting, uploading, and deleting documents.
+- `web/src/app/materials/page.tsx` *(new)* — Next.js page route redirecting to `/dashboard?tab=materials`.
+- `web/src/components/dashboard/MaterialsTab.tsx` *(new)* — Modular desktop materials repository component.
+- `web/src/app/dashboard/page.tsx` *(modified)* — Registered tab state, popstate listener, and rendered `MaterialsTab`.
+- `web/src/components/Navigation.tsx` *(modified)* — Added desktop pill and mobile drawer link for Materials.
+- `.context/DECISIONS.md` *(modified)* — Added ADR-019.
 
 ---
 
@@ -89,4 +65,8 @@ cd web && npx tsc --noEmit
 
 # Production build check (web/)
 cd web && npm run build
+
+# Live Production URLs
+curl -sI https://ridersbay.vercel.app/materials
+curl -sI https://ridersbay.vercel.app/dashboard?tab=materials
 ```

@@ -315,3 +315,35 @@
   - Complete 1:1 fidelity with the 5 reference mockups.
   - 100% preservation of mobile layouts, auth models, member PINs, and Firestore schemas.
   - Zero TypeScript or Turbopack compilation errors across all 25 Next.js static pages.
+
+---
+
+## 🏛️ ADR-019: Dedicated Research & Materials Repository with Direct Google Drive Upload for All Members
+- **Date:** 2026-11-13
+- **Status:** Accepted & Implemented
+- **Context:**
+  - The team required a centralized repository where all members (including non-core and non-lead shop engineers) can upload and access technical whitepapers, CAD designs, simulation outputs, component datasheets, test reports, and research materials.
+  - Requirement: Keep this strictly separated from the engineering Build Log (`/log`), which tracks daily fabrication steps, while utilizing Google Drive direct resumable streaming (similar to build video uploads) to circumvent Vercel's serverless payload limits.
+- **Decisions:**
+  1. **Dedicated Materials Tab (`MaterialsTab.tsx`):**
+     - Created a persistent `Materials` tab on the desktop portal (`/dashboard?tab=materials`) and direct route `/materials`.
+     - Added `Materials` pill button to the persistent desktop top navigation bar (`Navigation.tsx`) and mobile drawer.
+     - Designed with 100% aesthetic uniformity to the 5 reference mockups:
+       - Operations Banner (`PROJECT OPERATIONS / Research & Materials / + Upload Material`).
+       - 4 Stat Cards: `Total Documents`, `Research Papers`, `Technical Specs & CAD`, `Reports & Briefs`.
+       - Standalone Filter Bar: Live search with clear button, category filter pills (`All Materials`, `Research`, `Specs`, `Reports`, `Datasheets`, `CAD`), and squad selector.
+       - Materials Table: File type pill (`PDF`, `DOC`, `XLS`, `CAD`), title & description, squad badge, author info, verified Google Drive status, and action links.
+       - Right Column: Quick upload dropzone, squad distribution bars, and Google Drive cloud storage info.
+  2. **Direct Google Drive Resumable Upload:**
+     - Reused `uploadFileToGoogleDrive` to stream PDFs, docs, and CAD files up to 5 GB directly into the team Google Drive via Google Apps Script resumable upload session.
+     - Shows live 0–100% upload progress bar in the upload modal.
+     - Supports direct file upload or pasting existing Google Drive view URLs.
+  3. **Universal Upload Permissions:**
+     - Document upload is open to all authenticated team members regardless of tier, core status, or lead status.
+     - Deletion is restricted to the original author or Core Administrators.
+  4. **Persistence Layer:**
+     - Created `/api/materials` endpoint handling `GET`, `POST`, and `DELETE`.
+     - Synchronizes to Firestore collection `research_materials` with local memory store fallback (`store.ts`).
+- **Consequences:**
+  - Team members across all 9 squads have a dedicated, organized technical document repository without cluttering the daily build log.
+  - Large technical files bypass serverless limitations and are stored reliably in the team Google Drive.
