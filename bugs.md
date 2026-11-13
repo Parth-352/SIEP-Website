@@ -184,3 +184,14 @@
 - **TypeScript Compilation:** `cd web && npx tsc --noEmit` &rarr; 0 errors (Exit Code 0).
 - **Next.js Production Build:** `cd web && npm run build` &rarr; 30/30 static and dynamic routes compiled successfully in Turbopack.
 - **Emoji Audit:** Python Unicode codepoint inspection confirmed 0 emojis across the entire `web/src` codebase.
+- **Automated Live Endpoint Suite (16/16 Passed):** Automated Python test suite verified all 16 mission-critical API boundaries against `https://ridersbay.vercel.app`:
+  1. `/api/members` dynamically reflects live roster appointments (Captain, Vice Captain, and equal multi-domain representation).
+  2. Regular Member PIN login returns `isLead: false`, `isCore: false`, `tier: 3`.
+  3. Squad Lead PIN login returns `isLead: true`, `tier: 2`.
+  4. Captain PIN login returns `isCore: true`, `isLead: true`, `tier: 1`.
+  5. Unauthenticated task PATCH, task POST, passwords GET rejected with HTTP 401.
+  6. Regular member build log POST and DELETE rejected with HTTP 403 Forbidden.
+  7. Regular member universal read access to build logs and materials hub verified (HTTP 200 OK).
+  8. Master Roles console `/api/roles` rejects regular members and Captain with HTTP 403; authorizes Parth with HTTP 200.
+  9. Regular member direct task creation with `done` status rejected with HTTP 403.
+  10. DELETE handlers in `/api/logs` and `/api/tasks` support both URL query params and JSON request body payloads with early authorization checks.

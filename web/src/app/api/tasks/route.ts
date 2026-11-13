@@ -399,7 +399,14 @@ export async function DELETE(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const id = searchParams.get('id');
+    let id = searchParams.get('id');
+
+    if (!id) {
+      const body = await request.json().catch(() => null);
+      if (body && body.id) {
+        id = body.id;
+      }
+    }
 
     if (!id) {
       return NextResponse.json({ success: false, error: 'Task id is required' }, { status: 400 });

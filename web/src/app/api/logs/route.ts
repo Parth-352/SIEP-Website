@@ -255,13 +255,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const searchParams = request.nextUrl.searchParams;
-    const id = searchParams.get('id');
-
-    if (!id) {
-      return NextResponse.json({ success: false, error: 'Log ID parameter is required.' }, { status: 400 });
-    }
-
     const isCoreAdmin = Boolean(
       session.isCore || session.role === 'admin' || session.teamId === 'core'
     );
@@ -278,6 +271,20 @@ export async function DELETE(request: NextRequest) {
         { success: false, error: 'Hierarchy Rule: Only Squad Leads and Core Leadership can delete build logs.' },
         { status: 403 }
       );
+    }
+
+    const searchParams = request.nextUrl.searchParams;
+    let id = searchParams.get('id');
+
+    if (!id) {
+      const body = await request.json().catch(() => null);
+      if (body && body.id) {
+        id = body.id;
+      }
+    }
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'Log ID parameter is required.' }, { status: 400 });
     }
 
     const existingLog = getLogById(id);
