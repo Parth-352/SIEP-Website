@@ -353,12 +353,17 @@ export default function ProfileView({
             </div>
           </div>
 
-          {/* Subtitle: admin • Software */}
+          {/* Subtitle: Role Title • All Assigned Domains without partiality */}
           <p className="text-xs font-medium text-zinc-500 font-sans">
-            {user.role || 'admin'} •{' '}
-            <span className="text-orange font-bold font-sans">
-              {TEAMS[user.teamId]?.name || user.teamName}
-            </span>
+            <span className="font-bold text-jet-black">{user.role || 'Member'}</span>
+            {allAssignedDomains.length > 0 && (
+              <>
+                {' • '}
+                <span className="text-orange font-bold font-sans">
+                  {allAssignedDomains.map((d) => TEAMS[d]?.name || d).join(', ')}
+                </span>
+              </>
+            )}
           </p>
         </div>
       </div>

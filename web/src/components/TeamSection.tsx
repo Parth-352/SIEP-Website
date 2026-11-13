@@ -18,11 +18,35 @@ export type DomainId =
 export interface TeamMember {
   id: string;
   name: string;
+  role?: string;
   isMentor?: boolean;
   department: string;
   domains: DomainId[];
   leadDomains: DomainId[];
   image?: string;
+}
+
+export function normalizeDomainId(id: string): DomainId | null {
+  const map: Record<string, DomainId> = {
+    software: 'software',
+    telemetry: 'software',
+    entc: 'entc',
+    electronics: 'entc',
+    battery: 'entc',
+    mechanical: 'mechanical',
+    chassis: 'mechanical',
+    powertrain: 'mechanical',
+    brakes: 'mechanical',
+    suspension: 'mechanical',
+    design: 'design',
+    research: 'research',
+    sponsorship: 'sponsorship',
+    marketing: 'sponsorship',
+    socialmedia: 'socialmedia',
+    documentation: 'documentation',
+    safety: 'documentation',
+  };
+  return map[id.toLowerCase()] || null;
 }
 
 export const DOMAIN_LABELS: Record<DomainId, string> = {
@@ -310,23 +334,25 @@ function MemberCard({
     ? member.leadDomains.length > 0
     : member.leadDomains.includes(activeCategory as DomainId);
 
-  const roleLabel = member.isMentor
+  const roleLower = (member.role || '').toLowerCase();
+  const isCaptain = roleLower.includes('captain') && !roleLower.includes('vice');
+  const isViceCaptain = roleLower.includes('vice captain');
+
+  const roleLabel = member.role || (member.isMentor
     ? 'Faculty Mentor'
     : isDomainLead
     ? 'Domain Lead'
-    : 'Team Member';
+    : 'Team Member');
 
   const domainBadgeText = activeCategory === 'all'
     ? (member.isMentor 
         ? 'Faculty Advisor' 
-        : member.leadDomains.length > 0 
-          ? `Lead: ${member.leadDomains.map(d => DOMAIN_LABELS[d]).join(', ')}` 
-          : member.domains.map(d => DOMAIN_LABELS[d]).slice(0, 2).join(', '))
+        : member.domains.map(d => DOMAIN_LABELS[d] || d).join(', '))
     : (DOMAIN_LABELS[activeCategory as DomainId] || 'Domain Member');
 
   const domainFullList = member.isMentor
     ? 'Technical Advisory & Guidance'
-    : member.domains.map(d => DOMAIN_LABELS[d]).join(' • ');
+    : member.domains.map(d => DOMAIN_LABELS[d] || d).join(' • ');
 
   return (
     <div className="group relative bg-white border border-jet-black/10 rounded-2xl overflow-hidden hover:border-orange/60 hover:shadow-xl transition-all duration-500 flex flex-col justify-between">
@@ -382,6 +408,10 @@ function MemberCard({
             <span className={`text-[10px] font-mono uppercase tracking-wider font-semibold px-2 py-0.5 rounded ${
               member.isMentor
                 ? 'bg-jet-black text-alice-blue font-bold shadow-sm'
+                : isCaptain
+                ? 'bg-amber-100 text-amber-900 border border-amber-300 font-bold'
+                : isViceCaptain
+                ? 'bg-indigo-100 text-indigo-900 border border-indigo-300 font-bold'
                 : isDomainLead
                 ? 'bg-orange/15 text-orange border border-orange/30 font-bold'
                 : 'bg-jet-black/5 text-jet-black/70'
@@ -689,7 +719,7 @@ function MobileTeamAccordion({
                 <MobilePlayerCard
                   key={`${team.id}-${item.id}`}
                   member={member}
-                  role={item.role}
+                  role={member.role || item.role}
                   isLead={item.isLead}
                   isMentor={item.isMentor}
                   customProfile={getProfileForMember(member)}
@@ -707,19 +737,54 @@ export default function TeamSection() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [openTeamId, setOpenTeamId] = useState<string | null>(null);
   const [customProfiles, setCustomProfiles] = useState<Record<string, { displayName?: string; photoUrl?: string }>>({});
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(TEAM_MEMBERS_DATA);
 
   useEffect(() => {
     let isMounted = true;
-    fetch('/api/profile')
-      .then((res) => res.json())
-      .then((data) => {
-        if (isMounted && data.success && data.profiles) {
-          setCustomProfiles(data.profiles);
-        }
-      })
-      .catch((err) => {
-        console.warn('Could not fetch custom team profiles:', err);
-      });
+    Promise.all([
+      fetch('/api/profile').then((res) => res.json()).catch(() => ({})),
+      fetch('/api/members').then((res) => res.json()).catch(() => ({})),
+    ]).then(([profileData, membersData]) => {
+      if (!isMounted) return;
+      if (profileData?.success && profileData.profiles) {
+        setCustomProfiles(profileData.profiles);
+      }
+      if (membersData?.success && Array.isArray(membersData.members) && membersData.members.length > 0) {
+        const mentor = TEAM_MEMBERS_DATA.find((m) => m.isMentor);
+        const dynamicList: TeamMember[] = [];
+        if (mentor) dynamicList.push(mentor);
+
+        membersData.members.forEach((m: any) => {
+          const baseline = TEAM_MEMBERS_DATA.find(
+            (b) => b.id === m.id || b.name.toLowerCase() === m.name.toLowerCase()
+          );
+
+          const rawDomains: string[] = Array.isArray(m.domains) && m.domains.length > 0
+            ? m.domains
+            : baseline?.domains || ['software'];
+
+          const validDomains: DomainId[] = [];
+          rawDomains.forEach((d) => {
+            const norm = normalizeDomainId(d);
+            if (norm && !validDomains.includes(norm)) validDomains.push(norm);
+          });
+          if (validDomains.length === 0) validDomains.push('software');
+
+          dynamicList.push({
+            id: m.id,
+            name: m.name,
+            role: m.role || baseline?.role || (m.isLead ? 'Domain Lead' : 'Team Member'),
+            isMentor: false,
+            department: baseline?.department || 'Engineering Division',
+            domains: validDomains,
+            leadDomains: m.isLead ? validDomains : (baseline?.leadDomains || []),
+            image: m.photoUrl || baseline?.image,
+          });
+        });
+
+        setTeamMembers(dynamicList);
+      }
+    });
     return () => {
       isMounted = false;
     };
@@ -728,9 +793,9 @@ export default function TeamSection() {
   // Quick lookup map for members
   const memberLookup = useMemo(() => {
     const map = new Map<string, TeamMember>();
-    TEAM_MEMBERS_DATA.forEach((m) => map.set(m.id, m));
+    teamMembers.forEach((m) => map.set(m.id, m));
     return map;
-  }, []);
+  }, [teamMembers]);
 
   const getProfileForMember = (m: TeamMember) => {
     const cleanMemName = m.name.toLowerCase().trim();
@@ -744,11 +809,11 @@ export default function TeamSection() {
   // Filter members strictly based on domain selection for desktop view
   const filteredMembers = useMemo(() => {
     if (activeCategory === 'all') {
-      return TEAM_MEMBERS_DATA;
+      return teamMembers;
     }
 
     const domainKey = activeCategory as DomainId;
-    const matches = TEAM_MEMBERS_DATA.filter((m) => m.domains.includes(domainKey));
+    const matches = teamMembers.filter((m) => m.domains.includes(domainKey));
 
     // Sort Domain Lead to the very top of each domain tab
     return matches.sort((a, b) => {
@@ -758,9 +823,9 @@ export default function TeamSection() {
       if (!aIsLead && bIsLead) return 1;
       return 0;
     });
-  }, [activeCategory]);
+  }, [teamMembers, activeCategory]);
 
-  const uniqueStudentCount = TEAM_MEMBERS_DATA.filter((m) => !m.isMentor).length;
+  const uniqueStudentCount = teamMembers.filter((m) => !m.isMentor).length;
 
   return (
     <section id="team" className="mb-32 border-t border-jet-black/10 pt-24 font-sans">
@@ -810,7 +875,7 @@ export default function TeamSection() {
           const isActive = activeCategory === tab.id;
           const count = tab.id === 'all' 
             ? uniqueStudentCount 
-            : TEAM_MEMBERS_DATA.filter(m => m.domains.includes(tab.id as DomainId)).length;
+            : teamMembers.filter(m => m.domains.includes(tab.id as DomainId)).length;
 
           return (
             <button

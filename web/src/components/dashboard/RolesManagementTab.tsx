@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { TEAMS, TEAMS_LIST } from '@/lib/teams';
-import { TeamMemberEntry, isParthMasterAdmin } from '@/lib/members';
+import { TeamMemberEntry, isParthMasterAdmin, ROSTER_MEMBERS, getMemberDomains } from '@/lib/members';
 import { TeamId, UserProfile } from '@/lib/types';
 import OperationsBanner from './OperationsBanner';
 import StatCard from './StatCard';
@@ -14,29 +14,31 @@ interface RolesManagementTabProps {
 }
 
 const PRESET_ROLES = [
-  { title: 'Core Lead & Captain', tier: 1, isCore: true, isLead: true, category: 'captain' },
-  { title: 'Vice Captain', tier: 1, isCore: true, isLead: true, category: 'captain' },
-  { title: 'Core Member', tier: 1, isCore: true, isLead: false, category: 'core' },
-  { title: 'Software Lead', tier: 2, isCore: false, isLead: true, category: 'lead', squad: 'software' },
-  { title: 'Mechanical Lead', tier: 2, isCore: false, isLead: true, category: 'lead', squad: 'mechanical' },
-  { title: 'Electrical & Electronics Lead', tier: 2, isCore: false, isLead: true, category: 'lead', squad: 'entc' },
-  { title: 'Design Lead', tier: 2, isCore: false, isLead: true, category: 'lead', squad: 'design' },
-  { title: 'Research Lead', tier: 2, isCore: false, isLead: true, category: 'lead', squad: 'research' },
-  { title: 'Sponsorship Lead', tier: 2, isCore: false, isLead: true, category: 'lead', squad: 'sponsorship' },
-  { title: 'Documentation Lead', tier: 2, isCore: false, isLead: true, category: 'lead', squad: 'documentation' },
-  { title: 'Social Media Lead', tier: 2, isCore: false, isLead: true, category: 'lead', squad: 'socialmedia' },
-  { title: 'Team Member', tier: 3, isCore: false, isLead: false, category: 'member' },
+  { title: 'Core Lead & Captain', tier: 1, isCore: true, isLead: true },
+  { title: 'Vice Captain', tier: 1, isCore: true, isLead: true },
+  { title: 'Core Member', tier: 1, isCore: true, isLead: false },
+  { title: 'Domain Lead', tier: 2, isCore: false, isLead: true },
+  { title: 'Lead Engineer', tier: 2, isCore: false, isLead: true },
+  { title: 'Team Member', tier: 3, isCore: false, isLead: false },
+  { title: 'Research Specialist', tier: 3, isCore: false, isLead: false },
+  { title: 'Design Engineer', tier: 3, isCore: false, isLead: false },
 ];
 
-export default function RolesManagementTab({ user, isCore, isLead }: RolesManagementTabProps) {
+export default function RolesManagementTab({ user }: RolesManagementTabProps) {
   const isAuthorized = isParthMasterAdmin(user?.email);
 
-  const [members, setMembers] = useState<TeamMemberEntry[]>([]);
+  // Initialize with baseline roster so table is NEVER empty
+  const [members, setMembers] = useState<TeamMemberEntry[]>(() =>
+    ROSTER_MEMBERS.map((m) => ({ ...m, domains: getMemberDomains(m) }))
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [filterTab, setFilterTab] = useState<'all' | 'captain' | 'leads' | 'members' | 'revoked'>('all');
+  const [filterTab, setFilterTab] = useState<'all' | 'captain' | 'leads' | 'members'>('all');
   const [squadFilter, setSquadFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [currentPage, setCurrentPage] = useState<number>(1);
+
+  // Password visibility map (memberId -> boolean)
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
 
   // Modals state
   const [editingMember, setEditingMember] = useState<TeamMemberEntry | null>(null);
@@ -50,11 +52,14 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
   const [formName, setFormName] = useState<string>('');
   const [formEmail, setFormEmail] = useState<string>('');
   const [formRole, setFormRole] = useState<string>('');
-  const [formTeamId, setFormTeamId] = useState<TeamId>('software');
-  const [formSecondaryTeams, setFormSecondaryTeams] = useState<TeamId[]>([]);
+  const [formDomains, setFormDomains] = useState<TeamId[]>([]);
+  const [formPassword, setFormPassword] = useState<string>('');
+  const [formPhotoUrl, setFormPhotoUrl] = useState<string>('');
+  const [formRemovePhoto, setFormRemovePhoto] = useState<boolean>(false);
   const [formIsLead, setFormIsLead] = useState<boolean>(false);
   const [formIsCore, setFormIsCore] = useState<boolean>(false);
   const [formTier, setFormTier] = useState<1 | 2 | 3>(3);
+  const [showModalPassword, setShowModalPassword] = useState<boolean>(false);
 
   // Fetch team members from API
   const loadMembers = async () => {
@@ -62,7 +67,7 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
       setIsLoading(true);
       const res = await fetch('/api/roles');
       const data = await res.json();
-      if (data.success && Array.isArray(data.members)) {
+      if (data.success && Array.isArray(data.members) && data.members.length > 0) {
         setMembers(data.members);
       }
     } catch (err) {
@@ -78,32 +83,75 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
     }
   }, [isAuthorized]);
 
-  // Handle open Edit Modal
+  // Toggle password visibility for table row
+  const togglePasswordVisibility = (id: string) => {
+    setVisiblePasswords((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  // Open Edit Modal
   const openEditModal = (member: TeamMemberEntry) => {
+    const memberDomains = getMemberDomains(member);
     setEditingMember(member);
-    setFormName(member.name);
-    setFormEmail(member.email);
-    setFormRole(member.role);
-    setFormTeamId(member.teamId);
-    setFormSecondaryTeams(member.secondaryTeams || []);
+    setFormName(member.name || '');
+    setFormEmail(member.email || '');
+    setFormRole(member.role || 'Team Member');
+    setFormDomains(memberDomains);
+    setFormPassword(member.password || '935200');
+    setFormPhotoUrl(member.photoUrl || '');
+    setFormRemovePhoto(false);
     setFormIsLead(Boolean(member.isLead));
     setFormIsCore(Boolean(member.isCore));
     setFormTier(member.tier || (member.isCore ? 1 : member.isLead ? 2 : 3));
+    setShowModalPassword(false);
     setActionError(null);
   };
 
-  // Handle open Add Modal
+  // Open Add Modal
   const openAddModal = () => {
     setIsAddModalOpen(true);
     setFormName('');
     setFormEmail('');
     setFormRole('Team Member');
-    setFormTeamId('software');
-    setFormSecondaryTeams([]);
+    setFormDomains(['software']);
+    setFormPassword('935200');
+    setFormPhotoUrl('');
+    setFormRemovePhoto(false);
     setFormIsLead(false);
     setFormIsCore(false);
     setFormTier(3);
+    setShowModalPassword(false);
     setActionError(null);
+  };
+
+  // Toggle domain in multi-select (100% equal standing, zero partiality)
+  const toggleDomain = (tid: TeamId) => {
+    setFormDomains((prev) => {
+      if (prev.includes(tid)) {
+        if (prev.length === 1) return prev; // Keep at least 1 domain
+        return prev.filter((d) => d !== tid);
+      } else {
+        return [...prev, tid];
+      }
+    });
+  };
+
+  // Handle Photo File Upload in Modal
+  const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setActionError('Photo file must be under 2 MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setFormPhotoUrl(reader.result);
+          setFormRemovePhoto(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // Submit Edit Member
@@ -113,30 +161,36 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
     try {
       setIsSubmitting(true);
       setActionError(null);
+
       const res = await fetch('/api/roles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'update_member',
           memberId: editingMember.id,
-          name: formName,
-          role: formRole,
-          teamId: formTeamId,
-          secondaryTeams: formSecondaryTeams,
+          email: editingMember.email,
+          name: formName.trim(),
+          role: formRole.trim(),
+          domains: formDomains,
+          password: formPassword.trim() || undefined,
+          photoUrl: formRemovePhoto ? '' : formPhotoUrl.trim(),
+          removePhoto: formRemovePhoto,
           isLead: formIsLead,
           isCore: formIsCore,
           tier: formTier,
         }),
       });
+
       const data = await res.json();
       if (!data.success) {
         throw new Error(data.error || 'Failed to update member role.');
       }
+
       setMembers((prev) =>
         prev.map((m) => (m.id === editingMember.id ? data.member : m))
       );
       setEditingMember(null);
-      setActionSuccess(`Updated permissions for ${formName}`);
+      setActionSuccess(`Updated permissions, password, and domains for ${formName}`);
       setTimeout(() => setActionSuccess(null), 4000);
     } catch (err: unknown) {
       setActionError(err instanceof Error ? err.message : String(err));
@@ -163,8 +217,9 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
           name: formName.trim(),
           email: formEmail.trim().toLowerCase(),
           role: formRole.trim(),
-          teamId: formTeamId,
-          secondaryTeams: formSecondaryTeams,
+          domains: formDomains,
+          password: formPassword.trim() || '935200',
+          photoUrl: formPhotoUrl.trim(),
           isLead: formIsLead,
           isCore: formIsCore,
           tier: formTier,
@@ -187,7 +242,7 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
 
   // Quick Action: Assign Captain
   const handleQuickAssignCaptain = async (member: TeamMemberEntry) => {
-    if (!confirm(`Are you sure you want to promote ${member.name} to Team Captain?`)) return;
+    if (!confirm(`Promote ${member.name} to Team Captain?`)) return;
     try {
       setIsSubmitting(true);
       const res = await fetch('/api/roles', {
@@ -196,6 +251,7 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
         body: JSON.stringify({
           action: 'assign_captain',
           memberId: member.id,
+          email: member.email,
           roleTitle: 'Core Lead & Captain',
         }),
       });
@@ -213,7 +269,7 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
 
   // Quick Action: Assign Vice Captain
   const handleQuickAssignViceCaptain = async (member: TeamMemberEntry) => {
-    if (!confirm(`Are you sure you want to promote ${member.name} to Vice Captain?`)) return;
+    if (!confirm(`Promote ${member.name} to Vice Captain?`)) return;
     try {
       setIsSubmitting(true);
       const res = await fetch('/api/roles', {
@@ -222,6 +278,7 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
         body: JSON.stringify({
           action: 'assign_vice_captain',
           memberId: member.id,
+          email: member.email,
           roleTitle: 'Vice Captain',
         }),
       });
@@ -248,6 +305,7 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
         body: JSON.stringify({
           action: 'revoke_permissions',
           memberId: revokingMember.id,
+          email: revokingMember.email,
         }),
       });
       const data = await res.json();
@@ -288,27 +346,11 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
     }
   };
 
-  // Preset Selection Helper
-  const applyPresetRole = (preset: typeof PRESET_ROLES[0]) => {
-    setFormRole(preset.title);
-    setFormTier(preset.tier as 1 | 2 | 3);
-    setFormIsCore(preset.isCore);
-    setFormIsLead(preset.isLead);
-    if ('squad' in preset && preset.squad) {
-      setFormTeamId(preset.squad as TeamId);
-    }
-  };
-
-  // Toggle secondary team
-  const toggleSecondaryTeam = (tid: TeamId) => {
-    setFormSecondaryTeams((prev) =>
-      prev.includes(tid) ? prev.filter((t) => t !== tid) : [...prev, tid]
-    );
-  };
-
   // Filtered members list
   const filteredMembers = useMemo(() => {
     return members.filter((m) => {
+      const memberDomains = getMemberDomains(m);
+
       // Tab filter
       if (filterTab === 'captain') {
         const lower = (m.role || '').toLowerCase();
@@ -317,12 +359,10 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
         if (!m.isLead || m.role?.toLowerCase().includes('captain')) return false;
       } else if (filterTab === 'members') {
         if (m.isLead || m.isCore) return false;
-      } else if (filterTab === 'revoked') {
-        if (m.status !== 'revoked' && (m.isLead || m.isCore)) return false;
       }
 
-      // Squad filter
-      if (squadFilter !== 'all' && m.teamId !== squadFilter && !m.secondaryTeams?.includes(squadFilter as TeamId)) {
+      // Squad filter (matches any of the member's assigned domains)
+      if (squadFilter !== 'all' && !memberDomains.includes(squadFilter as TeamId)) {
         return false;
       }
 
@@ -332,8 +372,8 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
         const nameMatch = (m.name || '').toLowerCase().includes(q);
         const emailMatch = (m.email || '').toLowerCase().includes(q);
         const roleMatch = (m.role || '').toLowerCase().includes(q);
-        const squadMatch = (m.teamId || '').toLowerCase().includes(q);
-        if (!nameMatch && !emailMatch && !roleMatch && !squadMatch) return false;
+        const domainMatch = memberDomains.some((d) => d.toLowerCase().includes(q));
+        if (!nameMatch && !emailMatch && !roleMatch && !domainMatch) return false;
       }
 
       return true;
@@ -344,7 +384,7 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
   const totalCount = members.length;
   const captainAndCoreCount = members.filter((m) => m.isCore || m.role?.toLowerCase().includes('captain')).length;
   const domainLeadsCount = members.filter((m) => m.isLead && !m.isCore).length;
-  const activeSquadsCount = new Set(members.map((m) => m.teamId)).size;
+  const activeSquadsCount = new Set(members.flatMap((m) => getMemberDomains(m))).size;
 
   // Key Leaders
   const currentCaptain = members.find((m) => m.role?.toLowerCase().includes('captain') && !m.role?.toLowerCase().includes('vice'));
@@ -390,12 +430,12 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-fadeIn">
+    <div className="space-y-6 sm:space-y-8 animate-fadeIn font-sans">
       {/* 1. Hero Operations Banner */}
       <OperationsBanner
         subtitle="EXECUTIVE COMMAND"
         title="Role & Team Authority"
-        description="Exclusive master governance console: assign Captain, Vice Captain, domain leads, and manage member permissions."
+        description="Exclusive master governance console: assign Captain, Vice Captain, domain leads, passwords, and permissions."
         action={{
           label: "+ Add Member",
           onClick: openAddModal,
@@ -517,7 +557,7 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
                 </svg>
                 <input
                   type="text"
-                  placeholder="Search by name, role, email, squad..."
+                  placeholder="Search by name, role, email, domain..."
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
@@ -546,7 +586,7 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
                   }}
                   className="w-full sm:w-auto px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange/30 focus:border-orange cursor-pointer"
                 >
-                  <option value="all">All Squads ({TEAMS_LIST.length})</option>
+                  <option value="all">All Domains ({TEAMS_LIST.length})</option>
                   {TEAMS_LIST.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.name}
@@ -563,22 +603,15 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                    <th className="py-3 px-3.5 pl-4">Member</th>
+                    <th className="py-3 px-3.5 pl-4">Member Name &amp; Domains</th>
                     <th className="py-3 px-3">Role &amp; Title</th>
-                    <th className="py-3 px-3">Squad Allocation</th>
-                    <th className="py-3 px-3">Authority Level</th>
+                    <th className="py-3 px-3">Assigned Domains</th>
+                    <th className="py-3 px-3">PIN / Password</th>
                     <th className="py-3 px-3.5 pr-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {isLoading ? (
-                    <tr>
-                      <td colSpan={5} className="py-12 text-center text-slate-500">
-                        <div className="inline-block w-6 h-6 border-2 border-orange border-t-transparent rounded-full animate-spin mb-2" />
-                        <p className="text-xs font-medium">Loading team roster...</p>
-                      </td>
-                    </tr>
-                  ) : pageMembers.length === 0 ? (
+                  {pageMembers.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="py-12 text-center text-slate-500">
                         <svg className="w-10 h-10 mx-auto text-slate-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -592,15 +625,17 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
                     pageMembers.map((member) => {
                       const isCaptain = member.role?.toLowerCase().includes('captain') && !member.role?.toLowerCase().includes('vice');
                       const isViceCaptain = member.role?.toLowerCase().includes('vice');
-                      const teamInfo = TEAMS[member.teamId];
+                      const memberDomains = getMemberDomains(member);
+                      const isPassVisible = Boolean(visiblePasswords[member.id]);
 
                       return (
                         <tr key={member.id} className="hover:bg-slate-50/70 transition-colors group">
-                          {/* Member Initials + Name + Email */}
+                          {/* Member: [DOMAIN] [DOMAIN] Full Name + Photo */}
                           <td className="py-3 px-3.5 pl-4">
                             <div className="flex items-center gap-2.5">
+                              {/* Avatar / Photo */}
                               <div
-                                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-[11px] shrink-0 text-white ${
+                                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-[11px] shrink-0 text-white overflow-hidden ${
                                   isCaptain
                                     ? 'bg-gradient-to-br from-amber-500 to-orange shadow-xs ring-2 ring-amber-300'
                                     : isViceCaptain
@@ -612,16 +647,36 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
                                     : 'bg-slate-700'
                                 }`}
                               >
-                                {member.name
-                                  .split(' ')
-                                  .map((n) => n[0])
-                                  .join('')
-                                  .slice(0, 2)
-                                  .toUpperCase()}
+                                {member.photoUrl ? (
+                                  <img
+                                    src={member.photoUrl}
+                                    alt={member.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  member.name
+                                    .split(' ')
+                                    .map((n) => n[0])
+                                    .join('')
+                                    .slice(0, 2)
+                                    .toUpperCase()
+                                )}
                               </div>
+
                               <div className="min-w-0">
-                                <p className="font-bold text-slate-900 truncate flex items-center gap-1.5">
-                                  <span>{member.name}</span>
+                                {/* Square brackets in front of name for all domains with zero partiality */}
+                                <div className="font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
+                                  <div className="inline-flex items-center gap-1">
+                                    {memberDomains.map((dom) => (
+                                      <span
+                                        key={dom}
+                                        className="font-mono text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200/80 px-1 py-0.2 rounded"
+                                      >
+                                        [{TEAMS[dom]?.code || dom.toUpperCase().slice(0, 4)}]
+                                      </span>
+                                    ))}
+                                  </div>
+                                  <span className="truncate">{member.name}</span>
                                   {isCaptain && (
                                     <span className="px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 font-extrabold text-[9px] uppercase border border-amber-300">
                                       Captain
@@ -632,7 +687,7 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
                                       Vice Capt
                                     </span>
                                   )}
-                                </p>
+                                </div>
                                 <p className="text-[11px] text-slate-500 truncate">{member.email}</p>
                               </div>
                             </div>
@@ -657,40 +712,48 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
                             </span>
                           </td>
 
-                          {/* Squad Allocation */}
+                          {/* Assigned Domains: All domains equal with zero partiality */}
                           <td className="py-3 px-3">
                             <div className="flex flex-wrap items-center gap-1">
-                              <span
-                                className="px-2 py-0.5 rounded-md font-bold text-[10px] uppercase text-white shadow-2xs"
-                                style={{ backgroundColor: teamInfo?.color || '#2B303A' }}
-                                title={teamInfo?.name || member.teamId}
-                              >
-                                {teamInfo?.code || member.teamId.toUpperCase()}
-                              </span>
-                              {member.secondaryTeams && member.secondaryTeams.length > 0 && (
-                                <span className="text-[10px] text-slate-400 font-mono">
-                                  +{member.secondaryTeams.length} squads
-                                </span>
-                              )}
+                              {memberDomains.map((dom) => {
+                                const tInfo = TEAMS[dom];
+                                return (
+                                  <span
+                                    key={dom}
+                                    className="px-2 py-0.5 rounded-md font-bold text-[10px] uppercase text-white shadow-2xs"
+                                    style={{ backgroundColor: tInfo?.color || '#2B303A' }}
+                                    title={tInfo?.name || dom}
+                                  >
+                                    {tInfo?.code || dom.toUpperCase()}
+                                  </span>
+                                );
+                              })}
                             </div>
                           </td>
 
-                          {/* Authority Level & Tier */}
+                          {/* PIN / Password with Eye Toggle */}
                           <td className="py-3 px-3">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              {member.isCore && (
-                                <span className="px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-800 font-extrabold text-[9px] uppercase tracking-wide border border-purple-200">
-                                  Core Admin
-                                </span>
-                              )}
-                              {member.isLead && (
-                                <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 font-extrabold text-[9px] uppercase tracking-wide border border-amber-200">
-                                  Lead
-                                </span>
-                              )}
-                              <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-bold text-[9px] uppercase">
-                                T{member.tier || (member.isCore ? 1 : member.isLead ? 2 : 3)}
+                            <div className="flex items-center gap-1.5 font-mono text-xs">
+                              <span className="text-slate-800 font-semibold tracking-wider">
+                                {isPassVisible ? member.password || '935200' : '••••••'}
                               </span>
+                              <button
+                                type="button"
+                                onClick={() => togglePasswordVisibility(member.id)}
+                                title={isPassVisible ? 'Hide PIN' : 'Reveal PIN'}
+                                className="w-5 h-5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
+                              >
+                                {isPassVisible ? (
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                                  </svg>
+                                ) : (
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                )}
+                              </button>
                             </div>
                           </td>
 
@@ -729,7 +792,7 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
                               <button
                                 type="button"
                                 onClick={() => openEditModal(member)}
-                                title="Edit Full Role & Permissions"
+                                title="Edit Details, Password & Photo"
                                 className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -839,9 +902,13 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
                   Team Captain
                 </span>
                 {currentCaptain && (
-                  <span className="text-[10px] font-mono text-amber-700">
-                    {TEAMS[currentCaptain.teamId]?.code || currentCaptain.teamId.toUpperCase()}
-                  </span>
+                  <div className="flex gap-1">
+                    {getMemberDomains(currentCaptain).map((d) => (
+                      <span key={d} className="text-[9px] font-mono text-amber-800 bg-amber-200/50 px-1 py-0.2 rounded">
+                        {TEAMS[d]?.code || d.toUpperCase().slice(0, 4)}
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
               <p className="text-sm font-bold text-slate-900">
@@ -859,9 +926,13 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
                   Vice Captain
                 </span>
                 {currentViceCaptain && (
-                  <span className="text-[10px] font-mono text-indigo-700">
-                    {TEAMS[currentViceCaptain.teamId]?.code || currentViceCaptain.teamId.toUpperCase()}
-                  </span>
+                  <div className="flex gap-1">
+                    {getMemberDomains(currentViceCaptain).map((d) => (
+                      <span key={d} className="text-[9px] font-mono text-indigo-800 bg-indigo-200/50 px-1 py-0.2 rounded">
+                        {TEAMS[d]?.code || d.toUpperCase().slice(0, 4)}
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
               <p className="text-sm font-bold text-slate-900">
@@ -873,63 +944,7 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
             </div>
           </div>
 
-          {/* Card 2: Tier & Permission Distribution */}
-          <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs space-y-3.5">
-            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide">
-              Tier Hierarchy
-            </h3>
-
-            {/* Tier 1 */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-purple-900">Tier 1: Core Leadership</span>
-                <span className="font-bold text-slate-900">{captainAndCoreCount}</span>
-              </div>
-              <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                <div
-                  className="h-full bg-purple-600 rounded-full transition-all"
-                  style={{ width: `${Math.min(100, (captainAndCoreCount / (totalCount || 1)) * 100)}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Tier 2 */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-amber-900">Tier 2: Domain Leads</span>
-                <span className="font-bold text-slate-900">{domainLeadsCount}</span>
-              </div>
-              <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                <div
-                  className="h-full bg-amber-500 rounded-full transition-all"
-                  style={{ width: `${Math.min(100, (domainLeadsCount / (totalCount || 1)) * 100)}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Tier 3 */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-700">Tier 3: Squad Engineers</span>
-                <span className="font-bold text-slate-900">
-                  {members.filter((m) => !m.isLead && !m.isCore).length}
-                </span>
-              </div>
-              <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                <div
-                  className="h-full bg-slate-400 rounded-full transition-all"
-                  style={{
-                    width: `${Math.min(
-                      100,
-                      (members.filter((m) => !m.isLead && !m.isCore).length / (totalCount || 1)) * 100
-                    )}%`,
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Master Access Notice */}
+          {/* Card 2: Master Access Notice */}
           <div className="bg-slate-900 rounded-2xl p-4 sm:p-5 text-white space-y-2.5 shadow-sm">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-lg bg-orange/20 border border-orange/40 flex items-center justify-center text-orange shrink-0">
@@ -943,13 +958,13 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
               Cryptographically restricted to <span className="text-white font-mono font-bold">parthkshirsagrr@gmail.com</span>.
-              All role promotions, squad transfers, and revocations synchronize in real time to Cloud Firestore and session validation tokens.
+              All role promotions, password updates, domain allocations, and profile picture modifications persist instantly across Cloud Firestore and session validation tokens.
             </p>
           </div>
         </div>
       </div>
 
-      {/* ================= MODAL 1: EDIT MEMBER ROLE & PERMISSIONS ================= */}
+      {/* ================= MODAL 1: EDIT MEMBER ROLE, DOMAINS, PASSWORD & PFP ================= */}
       {editingMember && (
         <div className="fixed inset-0 z-[300] bg-jet-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
           <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 space-y-5 animate-scaleUp max-h-[90vh] overflow-y-auto hide-scrollbar">
@@ -962,7 +977,7 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">Edit Member Role &amp; Access</h3>
+                  <h3 className="text-base font-bold text-slate-900">Edit Member Profile &amp; Access</h3>
                   <p className="text-xs text-slate-500">{editingMember.email}</p>
                 </div>
               </div>
@@ -981,31 +996,89 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
               </div>
             )}
 
-            {/* Presets Quick Picker */}
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                Quick Role Presets
-              </label>
-              <div className="flex flex-wrap gap-1.5">
-                {PRESET_ROLES.map((pr) => (
-                  <button
-                    key={pr.title}
-                    type="button"
-                    onClick={() => applyPresetRole(pr)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${
-                      formRole === pr.title
-                        ? 'bg-orange text-white border-orange shadow-2xs'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200/80'
-                    }`}
-                  >
-                    {pr.title}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             <form onSubmit={handleSaveEdit} className="space-y-4 text-xs">
-              {/* Name & Role Title */}
+              {/* Profile Picture Section */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                  Profile Picture
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl overflow-hidden bg-slate-200 border-2 border-slate-300 flex items-center justify-center shrink-0">
+                    {!formRemovePhoto && formPhotoUrl ? (
+                      <img src={formPhotoUrl} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="font-bold text-slate-500 text-sm">
+                        {formName
+                          .split(' ')
+                          .map((n) => n[0])
+                          .join('')
+                          .slice(0, 2)
+                          .toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <label className="px-3 py-1.5 rounded-xl bg-white border border-slate-300 font-bold text-slate-700 hover:bg-slate-100 cursor-pointer shadow-2xs">
+                        Upload New Photo
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePhotoFileChange}
+                          className="hidden"
+                        />
+                      </label>
+                      {(!formRemovePhoto && (formPhotoUrl || editingMember.photoUrl)) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormRemovePhoto(true);
+                            setFormPhotoUrl('');
+                          }}
+                          className="px-3 py-1.5 rounded-xl border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold cursor-pointer"
+                        >
+                          Remove Photo
+                        </button>
+                      )}
+                      {formRemovePhoto && (
+                        <span className="text-[11px] text-rose-600 font-semibold">
+                          Photo will be removed on Save
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Password / PIN Section */}
+              <div className="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">
+                    Member PIN / Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowModalPassword((prev) => !prev)}
+                    className="text-[11px] font-bold text-amber-800 hover:text-amber-950 flex items-center gap-1 cursor-pointer"
+                  >
+                    {showModalPassword ? 'Hide PIN' : 'Reveal PIN'}
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showModalPassword ? 'text' : 'password'}
+                    value={formPassword}
+                    onChange={(e) => setFormPassword(e.target.value)}
+                    placeholder="Enter 6-digit numeric PIN"
+                    className="w-full px-3 py-2 rounded-xl border border-amber-300 bg-white text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-orange/30 focus:border-orange"
+                  />
+                </div>
+                <p className="text-[10px] text-amber-800/80">
+                  Default PIN is 935200. Changing this updates their login credentials immediately.
+                </p>
+              </div>
+
+              {/* Name & Official Role */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="font-bold text-slate-700">Full Name</label>
@@ -1029,42 +1102,69 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
                 </div>
               </div>
 
-              {/* Primary Squad Allocation */}
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">Primary Squad (Domain)</label>
-                <select
-                  value={formTeamId}
-                  onChange={(e) => setFormTeamId(e.target.value as TeamId)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange/30 focus:border-orange cursor-pointer"
-                >
-                  {TEAMS_LIST.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name} ({t.code})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Secondary Squads Multi-Select */}
+              {/* Role Presets */}
               <div className="space-y-1.5">
-                <label className="font-bold text-slate-700">
-                  Secondary Squads (Multi-Team Collaboration)
+                <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                  Quick Role Presets
                 </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {TEAMS_LIST.filter((t) => t.id !== formTeamId).map((t) => (
+                <div className="flex flex-wrap gap-1.5">
+                  {PRESET_ROLES.map((pr) => (
                     <button
-                      key={t.id}
+                      key={pr.title}
                       type="button"
-                      onClick={() => toggleSecondaryTeam(t.id)}
-                      className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-bold text-left transition-all cursor-pointer ${
-                        formSecondaryTeams.includes(t.id)
-                          ? 'bg-amber-50 border-amber-300 text-amber-900 shadow-2xs'
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                      onClick={() => {
+                        setFormRole(pr.title);
+                        setFormTier(pr.tier as 1 | 2 | 3);
+                        setFormIsCore(pr.isCore);
+                        setFormIsLead(pr.isLead);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${
+                        formRole === pr.title
+                          ? 'bg-orange text-white border-orange shadow-2xs'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200/80'
                       }`}
                     >
-                      {t.shortName}
+                      {pr.title}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Domain Assignments: 100% Equal Standing, Zero Partiality */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700">
+                    Assigned Domains ({formDomains.length} selected)
+                  </label>
+                  <span className="text-[11px] text-slate-500">
+                    All domains are equal (no primary vs secondary)
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {TEAMS_LIST.map((t) => {
+                    const isSelected = formDomains.includes(t.id);
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => toggleDomain(t.id)}
+                        className={`p-2 rounded-xl border text-left font-bold text-xs transition-all cursor-pointer flex items-center justify-between ${
+                          isSelected
+                            ? 'bg-[#0e131f] text-white border-[#0e131f] shadow-xs'
+                            : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span className="truncate">{t.name}</span>
+                        <span
+                          className={`text-[9px] px-1.5 py-0.2 rounded font-mono ${
+                            isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
+                          }`}
+                        >
+                          {t.code}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1099,31 +1199,6 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
                     />
                     <span className="font-bold text-slate-800">Domain Lead Authority</span>
                   </label>
-                </div>
-              </div>
-
-              {/* Tier Selection */}
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">Governance Tier</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { tier: 1, label: 'Tier 1: Core Leadership' },
-                    { tier: 2, label: 'Tier 2: Domain Lead' },
-                    { tier: 3, label: 'Tier 3: Squad Member' },
-                  ].map((t) => (
-                    <button
-                      key={t.tier}
-                      type="button"
-                      onClick={() => setFormTier(t.tier as any)}
-                      className={`p-2 rounded-xl border text-[11px] font-bold text-center cursor-pointer transition-all ${
-                        formTier === t.tier
-                          ? 'bg-[#0e131f] text-white border-[#0e131f] shadow-xs'
-                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
                 </div>
               </div>
 
@@ -1163,7 +1238,7 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-slate-900">Add New Team Member</h3>
-                  <p className="text-xs text-slate-500">Assign role and squad permissions</p>
+                  <p className="text-xs text-slate-500">Assign role, password, and domains</p>
                 </div>
               </div>
               <button
@@ -1209,29 +1284,58 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Official Role</label>
+                  <label className="font-bold text-slate-700">Official Role Title</label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Mechanical Specialist"
+                    placeholder="e.g. Design Specialist"
                     value={formRole}
                     onChange={(e) => setFormRole(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange/30 focus:border-orange"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Primary Squad</label>
-                  <select
-                    value={formTeamId}
-                    onChange={(e) => setFormTeamId(e.target.value as TeamId)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange/30 focus:border-orange cursor-pointer"
-                  >
-                    {TEAMS_LIST.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} ({t.code})
-                      </option>
-                    ))}
-                  </select>
+                  <label className="font-bold text-slate-700">Initial PIN / Password</label>
+                  <input
+                    type="text"
+                    value={formPassword}
+                    onChange={(e) => setFormPassword(e.target.value)}
+                    placeholder="935200"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange/30 focus:border-orange"
+                  />
+                </div>
+              </div>
+
+              {/* Domain Multi-Select */}
+              <div className="space-y-2">
+                <label className="font-bold text-slate-700 block">
+                  Assigned Domains ({formDomains.length} selected)
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {TEAMS_LIST.map((t) => {
+                    const isSelected = formDomains.includes(t.id);
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => toggleDomain(t.id)}
+                        className={`p-2 rounded-xl border text-left font-bold text-xs transition-all cursor-pointer flex items-center justify-between ${
+                          isSelected
+                            ? 'bg-[#0e131f] text-white border-[#0e131f] shadow-xs'
+                            : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span className="truncate">{t.name}</span>
+                        <span
+                          className={`text-[9px] px-1.5 py-0.2 rounded font-mono ${
+                            isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
+                          }`}
+                        >
+                          {t.code}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1309,7 +1413,7 @@ export default function RolesManagementTab({ user, isCore, isLead }: RolesManage
                 <span className="font-bold text-slate-900">{revokingMember.name}</span>?
               </p>
               <p className="text-[11px] text-slate-500 pt-1">
-                They will be demoted to standard <strong>Team Member (Tier 3)</strong> and will no longer have task approval, deletion, or domain management rights.
+                They will be reverted to standard <strong>Team Member</strong> and will lose administrative approval and review rights.
               </p>
             </div>
             <div className="flex items-center gap-2 pt-2">

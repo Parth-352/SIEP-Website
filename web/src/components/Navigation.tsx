@@ -120,7 +120,6 @@ export default function Navigation() {
   const renderUserBadge = () => {
     if (!user) return null;
     const name = user.displayName;
-    const teamCode = currentTeam?.code || user.teamId.toUpperCase();
 
     if (isCore) {
       const isCaptain = name.toLowerCase().includes('tirthraj');
@@ -137,7 +136,6 @@ export default function Navigation() {
     if (isLead) {
       return (
         <span className="h-9 px-3.5 text-xs font-sans font-semibold rounded-xl bg-jet-black text-alice-blue inline-flex items-center gap-2 shadow-sm border border-jet-black/20">
-          <span className="text-[10px] text-sky-400 font-mono font-bold">{teamCode}</span>
           <span>{name}</span>
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono font-bold uppercase">
             LEAD
@@ -146,10 +144,9 @@ export default function Navigation() {
       );
     }
 
-    // Tier 3: Team Member
+    // Team Member
     return (
       <span className="h-9 px-3.5 text-xs font-sans font-semibold rounded-xl bg-jet-black text-alice-blue inline-flex items-center gap-2 shadow-sm border border-jet-black/20">
-        <span className="text-[10px] text-grey font-mono font-bold">{teamCode}</span>
         <span>{name}</span>
       </span>
     );
@@ -561,7 +558,6 @@ export default function Navigation() {
                         href="/dashboard"
                         className="h-9 px-3.5 rounded-xl bg-jet-black text-alice-blue text-xs font-sans font-bold uppercase tracking-wider hover:bg-orange transition-all inline-flex items-center gap-2 shadow-sm"
                       >
-                        <span className="text-[10px] text-orange font-mono font-bold">{currentTeam?.code || user.teamId.toUpperCase()}</span>
                         <span>Portal →</span>
                       </Link>
                       <button
@@ -609,11 +605,6 @@ export default function Navigation() {
 
           {/* Mobile Hamburger Button */}
           <div className="flex md:hidden items-center gap-2.5">
-            {isMounted && user && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-jet-black text-alice-blue font-bold uppercase tracking-wider">
-                {currentTeam?.code || user.teamId.toUpperCase()}
-              </span>
-            )}
             <button
               onClick={toggleMenu}
               className="w-10 h-10 rounded-xl bg-zinc-100/90 hover:bg-zinc-200 text-jet-black focus:outline-none flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs"

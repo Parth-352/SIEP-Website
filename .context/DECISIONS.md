@@ -372,3 +372,36 @@
      - Backed by Cloud Firestore collection `roster_members` with local memory store fallback (`store.ts`) and audit logging (`recordActivity`).
 - **Consequences:**
   - Full, unilateral executive authority over the team directory and permissions for Parth Kshirsagar without risk of unauthorized privilege escalation from other members.
+
+---
+
+## 🏛️ ADR-021: Role Editing Resilience, Absolute Domain Equality & Dynamic Public Roster Sync
+- **Date:** 2026-11-13
+- **Status:** Accepted & Implemented
+- **Context:**
+  - Editing member details previously failed with "no data" because Firestore's `roster_members` collection only contained modified entries rather than the full 23-member baseline roster.
+  - The concept of "primary vs. secondary domains" introduced unnecessary hierarchy and skewed roles (e.g. forcing a title or highlight on only one domain when members contribute across multiple domains).
+  - Changes made in Role Management were not propagating dynamically to the public website (`/about`, homepage team section) or the portal's Teams tab (`SubsystemsTab`).
+  - Passwords and profile pictures could not be inspected, modified, or removed directly by the master administrator in one place.
+- **Decisions:**
+  1. **Self-Healing Member Data Pipeline:**
+     - `getFirestoreMembers()` and `getStoreMembers()` merge the authoritative 23-member `ROSTER_MEMBERS` baseline with any Cloud Firestore overrides. If a member document does not yet exist in Firestore, baseline data is preserved and returned seamlessly.
+     - `/api/roles` update handler implements a self-healing fallback matching by `memberId`, normalized email, or normalized name.
+  2. **Absolute Domain Equality (Zero Partiality):**
+     - Completely removed the distinction between "primary" and "secondary" domains. All assigned domains are stored in a unified `domains: TeamId[]` array with 100% equal standing.
+     - No role title is ever inferred or forced based on a single domain.
+     - Bracket short-codes (e.g. `[MECH] [DSGN] [RES]`) are strictly confined to the Roles Management table in front of member names. Everywhere else (navigation, profile, team section, task cards), names are clean without brackets.
+  3. **Full Dynamic Roster Synchronization:**
+     - Public Endpoint: Created `/api/members` returning real-time team members, roles, assigned domains, and profile pictures.
+     - Public Website (`TeamSection.tsx`): Dynamically fetches `/api/members` on mount to immediately update member names, roles (Captain, Vice Captain, Lead), photos, and domain cards on the live site.
+     - Portal Teams Tab (`SubsystemsTab.tsx`): Dynamically fetches `/api/members`, renders all domains equally, and uses member's dynamic role with zero name-based hardcoding.
+  4. **Master Password & PFP Governance:**
+     - Passwords/PINs are displayed in the Roles table masked by default (`••••••`), toggleable to plaintext via an Eye icon.
+     - Edit modal supports viewing current photo, uploading a new photo, or 1-click "Remove Photo" (clearing Firestore profile picture).
+     - Changing PIN updates Firestore `member_passwords` immediately.
+  5. **Tier Label Isolation:**
+     - Removed "Tier 1, Tier 2, Tier 3" text from the public website, navigation badges, and user profile; tier indicators are kept exclusively within the Master Roles management console.
+- **Consequences:**
+  - Flawless, unbreakable role and credential management for Parth Kshirsagar.
+  - Immediate real-time reflection of role and roster changes across both the internal portal and the public marketing website.
+  - Fair, transparent multi-domain representation for all team members.

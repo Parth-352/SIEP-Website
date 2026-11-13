@@ -4,15 +4,35 @@ export interface TeamMemberEntry {
   id: string;
   name: string; // Clean First + Last Name
   role: string; // Specific official title
-  teamId: TeamId;
-  secondaryTeams?: TeamId[];
+  domains: TeamId[]; // All assigned domains with 100% equal standing (no primary/secondary partiality)
+  teamId: TeamId; // Retained for backwards-compatibility (matches domains[0])
+  secondaryTeams?: TeamId[]; // Retained for backwards-compatibility
   isLead?: boolean;
   isCore?: boolean; // Master administrative scope across all domains
   tier?: 1 | 2 | 3;
   email: string; // Personal Gmail
+  password?: string; // Hashed/masked PIN in UI with reveal toggle
+  photoUrl?: string; // Profile picture URL
   joinedDate?: string;
   status?: 'active' | 'inactive' | 'revoked';
   updatedAt?: number;
+}
+
+/**
+ * Returns all assigned domains for a member without any primary/secondary partiality
+ */
+export function getMemberDomains(m: TeamMemberEntry | { domains?: TeamId[]; teamId?: TeamId; secondaryTeams?: TeamId[] }): TeamId[] {
+  if (Array.isArray(m.domains) && m.domains.length > 0) {
+    return Array.from(new Set(m.domains));
+  }
+  const list: TeamId[] = [];
+  if (m.teamId) list.push(m.teamId);
+  if (Array.isArray(m.secondaryTeams)) {
+    m.secondaryTeams.forEach((t) => {
+      if (!list.includes(t)) list.push(t);
+    });
+  }
+  return list.length > 0 ? Array.from(new Set(list)) : ['software'];
 }
 
 /**
@@ -43,10 +63,10 @@ export const CORE_MEMBER_EMAILS = [
 ];
 
 /**
- * Official 23-Member Directory
+ * Official 23-Member Directory Baseline
  * Exactly 23 student innovators with clean First + Last names and personal Gmails.
  */
-export const ROSTER_MEMBERS: TeamMemberEntry[] = [
+const BASELINE_ROSTER_DATA: Omit<TeamMemberEntry, 'domains'>[] = [
   // ================= TIER 1: CORE LEADERSHIP (4 MEMBERS) =================
   {
     id: 'core-tirthraj',
@@ -280,6 +300,11 @@ export const ROSTER_MEMBERS: TeamMemberEntry[] = [
   },
 ];
 
+export const ROSTER_MEMBERS: TeamMemberEntry[] = BASELINE_ROSTER_DATA.map((m) => ({
+  ...m,
+  domains: getMemberDomains(m),
+}));
+
 export const ALL_MEMBER_NAMES = ROSTER_MEMBERS.map((m) => m.name);
 
 export function getMemberByEmail(email: string): TeamMemberEntry | undefined {
@@ -331,7 +356,5 @@ export function getMemberTier(emailOrName: string): 1 | 2 | 3 {
 
 export function getMembersForTeam(teamId?: TeamId): TeamMemberEntry[] {
   if (!teamId || teamId === 'core') return ROSTER_MEMBERS;
-  return ROSTER_MEMBERS.filter(
-    (m) => m.teamId === teamId || m.secondaryTeams?.includes(teamId)
-  );
+  return ROSTER_MEMBERS.filter((m) => getMemberDomains(m).includes(teamId));
 }

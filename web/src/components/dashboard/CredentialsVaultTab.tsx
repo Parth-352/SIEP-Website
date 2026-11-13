@@ -112,7 +112,7 @@ export default function CredentialsVaultTab({
                   <th className="py-4 px-6">Member Name</th>
                   <th className="py-4 px-6">Personal Gmail</th>
                   <th className="py-4 px-6">Role &amp; Domain</th>
-                  <th className="py-4 px-6">Access Tier</th>
+                  <th className="py-4 px-6">Access Level</th>
                   <th className="py-4 px-6">6-Digit PIN</th>
                 </tr>
               </thead>
@@ -128,20 +128,19 @@ export default function CredentialsVaultTab({
                       <td className="py-4 px-6 text-grey font-mono select-all">{m.email}</td>
                       <td className="py-4 px-6">
                         <span className="font-semibold text-jet-black">{m.role}</span>
-                        <span className="text-[10px] text-zinc-500 ml-1.5 font-mono">{m.teamId.toUpperCase()}</span>
                       </td>
                       <td className="py-4 px-6">
                         {m.isCore ? (
                           <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-orange/20 text-orange border border-orange/30">
-                            Tier 1 • Core Master
+                            Core Leadership
                           </span>
                         ) : m.isLead ? (
                           <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-sky-500/15 text-sky-700 border border-sky-300">
-                            Tier 2 • Domain Lead
+                            Domain Lead
                           </span>
                         ) : (
                           <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-jet-black/10 text-grey">
-                            Tier 3 • Member
+                            Team Member
                           </span>
                         )}
                       </td>
@@ -181,21 +180,21 @@ export default function CredentialsVaultTab({
                     <span className="font-bold text-jet-black text-sm">{m.name}</span>
                     {m.isCore ? (
                       <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase bg-orange/20 text-orange">
-                        Tier 1 • Core
+                        Core
                       </span>
                     ) : m.isLead ? (
                       <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase bg-sky-500/15 text-sky-700">
-                        Tier 2 • Lead
+                        Lead
                       </span>
                     ) : (
                       <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase bg-jet-black/10 text-grey">
-                        Tier 3
+                        Member
                       </span>
                     )}
                   </div>
                   <div className="text-xs font-mono text-grey break-all select-all">{m.email}</div>
                   <div className="text-xs text-jet-black">
-                    {m.role} <span className="text-zinc-500 font-mono text-[11px]">{m.teamId.toUpperCase()}</span>
+                    {m.role}
                   </div>
                   <div className="flex items-center justify-between bg-white rounded-xl px-3 py-2 border border-jet-black/10">
                     <span className="text-[10px] font-mono uppercase text-grey">6-Digit PIN:</span>

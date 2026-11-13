@@ -7,7 +7,7 @@ import {
   deleteDoc, 
 } from 'firebase/firestore';
 import { Task, WorkLog, TeamId, TaskStatus, TaskPriority, MemberProfileData, ResearchMaterial } from './types';
-import { TeamMemberEntry } from './members';
+import { TeamMemberEntry, ROSTER_MEMBERS, getMemberDomains } from './members';
 
 // ======================== TASKS FIRESTORE ========================
 
@@ -411,52 +411,76 @@ export async function deleteFirestoreMaterial(id: string): Promise<boolean> {
 
 // ======================== ROSTER & ROLES FIRESTORE ========================
 
-export async function getFirestoreMembers(): Promise<TeamMemberEntry[] | null> {
-  if (!isFirebaseConfigured() || !db) return null;
-  try {
-    const col = collection(db, 'roster_members');
-    const snapshot = await getDocs(col);
-    if (snapshot.empty) {
-      return null;
-    }
-    const members: TeamMemberEntry[] = [];
-    snapshot.forEach((d) => {
-      const data = d.data();
-      members.push({
-        id: d.id,
-        name: data.name || '',
-        role: data.role || 'Team Member',
-        teamId: (data.teamId || 'software') as TeamId,
-        secondaryTeams: Array.isArray(data.secondaryTeams) ? data.secondaryTeams : [],
-        isLead: Boolean(data.isLead),
-        isCore: Boolean(data.isCore),
-        tier: data.tier || (data.isCore ? 1 : data.isLead ? 2 : 3),
-        email: data.email || '',
-        joinedDate: data.joinedDate,
-        status: data.status || 'active',
-        updatedAt: data.updatedAt || Date.now(),
-      });
+export async function getFirestoreMembers(): Promise<TeamMemberEntry[]> {
+  const memberMap = new Map<string, TeamMemberEntry>();
+  ROSTER_MEMBERS.forEach((m) => {
+    const domains = getMemberDomains(m);
+    memberMap.set(m.id, {
+      ...m,
+      domains,
+      teamId: domains[0] || m.teamId || 'software',
+      secondaryTeams: domains.slice(1),
     });
-    return members;
-  } catch (err) {
-    console.warn('Firestore getFirestoreMembers error (falling back to store):', err);
-    return null;
+  });
+
+  if (isFirebaseConfigured() && db) {
+    try {
+      const col = collection(db, 'roster_members');
+      const snapshot = await getDocs(col);
+      snapshot.forEach((d) => {
+        const data = d.data();
+        const id = d.id;
+        const existing = memberMap.get(id);
+        const domains: TeamId[] = Array.isArray(data.domains) && data.domains.length > 0
+          ? data.domains
+          : Array.isArray(data.secondaryTeams) && data.teamId
+          ? Array.from(new Set([data.teamId, ...data.secondaryTeams]))
+          : existing?.domains || ['software'];
+
+        const merged: TeamMemberEntry = {
+          id,
+          name: data.name || existing?.name || '',
+          role: data.role || existing?.role || 'Team Member',
+          domains,
+          teamId: domains[0] || (data.teamId as TeamId) || 'software',
+          secondaryTeams: domains.slice(1),
+          isLead: data.isLead !== undefined ? Boolean(data.isLead) : Boolean(existing?.isLead),
+          isCore: data.isCore !== undefined ? Boolean(data.isCore) : Boolean(existing?.isCore),
+          tier: data.tier || existing?.tier || (data.isCore ? 1 : data.isLead ? 2 : 3),
+          email: data.email || existing?.email || '',
+          photoUrl: data.photoUrl || existing?.photoUrl,
+          password: data.password || existing?.password,
+          joinedDate: data.joinedDate || existing?.joinedDate || 'Sep 15, 2026',
+          status: data.status || existing?.status || 'active',
+          updatedAt: data.updatedAt || existing?.updatedAt || Date.now(),
+        };
+        memberMap.set(id, merged);
+      });
+    } catch (err) {
+      console.warn('Firestore getFirestoreMembers warning:', err);
+    }
   }
+
+  return Array.from(memberMap.values());
 }
 
 export async function saveFirestoreMember(member: TeamMemberEntry): Promise<boolean> {
   if (!isFirebaseConfigured() || !db) return false;
   try {
     const docRef = doc(db, 'roster_members', member.id);
+    const domains = getMemberDomains(member);
     await setDoc(docRef, {
       name: member.name,
       role: member.role,
-      teamId: member.teamId,
-      secondaryTeams: member.secondaryTeams || [],
+      domains,
+      teamId: domains[0] || member.teamId || 'software',
+      secondaryTeams: domains.slice(1),
       isLead: Boolean(member.isLead),
       isCore: Boolean(member.isCore),
       tier: member.tier || (member.isCore ? 1 : member.isLead ? 2 : 3),
-      email: member.email,
+      email: member.email.toLowerCase().trim(),
+      photoUrl: member.photoUrl || '',
+      password: member.password || '',
       joinedDate: member.joinedDate || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       status: member.status || 'active',
       updatedAt: Date.now(),

@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { TEAMS_LIST, TEAMS } from '@/lib/teams';
 import { Task, WorkLog, TeamId } from '@/lib/types';
-import { ROSTER_MEMBERS } from '@/lib/members';
+import { ROSTER_MEMBERS, TeamMemberEntry, getMemberDomains } from '@/lib/members';
 import { getMemberInitials, getAvatarColorClass } from '@/utils/avatarUtils';
 import OperationsBanner from './OperationsBanner';
 import StatCard from './StatCard';
@@ -35,9 +35,31 @@ export default function SubsystemsTab({
   const [memberPage, setMemberPage] = useState(1);
   const [selectedSquadDetail, setSelectedSquadDetail] = useState<string | null>(null);
 
+  // Dynamic team members fetched from /api/members (with resilient fallback to baseline ROSTER_MEMBERS)
+  const [teamMembers, setTeamMembers] = useState<TeamMemberEntry[]>(() =>
+    ROSTER_MEMBERS.map((m) => ({ ...m, domains: getMemberDomains(m) }))
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/api/members')
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && data.success && Array.isArray(data.members) && data.members.length > 0) {
+          setTeamMembers(data.members);
+        }
+      })
+      .catch((err) => {
+        console.warn('SubsystemsTab: Failed to fetch dynamic members:', err);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // Filter members list
   const filteredMembers = useMemo(() => {
-    return ROSTER_MEMBERS.filter((m) => {
+    return teamMembers.filter((m) => {
       if (activeTabFilter === 'core' && !m.isCore) return false;
       if (activeTabFilter === 'roles' && !m.isLead && !m.isCore) return false;
 
@@ -45,13 +67,16 @@ export default function SubsystemsTab({
         const query = memberSearch.toLowerCase();
         const matchesName = m.name.toLowerCase().includes(query);
         const matchesEmail = m.email.toLowerCase().includes(query);
-        const matchesRole = m.role.toLowerCase().includes(query);
-        const matchesSquad = m.teamId.toLowerCase().includes(query);
+        const matchesRole = (m.role || '').toLowerCase().includes(query);
+        const memberDomains = getMemberDomains(m);
+        const matchesSquad = memberDomains.some(
+          (d) => d.toLowerCase().includes(query) || (TEAMS[d]?.name || '').toLowerCase().includes(query)
+        );
         return matchesName || matchesEmail || matchesRole || matchesSquad;
       }
       return true;
     });
-  }, [activeTabFilter, memberSearch]);
+  }, [teamMembers, activeTabFilter, memberSearch]);
 
   const MEMBERS_PER_PAGE = 7;
   const totalMemberPages = Math.max(1, Math.ceil(filteredMembers.length / MEMBERS_PER_PAGE));
@@ -67,7 +92,7 @@ export default function SubsystemsTab({
       const completed = teamTasks.filter((t) => t.status === 'done').length;
       const total = teamTasks.length;
       const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
-      const memberCount = ROSTER_MEMBERS.filter((m) => m.teamId === team.id || m.secondaryTeams?.includes(team.id)).length;
+      const memberCount = teamMembers.filter((m) => getMemberDomains(m).includes(team.id)).length;
       return {
         ...team,
         memberCount,
@@ -76,7 +101,7 @@ export default function SubsystemsTab({
         total,
       };
     });
-  }, [tasks]);
+  }, [tasks, teamMembers]);
 
   return (
     <div className="space-y-6">
@@ -101,7 +126,7 @@ export default function SubsystemsTab({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Total Members"
-          value={ROSTER_MEMBERS.length}
+          value={teamMembers.length}
           iconBg="bg-blue-50 text-blue-600 border-blue-100"
           icon={
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -124,7 +149,7 @@ export default function SubsystemsTab({
 
         <StatCard
           label="Core Committee"
-          value={ROSTER_MEMBERS.filter((m) => m.isCore).length}
+          value={teamMembers.filter((m) => m.isCore).length}
           iconBg="bg-purple-50 text-purple-600 border-purple-100"
           icon={
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -136,7 +161,7 @@ export default function SubsystemsTab({
 
         <StatCard
           label="Active Members"
-          value={ROSTER_MEMBERS.length}
+          value={teamMembers.length}
           iconBg="bg-emerald-50 text-emerald-600 border-emerald-100"
           icon={
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -154,10 +179,10 @@ export default function SubsystemsTab({
           <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-white">
             <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
               {[
-                { id: 'all', label: 'All Members', count: ROSTER_MEMBERS.length },
+                { id: 'all', label: 'All Members', count: teamMembers.length },
                 { id: 'squads', label: 'Squads', count: TEAMS_LIST.filter((t) => t.id !== 'core').length },
-                { id: 'core', label: 'Core Committee', count: ROSTER_MEMBERS.filter((m) => m.isCore).length },
-                { id: 'roles', label: 'Roles', count: 4 },
+                { id: 'core', label: 'Core Committee', count: teamMembers.filter((m) => m.isCore).length },
+                { id: 'roles', label: 'Roles', count: teamMembers.filter((m) => m.isLead || m.isCore).length },
               ].map((tab) => {
                 const isActive = activeTabFilter === tab.id;
                 return (
@@ -228,9 +253,8 @@ export default function SubsystemsTab({
             <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
               {TEAMS_LIST.map((team) => {
                 const teamTasks = tasks.filter((t) => t.teamId === team.id);
-                const teamLogs = logs.filter((l) => l.teamId === team.id);
                 const completedCount = teamTasks.filter((t) => t.status === 'done').length;
-                const members = ROSTER_MEMBERS.filter((m) => m.teamId === team.id || m.secondaryTeams?.includes(team.id));
+                const members = teamMembers.filter((m) => getMemberDomains(m).includes(team.id));
                 const pct = teamTasks.length > 0 ? Math.round((completedCount / teamTasks.length) * 100) : 0;
 
                 return (
@@ -292,7 +316,7 @@ export default function SubsystemsTab({
                     </th>
                     <th className="py-3.5 px-3">Member</th>
                     <th className="py-3.5 px-3">Role</th>
-                    <th className="py-3.5 px-3">Squad</th>
+                    <th className="py-3.5 px-3">Assigned Squads</th>
                     <th className="py-3.5 px-3">Status</th>
                     <th className="py-3.5 px-3">Joined</th>
                     <th className="py-3.5 pr-6 pl-3 text-right">Action</th>
@@ -308,51 +332,57 @@ export default function SubsystemsTab({
                   ) : (
                     paginatedMembers.map((member) => {
                       const isChecked = selectedMemberIds.has(member.id);
-                      const memberTeam = TEAMS[member.teamId];
+                      const memberDomains = getMemberDomains(member);
 
-                      // Role badge styling matching Mockup 4 with clean SVG icons (no emojis)
-                      const roleBadge = member.name.toLowerCase().includes('tirthraj')
+                      // Dynamic role badge styling based on member.role (zero name hardcoding)
+                      const roleLower = (member.role || '').toLowerCase();
+                      const isCaptain = roleLower.includes('captain') && !roleLower.includes('vice');
+                      const isViceCaptain = roleLower.includes('vice captain');
+                      const isManager = roleLower.includes('manager');
+                      const isLead = member.isLead || roleLower.includes('lead');
+
+                      const roleBadge = isCaptain
                         ? {
-                            label: 'Captain',
+                            label: member.role || 'Captain',
                             icon: (
                               <svg className="w-3 h-3 text-amber-600 shrink-0" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z" />
                               </svg>
                             ),
-                            class: 'bg-amber-50 text-amber-700 border-amber-200',
+                            class: 'bg-amber-50 text-amber-800 border-amber-300 font-bold',
                           }
-                        : member.name.toLowerCase().includes('parth')
+                        : isViceCaptain
                         ? {
-                            label: 'Software Lead',
+                            label: member.role || 'Vice Captain',
                             icon: (
-                              <svg className="w-3 h-3 text-rose-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                              <svg className="w-3 h-3 text-indigo-600 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
                               </svg>
                             ),
-                            class: 'bg-rose-50 text-rose-700 border-rose-200',
+                            class: 'bg-indigo-50 text-indigo-800 border-indigo-200 font-bold',
                           }
-                        : member.name.toLowerCase().includes('riddhi')
+                        : isManager
                         ? {
-                            label: 'Manager',
+                            label: member.role || 'Manager',
                             icon: (
-                              <svg className="w-3 h-3 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <svg className="w-3 h-3 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                               </svg>
                             ),
-                            class: 'bg-amber-50 text-amber-700 border-amber-200',
+                            class: 'bg-emerald-50 text-emerald-800 border-emerald-200 font-bold',
                           }
-                        : member.isLead
+                        : isLead
                         ? {
-                            label: 'Squad Lead',
+                            label: member.role || 'Squad Lead',
                             icon: (
                               <svg className="w-3 h-3 text-sky-600 shrink-0" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
                               </svg>
                             ),
-                            class: 'bg-sky-50 text-sky-700 border-sky-200',
+                            class: 'bg-sky-50 text-sky-700 border-sky-200 font-semibold',
                           }
                         : {
-                            label: 'Member',
+                            label: member.role || 'Team Member',
                             icon: (
                               <svg className="w-3 h-3 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -380,12 +410,20 @@ export default function SubsystemsTab({
                             />
                           </td>
 
-                          {/* Member Avatar + Name + Email */}
+                          {/* Member Avatar + Name + Email (clean name without brackets) */}
                           <td className="py-3.5 px-3">
                             <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white uppercase shadow-xs shrink-0 ${getAvatarColorClass(member.name)}`}>
-                                {getMemberInitials(member.name)}
-                              </div>
+                              {member.photoUrl ? (
+                                <img
+                                  src={member.photoUrl}
+                                  alt={member.name}
+                                  className="w-8 h-8 rounded-full object-cover shadow-xs shrink-0"
+                                />
+                              ) : (
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white uppercase shadow-xs shrink-0 ${getAvatarColorClass(member.name)}`}>
+                                  {getMemberInitials(member.name)}
+                                </div>
+                              )}
                               <div className="min-w-0">
                                 <p className="font-bold text-slate-900 group-hover:text-orange-600 transition-colors truncate">
                                   {member.name}
@@ -399,15 +437,28 @@ export default function SubsystemsTab({
 
                           {/* Role Badge */}
                           <td className="py-3.5 px-3">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${roleBadge.class}`}>
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] ${roleBadge.class} border`}>
                               <span>{roleBadge.icon}</span>
                               <span>{roleBadge.label}</span>
                             </span>
                           </td>
 
-                          {/* Squad */}
-                          <td className="py-3.5 px-3 text-slate-700 font-medium">
-                            {memberTeam?.name || member.teamId}
+                          {/* Assigned Squads: All squads displayed equally with zero partiality */}
+                          <td className="py-3.5 px-3">
+                            <div className="flex flex-wrap gap-1 max-w-xs">
+                              {memberDomains.map((dom) => {
+                                const t = TEAMS[dom];
+                                return (
+                                  <span
+                                    key={dom}
+                                    className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200/80"
+                                    title={t?.name || dom}
+                                  >
+                                    {t?.name || dom}
+                                  </span>
+                                );
+                              })}
+                            </div>
                           </td>
 
                           {/* Status */}
@@ -427,7 +478,7 @@ export default function SubsystemsTab({
                           <td className="py-3.5 pr-6 pl-3 text-right" onClick={(e) => e.stopPropagation()}>
                             <button
                               type="button"
-                              onClick={() => handleViewTeamTasksInKanban(member.teamId)}
+                              onClick={() => handleViewTeamTasksInKanban(memberDomains[0] || 'core')}
                               className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
                               title="View Squad Tasks"
                             >

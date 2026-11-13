@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { WorkLog, Task, TeamId, InAppNotification, ActivityEvent, ResearchMaterial } from './types';
-import { TeamMemberEntry, ROSTER_MEMBERS } from './members';
+import { TeamMemberEntry, ROSTER_MEMBERS, getMemberDomains } from './members';
 
 export interface PartnerInquiry {
   id: string;
@@ -426,11 +426,15 @@ export function deleteMaterial(id: string): boolean {
 
 export function getStoreMembers(): TeamMemberEntry[] {
   const store = readStore();
-  if (!store.members || store.members.length === 0) {
-    store.members = [...ROSTER_MEMBERS];
-    writeStore(store);
+  const map = new Map<string, TeamMemberEntry>();
+  ROSTER_MEMBERS.forEach((m) => map.set(m.id, { ...m, domains: getMemberDomains(m) }));
+  if (Array.isArray(store.members)) {
+    store.members.forEach((m) => {
+      const existing = map.get(m.id);
+      map.set(m.id, { ...existing, ...m, domains: getMemberDomains(m) });
+    });
   }
-  return store.members;
+  return Array.from(map.values());
 }
 
 export function saveStoreMember(member: TeamMemberEntry): TeamMemberEntry {
