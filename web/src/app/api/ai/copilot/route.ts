@@ -7,6 +7,28 @@ interface ChatMessage {
   content: string;
 }
 
+/**
+ * GET /api/ai/copilot
+ * If accessed directly via browser URL bar, redirects gracefully to /copilot.
+ * If accessed via an API consumer, returns service status and metadata.
+ */
+export async function GET(request: NextRequest) {
+  const acceptHeader = request.headers.get('accept') || '';
+  if (acceptHeader.includes('text/html')) {
+    return NextResponse.redirect(new URL('/copilot', request.url));
+  }
+
+  return NextResponse.json({
+    success: true,
+    service: 'SIEP Season 7.0 Rulebook AI Copilot',
+    status: 'online',
+    rulebook: 'ISIEINDIA SIEP E-Bike Challenge Season 7.0 Official Rulebook v1.0',
+    totalPages: 46,
+    usage: 'Submit a POST request with JSON body { message: string, conversationHistory?: [] }',
+    directPage: '/copilot',
+  });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
