@@ -31,18 +31,18 @@ export default function VelocityMetricsTab({
   const [memberSearchQuery, setMemberSearchQuery] = useState<string>('');
 
   const completedTasks = useMemo(() => tasks.filter((t) => t.status === 'done').length, [tasks]);
-  const totalTasks = tasks.length > 0 ? tasks.length : 42;
-  const overallProgressPct = Math.round((completedTasks / totalTasks) * 100) || 43;
+  const totalTasks = tasks.length;
+  const overallProgressPct = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   const testLogsCount = useMemo(() => {
     return logs.filter((l) => {
-      const txt = `${l.stepTitle} ${l.description}`.toLowerCase();
+      const txt = `${l.stepTitle || ''} ${l.description || ''}`.toLowerCase();
       return txt.includes('test') || txt.includes('dyno') || l.status === 'testing';
-    }).length || 18;
+    }).length;
   }, [logs]);
 
   const validatedCount = useMemo(() => {
-    return logs.filter((l) => Boolean(l.videoUrl || l.status === 'completed')).length || 26;
+    return logs.filter((l) => Boolean(l.videoUrl || l.driveFileId || l.status === 'completed')).length;
   }, [logs]);
 
   const blockedRadarTasks = useMemo(() => {
@@ -51,11 +51,11 @@ export default function VelocityMetricsTab({
 
   // Squad Subsystem Metrics
   const squadMetrics = useMemo(() => {
-    return TEAMS_LIST.map((team) => {
+    return TEAMS_LIST.filter((t) => t.id !== 'core').map((team) => {
       const squadTasks = tasks.filter((t) => t.teamId === team.id);
       const doneTasks = squadTasks.filter((t) => t.status === 'done').length;
-      const total = squadTasks.length > 0 ? squadTasks.length : 10;
-      const pct = squadTasks.length > 0 ? Math.round((doneTasks / squadTasks.length) * 100) : 65;
+      const total = squadTasks.length;
+      const pct = total > 0 ? Math.round((doneTasks / total) * 100) : 0;
       return {
         team,
         doneTasks,
@@ -83,7 +83,7 @@ export default function VelocityMetricsTab({
 
       return {
         member,
-        hours: memberHours || 12,
+        hours: memberHours,
         done,
         active,
       };

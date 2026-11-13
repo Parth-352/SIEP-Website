@@ -211,9 +211,12 @@ export default function SubsystemsTab({
                   <button
                     type="button"
                     onClick={() => setMemberSearch('')}
-                    className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700 text-xs font-sans cursor-pointer"
+                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-700 cursor-pointer"
+                    aria-label="Clear member search"
                   >
-                    ✕
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                   </button>
                 )}
               </div>
@@ -307,16 +310,56 @@ export default function SubsystemsTab({
                       const isChecked = selectedMemberIds.has(member.id);
                       const memberTeam = TEAMS[member.teamId];
 
-                      // Role badge styling matching Mockup 4
+                      // Role badge styling matching Mockup 4 with clean SVG icons (no emojis)
                       const roleBadge = member.name.toLowerCase().includes('tirthraj')
-                        ? { label: 'Captain', icon: '👑', class: 'bg-amber-50 text-amber-700 border-amber-200' }
+                        ? {
+                            label: 'Captain',
+                            icon: (
+                              <svg className="w-3 h-3 text-amber-600 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z" />
+                              </svg>
+                            ),
+                            class: 'bg-amber-50 text-amber-700 border-amber-200',
+                          }
                         : member.name.toLowerCase().includes('parth')
-                        ? { label: 'Software Lead', icon: '⚡', class: 'bg-rose-50 text-rose-700 border-rose-200' }
+                        ? {
+                            label: 'Software Lead',
+                            icon: (
+                              <svg className="w-3 h-3 text-rose-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                              </svg>
+                            ),
+                            class: 'bg-rose-50 text-rose-700 border-rose-200',
+                          }
                         : member.name.toLowerCase().includes('riddhi')
-                        ? { label: 'Manager', icon: '📦', class: 'bg-amber-50 text-amber-700 border-amber-200' }
+                        ? {
+                            label: 'Manager',
+                            icon: (
+                              <svg className="w-3 h-3 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                              </svg>
+                            ),
+                            class: 'bg-amber-50 text-amber-700 border-amber-200',
+                          }
                         : member.isLead
-                        ? { label: 'Squad Lead', icon: '⭐', class: 'bg-sky-50 text-sky-700 border-sky-200' }
-                        : { label: 'Member', icon: '👤', class: 'bg-slate-50 text-slate-700 border-slate-200' };
+                        ? {
+                            label: 'Squad Lead',
+                            icon: (
+                              <svg className="w-3 h-3 text-sky-600 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                              </svg>
+                            ),
+                            class: 'bg-sky-50 text-sky-700 border-sky-200',
+                          }
+                        : {
+                            label: 'Member',
+                            icon: (
+                              <svg className="w-3 h-3 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                            ),
+                            class: 'bg-slate-50 text-slate-700 border-slate-200',
+                          };
 
                       return (
                         <tr

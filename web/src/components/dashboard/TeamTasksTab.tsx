@@ -598,9 +598,12 @@ export default function TeamTasksTab({
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700 text-xs font-sans cursor-pointer"
+                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-700 cursor-pointer"
+                  aria-label="Clear search"
                 >
-                  ✕
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               )}
             </div>
@@ -763,23 +766,77 @@ export default function TeamTasksTab({
                       const isChecked = selectedTaskIds.has(task.id);
                       const domainInfo = getDomainBadge(task.teamId);
 
-                      // Priority styling matching Mockup 2
+                      // Priority styling matching Mockup 2 with clean SVG vector icons (no emojis)
                       const priorityPill =
                         task.priority === 'urgent' || task.priority === 'high'
-                          ? { label: '^ High', class: 'bg-rose-50 text-rose-600 border-rose-200' }
+                          ? {
+                              label: 'High',
+                              icon: (
+                                <svg className="w-2.5 h-2.5 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 15l7-7 7 7" />
+                                </svg>
+                              ),
+                              class: 'bg-rose-50 text-rose-600 border-rose-200',
+                            }
                           : task.priority === 'medium'
-                          ? { label: '★ Medium', class: 'bg-amber-50 text-amber-600 border-amber-200' }
-                          : { label: '✽ Low', class: 'bg-emerald-50 text-emerald-600 border-emerald-200' };
+                          ? {
+                              label: 'Medium',
+                              icon: (
+                                <svg className="w-2.5 h-2.5 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 12h14" />
+                                </svg>
+                              ),
+                              class: 'bg-amber-50 text-amber-600 border-amber-200',
+                            }
+                          : {
+                              label: 'Low',
+                              icon: (
+                                <svg className="w-2.5 h-2.5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              ),
+                              class: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+                            };
 
-                      // Status pill matching Mockup 2
+                      // Status pill matching Mockup 2 with clean SVG vector icons (no emojis)
                       const statusPill =
                         task.status === 'done'
-                          ? { label: '✓ Completed', class: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+                          ? {
+                              label: 'Completed',
+                              icon: (
+                                <svg className="w-2.5 h-2.5 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                              ),
+                              class: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                            }
                           : task.status === 'in_progress'
-                          ? { label: '▶ In Progress', class: 'bg-amber-50 text-amber-700 border-amber-200' }
+                          ? {
+                              label: 'In Progress',
+                              icon: (
+                                <svg className="w-2 h-2 text-amber-600 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M8 5v14l11-7z" />
+                                </svg>
+                              ),
+                              class: 'bg-amber-50 text-amber-700 border-amber-200',
+                            }
                           : task.status === 'review'
-                          ? { label: '⚗ Under Review', class: 'bg-purple-50 text-purple-700 border-purple-200' }
-                          : { label: '○ To Do', class: 'bg-slate-50 text-slate-700 border-slate-200' };
+                          ? {
+                              label: 'Under Review',
+                              icon: (
+                                <svg className="w-2.5 h-2.5 text-purple-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                                </svg>
+                              ),
+                              class: 'bg-purple-50 text-purple-700 border-purple-200',
+                            }
+                          : {
+                              label: 'To Do',
+                              icon: (
+                                <span className="w-1.5 h-1.5 rounded-full border border-slate-400 shrink-0" />
+                              ),
+                              class: 'bg-slate-50 text-slate-700 border-slate-200',
+                            };
 
                       // Due date formatted
                       const dueDateFormatted = task.dueDate
@@ -821,15 +878,17 @@ export default function TeamTasksTab({
 
                           {/* Priority */}
                           <td className="py-3.5 px-3">
-                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${priorityPill.class}`}>
-                              {priorityPill.label}
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${priorityPill.class}`}>
+                              {priorityPill.icon}
+                              <span>{priorityPill.label}</span>
                             </span>
                           </td>
 
                           {/* Status */}
                           <td className="py-3.5 px-3">
-                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${statusPill.class}`}>
-                              {statusPill.label}
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${statusPill.class}`}>
+                              {statusPill.icon}
+                              <span>{statusPill.label}</span>
                             </span>
                           </td>
 

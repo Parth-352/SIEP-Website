@@ -1208,20 +1208,68 @@ function LogPageContent() {
                         const logType = (() => {
                           const txt = `${log.stepTitle || ''} ${log.description || ''}`.toLowerCase();
                           if (txt.includes('test') || txt.includes('dyno') || workStatus === 'testing') {
-                            return { label: 'Test', badge: 'bg-purple-50 text-purple-700 border-purple-200' };
+                            return {
+                              label: 'Test',
+                              badge: 'bg-purple-50 text-purple-700 border-purple-200',
+                              icon: (
+                                <svg className="w-2.5 h-2.5 text-purple-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                                </svg>
+                              ),
+                            };
                           }
                           if (txt.includes('cad') || txt.includes('ui') || txt.includes('design')) {
-                            return { label: 'Design', badge: 'bg-pink-50 text-pink-700 border-pink-200' };
+                            return {
+                              label: 'Design',
+                              badge: 'bg-pink-50 text-pink-700 border-pink-200',
+                              icon: (
+                                <svg className="w-2.5 h-2.5 text-pink-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                </svg>
+                              ),
+                            };
                           }
-                          return { label: 'Build', badge: 'bg-slate-100 text-slate-700 border-slate-200' };
+                          return {
+                            label: 'Build',
+                            badge: 'bg-slate-100 text-slate-700 border-slate-200',
+                            icon: (
+                              <svg className="w-2.5 h-2.5 text-slate-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+                              </svg>
+                            ),
+                          };
                         })();
 
                         const statusBadge =
                           workStatus === 'completed'
-                            ? { label: '✓ Completed', class: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+                            ? {
+                                label: 'Completed',
+                                icon: (
+                                  <svg className="w-2.5 h-2.5 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                ),
+                                class: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                              }
                             : workStatus === 'review'
-                            ? { label: '⚗ Under Review', class: 'bg-purple-50 text-purple-700 border-purple-200' }
-                            : { label: '▶ In Progress', class: 'bg-amber-50 text-amber-700 border-amber-200' };
+                            ? {
+                                label: 'Under Review',
+                                icon: (
+                                  <svg className="w-2.5 h-2.5 text-purple-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                                  </svg>
+                                ),
+                                class: 'bg-purple-50 text-purple-700 border-purple-200',
+                              }
+                            : {
+                                label: 'In Progress',
+                                icon: (
+                                  <svg className="w-2 h-2 text-amber-600 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z" />
+                                  </svg>
+                                ),
+                                class: 'bg-amber-50 text-amber-700 border-amber-200',
+                              };
 
                         const logCode = `BL-${String(log.stepNumber || displayLogs.length - idx).padStart(3, '0')}`;
 
@@ -1240,8 +1288,9 @@ function LogPageContent() {
                             </td>
 
                             <td className="py-3.5 px-3">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${logType.badge}`}>
-                                {logType.label}
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border ${logType.badge}`}>
+                                {logType.icon}
+                                <span>{logType.label}</span>
                               </span>
                             </td>
 
@@ -1261,8 +1310,9 @@ function LogPageContent() {
                             </td>
 
                             <td className="py-3.5 px-3">
-                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${statusBadge.class}`}>
-                                {statusBadge.label}
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${statusBadge.class}`}>
+                                {statusBadge.icon}
+                                <span>{statusBadge.label}</span>
                               </span>
                             </td>
 
@@ -1379,8 +1429,23 @@ function LogPageContent() {
                         >
                           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
                           <div className="relative z-10">
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-xs text-orange-400 inline-block mb-1">
-                              {mLog.videoUrl ? '▶ Video' : '📷 Photo'}
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-xs text-orange-400 inline-flex items-center gap-1 mb-1">
+                              {mLog.videoUrl ? (
+                                <>
+                                  <svg className="w-2.5 h-2.5 text-orange-400 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z" />
+                                  </svg>
+                                  <span>Video</span>
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-2.5 h-2.5 text-orange-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  </svg>
+                                  <span>Photo</span>
+                                </>
+                              )}
                             </span>
                             <p className="text-[11px] font-bold text-white leading-tight truncate">
                               {mLog.stepTitle}
