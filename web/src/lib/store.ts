@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { WorkLog, Task, TeamId, InAppNotification, ActivityEvent, ResearchMaterial } from './types';
+import { TeamMemberEntry, ROSTER_MEMBERS } from './members';
 
 export interface PartnerInquiry {
   id: string;
@@ -16,6 +17,7 @@ interface StoreData {
   logs: WorkLog[];
   tasks: Task[];
   materials?: ResearchMaterial[];
+  members?: TeamMemberEntry[];
   activities?: ActivityEvent[];
   inquiries?: PartnerInquiry[];
   passwords?: Record<string, string>;
@@ -419,6 +421,45 @@ export function deleteMaterial(id: string): boolean {
   }
   return false;
 }
+
+// ======================== ROSTER & ROLES API ========================
+
+export function getStoreMembers(): TeamMemberEntry[] {
+  const store = readStore();
+  if (!store.members || store.members.length === 0) {
+    store.members = [...ROSTER_MEMBERS];
+    writeStore(store);
+  }
+  return store.members;
+}
+
+export function saveStoreMember(member: TeamMemberEntry): TeamMemberEntry {
+  const store = readStore();
+  if (!store.members) {
+    store.members = [...ROSTER_MEMBERS];
+  }
+  const idx = store.members.findIndex((m) => m.id === member.id || m.email.toLowerCase() === member.email.toLowerCase());
+  if (idx >= 0) {
+    store.members[idx] = { ...store.members[idx], ...member, updatedAt: Date.now() };
+  } else {
+    store.members.push({ ...member, updatedAt: Date.now() });
+  }
+  writeStore(store);
+  return member;
+}
+
+export function deleteStoreMember(id: string): boolean {
+  const store = readStore();
+  if (!store.members) return false;
+  const initialLength = store.members.length;
+  store.members = store.members.filter((m) => m.id !== id);
+  if (store.members.length !== initialLength) {
+    writeStore(store);
+    return true;
+  }
+  return false;
+}
+
 
 
 

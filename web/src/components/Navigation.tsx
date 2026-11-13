@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePwaInstall } from '@/components/PwaInstallProvider';
 import { TEAMS } from '@/lib/teams';
+import { isParthMasterAdmin } from '@/lib/members';
 
 export default function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -57,8 +58,10 @@ export default function Navigation() {
   const isTeamsActive = isDashboard && currentTab === 'teams';
   const isReportsActive = isDashboard && (currentTab === 'metrics' || currentTab === 'reports');
   const isMaterialsActive = isDashboard && currentTab === 'materials';
+  const isRolesActive = isDashboard && currentTab === 'roles';
   const isAssignedActive = isDashboard && currentTab === 'my_tasks';
   const isProfileActive = isDashboard && currentTab === 'profile';
+  const isParth = isParthMasterAdmin(user?.email);
 
   // User Dropdown State for Desktop Nav
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
@@ -310,6 +313,32 @@ export default function Navigation() {
                     </svg>
                     <span>Materials</span>
                   </button>
+
+                  {/* 7. Roles (Parth Only) */}
+                  {isParth && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleNavClick('roles');
+                        if (pathname !== '/dashboard') {
+                          window.location.href = '/dashboard?tab=roles';
+                        } else {
+                          window.history.pushState(null, '', '/dashboard?tab=roles');
+                        }
+                      }}
+                      title="Master Role & Team Authority (Parth Only)"
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                        isRolesActive
+                          ? 'bg-[#0e131f] text-white shadow-xs'
+                          : 'text-amber-700 bg-amber-50/70 hover:bg-amber-100/90 hover:text-amber-900 border border-amber-200/60'
+                      }`}
+                    >
+                      <svg className="w-3.5 h-3.5 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                      </svg>
+                      <span>Roles</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Right Area: Notifications & User Menu */}
@@ -436,6 +465,27 @@ export default function Navigation() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                             </svg>
                             <span>Access Settings (Core Admin)</span>
+                          </button>
+                        )}
+
+                        {isParth && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsUserDropdownOpen(false);
+                              handleNavClick('roles');
+                              if (pathname !== '/dashboard') {
+                                window.location.href = '/dashboard?tab=roles';
+                              } else {
+                                window.history.pushState(null, '', '/dashboard?tab=roles');
+                              }
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100/80 transition-colors text-left cursor-pointer border border-amber-200/50"
+                          >
+                            <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                            </svg>
+                            <span>Role Management (Parth Only)</span>
                           </button>
                         )}
 
@@ -860,7 +910,52 @@ export default function Navigation() {
                   </svg>
                 </Link>
 
-                {/* 6. Profile */}
+                {/* 6. Roles (Parth Only) */}
+                {isParth && (
+                  <Link
+                    href="/dashboard?tab=roles"
+                    onClick={() => handleNavClick('roles')}
+                    className={`w-full rounded-2xl p-3 sm:p-3.5 flex items-center justify-between gap-3.5 transition-all text-left ${
+                      isRolesActive
+                        ? 'bg-amber-50/90 border border-amber-200/80 shadow-2xs'
+                        : 'bg-white hover:bg-zinc-50 border border-amber-200/40 hover:border-amber-300/80'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div
+                        className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                          isRolesActive
+                            ? 'bg-amber-100/80 border border-amber-200/70 text-amber-600'
+                            : 'bg-amber-50 border border-amber-200/50 text-amber-600'
+                        }`}
+                      >
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                        </svg>
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[15px] sm:text-base font-bold text-zinc-900 tracking-tight block">
+                          Role Management
+                        </span>
+                        <span className="text-[10px] text-amber-700 font-bold uppercase tracking-wider block">
+                          Parth Only
+                        </span>
+                      </div>
+                    </div>
+                    <svg
+                      className={`w-5 h-5 shrink-0 transition-transform ${
+                        isRolesActive ? 'text-amber-500' : 'text-zinc-400'
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                )}
+
+                {/* 7. Profile */}
                 <Link
                   href="/dashboard?tab=profile"
                   onClick={() => handleNavClick('profile')}

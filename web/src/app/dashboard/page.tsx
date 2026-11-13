@@ -33,6 +33,7 @@ import SubsystemsTab from '@/components/dashboard/SubsystemsTab';
 import VideoArchiveTab from '@/components/dashboard/VideoArchiveTab';
 import VelocityMetricsTab from '@/components/dashboard/VelocityMetricsTab';
 import MaterialsTab from '@/components/dashboard/MaterialsTab';
+import RolesManagementTab from '@/components/dashboard/RolesManagementTab';
 import CredentialsVaultTab from '@/components/dashboard/CredentialsVaultTab';
 import ProfileView from '@/components/profile/ProfileView';
 import CreateTaskModal from '@/components/shared/CreateTaskModal';
@@ -80,6 +81,7 @@ function DashboardContent() {
           'videos',
           'metrics',
           'materials',
+          'roles',
           'accounts',
         ].includes(tabParam)
       ) {
@@ -103,6 +105,7 @@ function DashboardContent() {
           'videos',
           'metrics',
           'materials',
+          'roles',
           'accounts',
         ].includes(detail)
       ) {
@@ -123,7 +126,7 @@ function DashboardContent() {
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get('tab') as DashboardTab;
-      if (tab && ['dashboard', 'team_tasks', 'my_tasks', 'profile', 'teams', 'videos', 'metrics', 'materials', 'accounts'].includes(tab)) {
+      if (tab && ['dashboard', 'team_tasks', 'my_tasks', 'profile', 'teams', 'videos', 'metrics', 'materials', 'roles', 'accounts'].includes(tab)) {
         setActiveTab(tab);
       }
     };
@@ -988,7 +991,12 @@ function DashboardContent() {
           <MaterialsTab user={user} isCore={isCore} isLead={isLead} />
         )}
 
-        {/* Tab 8: Core Admin Credentials Vault */}
+        {/* Tab 8: Master Role Management (Parth Only) */}
+        {activeTab === 'roles' && (
+          <RolesManagementTab user={user} isCore={isCore} isLead={isLead} />
+        )}
+
+        {/* Tab 9: Core Admin Credentials Vault */}
         {activeTab === 'accounts' && isCoreAdmin && (
           <CredentialsVaultTab
             memberCredentials={memberCredentials}

@@ -7,6 +7,7 @@ import {
   deleteDoc, 
 } from 'firebase/firestore';
 import { Task, WorkLog, TeamId, TaskStatus, TaskPriority, MemberProfileData, ResearchMaterial } from './types';
+import { TeamMemberEntry } from './members';
 
 // ======================== TASKS FIRESTORE ========================
 
@@ -407,4 +408,76 @@ export async function deleteFirestoreMaterial(id: string): Promise<boolean> {
     return false;
   }
 }
+
+// ======================== ROSTER & ROLES FIRESTORE ========================
+
+export async function getFirestoreMembers(): Promise<TeamMemberEntry[] | null> {
+  if (!isFirebaseConfigured() || !db) return null;
+  try {
+    const col = collection(db, 'roster_members');
+    const snapshot = await getDocs(col);
+    if (snapshot.empty) {
+      return null;
+    }
+    const members: TeamMemberEntry[] = [];
+    snapshot.forEach((d) => {
+      const data = d.data();
+      members.push({
+        id: d.id,
+        name: data.name || '',
+        role: data.role || 'Team Member',
+        teamId: (data.teamId || 'software') as TeamId,
+        secondaryTeams: Array.isArray(data.secondaryTeams) ? data.secondaryTeams : [],
+        isLead: Boolean(data.isLead),
+        isCore: Boolean(data.isCore),
+        tier: data.tier || (data.isCore ? 1 : data.isLead ? 2 : 3),
+        email: data.email || '',
+        joinedDate: data.joinedDate,
+        status: data.status || 'active',
+        updatedAt: data.updatedAt || Date.now(),
+      });
+    });
+    return members;
+  } catch (err) {
+    console.warn('Firestore getFirestoreMembers error (falling back to store):', err);
+    return null;
+  }
+}
+
+export async function saveFirestoreMember(member: TeamMemberEntry): Promise<boolean> {
+  if (!isFirebaseConfigured() || !db) return false;
+  try {
+    const docRef = doc(db, 'roster_members', member.id);
+    await setDoc(docRef, {
+      name: member.name,
+      role: member.role,
+      teamId: member.teamId,
+      secondaryTeams: member.secondaryTeams || [],
+      isLead: Boolean(member.isLead),
+      isCore: Boolean(member.isCore),
+      tier: member.tier || (member.isCore ? 1 : member.isLead ? 2 : 3),
+      email: member.email,
+      joinedDate: member.joinedDate || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      status: member.status || 'active',
+      updatedAt: Date.now(),
+    }, { merge: true });
+    return true;
+  } catch (err) {
+    console.warn('Firestore saveFirestoreMember error:', err);
+    return false;
+  }
+}
+
+export async function deleteFirestoreMember(id: string): Promise<boolean> {
+  if (!isFirebaseConfigured() || !db) return false;
+  try {
+    const docRef = doc(db, 'roster_members', id);
+    await deleteDoc(docRef);
+    return true;
+  } catch (err) {
+    console.warn('Firestore deleteFirestoreMember error:', err);
+    return false;
+  }
+}
+
 

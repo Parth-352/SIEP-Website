@@ -8,7 +8,20 @@ export interface TeamMemberEntry {
   secondaryTeams?: TeamId[];
   isLead?: boolean;
   isCore?: boolean; // Master administrative scope across all domains
+  tier?: 1 | 2 | 3;
   email: string; // Personal Gmail
+  joinedDate?: string;
+  status?: 'active' | 'inactive' | 'revoked';
+  updatedAt?: number;
+}
+
+/**
+ * Checks whether an email belongs exclusively to Parth Kshirsagar (Master Role & Team Authority)
+ */
+export function isParthMasterAdmin(email?: string): boolean {
+  if (!email) return false;
+  const clean = email.trim().toLowerCase();
+  return clean === 'parthkshirsagrr@gmail.com' || clean === 'parthkshirsagr@gmail.com';
 }
 
 /**
