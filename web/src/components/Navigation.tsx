@@ -51,10 +51,28 @@ export default function Navigation() {
   const isLog = pathname.startsWith('/log');
 
   const isDashboardActive = isDashboard && (currentTab === 'dashboard' || !currentTab);
-  const isTeamTasksActive = isDashboard && currentTab === 'team_tasks';
-  const isBuildLogActive = isLog;
+  const isTasksActive = isDashboard && (currentTab === 'team_tasks' || currentTab === 'my_tasks' || currentTab === 'kanban' || currentTab === 'tasks');
+  const isTeamTasksActive = isTasksActive;
+  const isBuildLogActive = isLog || (isDashboard && currentTab === 'build_log');
+  const isTeamsActive = isDashboard && currentTab === 'teams';
+  const isReportsActive = isDashboard && (currentTab === 'metrics' || currentTab === 'reports');
   const isAssignedActive = isDashboard && currentTab === 'my_tasks';
   const isProfileActive = isDashboard && currentTab === 'profile';
+
+  // User Dropdown State for Desktop Nav
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isUserDropdownOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('#user-nav-dropdown-container')) {
+        setIsUserDropdownOpen(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [isUserDropdownOpen]);
 
   // Close mobile menu on route change
   const [prevPath, setPrevPath] = useState(pathname);
@@ -140,27 +158,17 @@ export default function Navigation() {
   return (
     <>
       {/* Top Nav Bar — always visible */}
-      <nav className="fixed top-0 left-0 w-full z-[100] bg-alice-blue/85 backdrop-blur-md border-b border-jet-black/10 shadow-sm pointer-events-auto font-sans transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 md:px-12 lg:px-16 py-3.5 flex justify-between items-center w-full">
+      <nav className="fixed top-0 left-0 w-full z-[100] bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs pointer-events-auto font-sans transition-all duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-2.5 flex justify-between items-center w-full">
           {/* Brand Logo & Portal Tag */}
           <div className="flex items-center gap-3">
             <Link 
               href={isPortalPage ? "/dashboard" : "/"} 
               onClick={closeMenu}
-              className="text-2xl font-black text-jet-black tracking-tighter hover:opacity-90 transition-opacity"
+              className="text-2xl font-black text-slate-900 tracking-tight hover:opacity-90 transition-opacity flex items-center"
             >
-              Riders Bay<span className="text-orange">.</span>
+              Riders Bay<span className="text-orange-500">.</span>
             </Link>
-            {isMounted && user && (
-              <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-jet-black/15">
-                <span className="text-[10px] font-mono uppercase tracking-[0.2em] px-2 py-0.5 rounded bg-jet-black text-alice-blue font-bold">
-                  {pathname.startsWith('/log') || isStandalone ? 'LOG SYSTEM' : 'PORTAL'}
-                </span>
-                <span className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-jet-black/10 text-grey font-bold">
-                  TIER {tier}
-                </span>
-              </div>
-            )}
           </div>
           
           {/* Desktop Menu */}
@@ -168,66 +176,265 @@ export default function Navigation() {
             {!isMounted ? (
               <div className="w-48 h-9"></div>
             ) : isPortalPage && user ? (
-              /* ================= Portal Dedicated View ================= */
-              <>
-                {/* Dashboard: Primary operational hub accessible to all team members */}
-                <Link
-                  href="/dashboard"
-                  className={`h-9 px-3.5 rounded-xl text-xs font-sans uppercase tracking-wider font-bold transition-all inline-flex items-center justify-center ${
-                    pathname === '/dashboard'
-                      ? 'bg-jet-black text-alice-blue shadow-sm'
-                      : 'text-jet-black hover:text-orange hover:bg-jet-black/5'
-                  }`}
-                >
-                  Dashboard
-                </Link>
-
-                {/* Build Log: Accessible to all team members */}
-                {user && (
-                  <Link
-                    href="/log"
-                    className={`h-9 px-3.5 rounded-xl text-xs font-sans uppercase tracking-wider font-bold transition-all inline-flex items-center justify-center ${
-                      pathname === '/log'
-                        ? 'bg-jet-black text-alice-blue shadow-sm'
-                        : 'text-jet-black hover:text-orange hover:bg-jet-black/5'
+              /* ================= Portal Dedicated View Matching Mockup ================= */
+              <div className="flex items-center gap-4">
+                {/* Centered Pill Navigation Bar */}
+                <div className="inline-flex items-center gap-1 bg-slate-100/80 p-1 rounded-full border border-slate-200/70 shadow-xs">
+                  {/* 1. Dashboard */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleNavClick('dashboard');
+                      if (pathname !== '/dashboard') {
+                        window.location.href = '/dashboard?tab=dashboard';
+                      } else {
+                        window.history.pushState(null, '', '/dashboard?tab=dashboard');
+                      }
+                    }}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
+                      isDashboardActive
+                        ? 'bg-[#0e131f] text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
                     }`}
                   >
-                    Build Log
-                  </Link>
-                )}
-
-                {/* Install Web App Button */}
-                {!isInstalled && !isStandalone && (
-                  <button
-                    type="button"
-                    onClick={installApp}
-                    title="Install SIEP Log System on your device"
-                    className="h-9 px-3 rounded-xl border border-orange/40 bg-orange/10 hover:bg-orange text-jet-black hover:text-white transition-all text-xs font-sans font-bold uppercase tracking-wider inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                     </svg>
-                    <span className="hidden xl:inline">Install App</span>
+                    <span>Dashboard</span>
                   </button>
-                )}
 
-                {/* User Pill + Logout */}
-                <div className="flex items-center gap-2.5 pl-3 border-l border-jet-black/15">
-                  {renderUserBadge()}
-
+                  {/* 2. Tasks */}
                   <button
                     type="button"
-                    onClick={() => logout()}
-                    title="Sign out of portal"
-                    className="h-9 px-3 rounded-xl border border-jet-black/15 text-grey hover:text-red-600 hover:border-red-400 hover:bg-red-50 transition-all font-sans font-bold uppercase tracking-wider text-xs inline-flex items-center gap-1.5 cursor-pointer"
+                    onClick={() => {
+                      handleNavClick('team_tasks');
+                      if (pathname !== '/dashboard') {
+                        window.location.href = '/dashboard?tab=team_tasks';
+                      } else {
+                        window.history.pushState(null, '', '/dashboard?tab=team_tasks');
+                      }
+                    }}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
+                      isTasksActive
+                        ? 'bg-[#0e131f] text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
+                    }`}
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                     </svg>
-                    <span>Logout</span>
+                    <span>Tasks</span>
+                  </button>
+
+                  {/* 3. Build Log */}
+                  <Link
+                    href="/log"
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
+                      isBuildLogActive
+                        ? 'bg-[#0e131f] text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
+                    }`}
+                  >
+                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    <span>Build Log</span>
+                  </Link>
+
+                  {/* 4. Teams */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleNavClick('teams');
+                      if (pathname !== '/dashboard') {
+                        window.location.href = '/dashboard?tab=teams';
+                      } else {
+                        window.history.pushState(null, '', '/dashboard?tab=teams');
+                      }
+                    }}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
+                      isTeamsActive
+                        ? 'bg-[#0e131f] text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
+                    }`}
+                  >
+                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <span>Teams</span>
+                  </button>
+
+                  {/* 5. Reports */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleNavClick('metrics');
+                      if (pathname !== '/dashboard') {
+                        window.location.href = '/dashboard?tab=metrics';
+                      } else {
+                        window.history.pushState(null, '', '/dashboard?tab=metrics');
+                      }
+                    }}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
+                      isReportsActive
+                        ? 'bg-[#0e131f] text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
+                    }`}
+                  >
+                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    <span>Reports</span>
                   </button>
                 </div>
-              </>
+
+                {/* Right Area: Notifications & User Menu */}
+                <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+                  {/* Notification Bell */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('siep_open_activity_drawer'));
+                      }
+                    }}
+                    title="Real-time Team Activity"
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors relative cursor-pointer"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    <span className="w-2 h-2 rounded-full bg-orange-500 absolute top-2 right-2 ring-2 ring-white" />
+                  </button>
+
+                  {/* User Profile Dropdown */}
+                  <div className="relative" id="user-nav-dropdown-container">
+                    <button
+                      type="button"
+                      onClick={() => setIsUserDropdownOpen((prev) => !prev)}
+                      className="flex items-center gap-2 p-1 pl-1.5 pr-2 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+                      title={user.displayName}
+                    >
+                      {user.photoUrl ? (
+                        <img
+                          src={user.photoUrl}
+                          alt={user.displayName}
+                          className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                          {user.displayName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <svg
+                        className={`w-3.5 h-3.5 text-slate-500 transition-transform ${
+                          isUserDropdownOpen ? 'rotate-180' : ''
+                        }`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {/* Dropdown Menu */}
+                    {isUserDropdownOpen && (
+                      <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-50 text-slate-800 animate-in fade-in slide-in-from-top-2 duration-150 font-sans">
+                        {/* Member Header */}
+                        <div className="p-3 bg-slate-50 rounded-xl mb-1.5">
+                          <p className="text-xs font-bold text-slate-900 truncate">{user.displayName}</p>
+                          <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
+                          <div className="mt-1.5 flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-900 text-white uppercase tracking-wider">
+                              {isCore ? 'CAPTAIN / CORE' : isLead ? 'SQUAD LEAD' : 'MEMBER'}
+                            </span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 uppercase">
+                              {currentTeam?.shortName || user.teamId}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Navigation Items */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsUserDropdownOpen(false);
+                            handleNavClick('profile');
+                            if (pathname !== '/dashboard') {
+                              window.location.href = '/dashboard?tab=profile';
+                            } else {
+                              window.history.pushState(null, '', '/dashboard?tab=profile');
+                            }
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors text-left cursor-pointer"
+                        >
+                          <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          <span>My Profile</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsUserDropdownOpen(false);
+                            handleNavClick('profile');
+                            if (pathname !== '/dashboard') {
+                              window.location.href = '/dashboard?tab=profile';
+                            } else {
+                              window.history.pushState(null, '', '/dashboard?tab=profile');
+                            }
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors text-left cursor-pointer"
+                        >
+                          <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                          <span>Account &amp; Security</span>
+                        </button>
+
+                        {(isCore || isAdmin) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsUserDropdownOpen(false);
+                              handleNavClick('accounts');
+                              if (pathname !== '/dashboard') {
+                                window.location.href = '/dashboard?tab=accounts';
+                              } else {
+                                window.history.pushState(null, '', '/dashboard?tab=accounts');
+                              }
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors text-left cursor-pointer"
+                          >
+                            <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                            </svg>
+                            <span>Access Settings (Core Admin)</span>
+                          </button>
+                        )}
+
+                        <div className="my-1 border-t border-slate-100" />
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsUserDropdownOpen(false);
+                            logout();
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-red-600 hover:bg-red-50 transition-colors text-left cursor-pointer"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
+                          <span>Sign Out</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             ) : (
               /* ================= Public Website View ================= */
               <>

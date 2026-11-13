@@ -8,6 +8,7 @@ import { SpecialDeadlineFilter } from '@/types/dashboard';
 import { isTaskAssignedToUser } from '@/lib/taskMatching';
 import { formatRelativeDueDate } from '@/utils/dateUtils';
 import { getMemberInitials, getAvatarColorClass } from '@/utils/avatarUtils';
+import OperationsBanner from './OperationsBanner';
 
 interface TeamTasksTabProps {
   user: UserProfile;
@@ -136,6 +137,42 @@ export default function TeamTasksTab({
   const inProgressCount = useMemo(() => filteredTasks.filter((t) => t.status === 'in_progress').length, [filteredTasks]);
   const reviewCount = useMemo(() => filteredTasks.filter((t) => t.status === 'review').length, [filteredTasks]);
   const doneCount = useMemo(() => filteredTasks.filter((t) => t.status === 'done').length, [filteredTasks]);
+
+  // Desktop state matching Mockup 2
+  const [desktopFilterPill, setDesktopFilterPill] = useState<'all' | 'my' | 'assigned' | 'review' | 'completed'>('all');
+  const [desktopViewMode, setDesktopViewMode] = useState<'table' | 'kanban'>('table');
+  const [desktopTablePage, setDesktopTablePage] = useState<number>(1);
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+
+  const desktopAssignedCount = useMemo(() => tasks.filter((t) => t.assignedMembers && t.assignedMembers.length > 0).length, [tasks]);
+  const desktopReviewCount = useMemo(() => tasks.filter((t) => t.status === 'review').length, [tasks]);
+  const desktopDoneCount = useMemo(() => tasks.filter((t) => t.status === 'done').length, [tasks]);
+
+  const desktopFilteredTasks = useMemo(() => {
+    return filteredTasks.filter((t) => {
+      if (desktopFilterPill === 'my') {
+        return isTaskAssignedToUser(t, user);
+      }
+      if (desktopFilterPill === 'assigned') {
+        return t.assignedMembers && t.assignedMembers.length > 0;
+      }
+      if (desktopFilterPill === 'review') {
+        return t.status === 'review';
+      }
+      if (desktopFilterPill === 'completed') {
+        return t.status === 'done';
+      }
+      return true;
+    });
+  }, [filteredTasks, desktopFilterPill, user]);
+
+  const ITEMS_PER_PAGE = 8;
+  const totalPages = Math.max(1, Math.ceil(desktopFilteredTasks.length / ITEMS_PER_PAGE));
+  const paginatedTasks = useMemo(() => {
+    const start = (desktopTablePage - 1) * ITEMS_PER_PAGE;
+    return desktopFilteredTasks.slice(start, start + ITEMS_PER_PAGE);
+  }, [desktopFilteredTasks, desktopTablePage]);
 
   // Squads available to active member (strictly assigned domains unless Core Admin in 'all' view)
   const availableSquads = useMemo(() => {
@@ -477,24 +514,80 @@ export default function TeamTasksTab({
       </div>
 
       {/* =========================================================================
-          DESKTOP VIEW: KANBAN BOARD (Desktop Layout Preserved 100%)
+          DESKTOP VIEW: TASKS WORKSPACE (Strictly matching Mockup 2 & PRD v1.0)
           Visible on desktop screens (hidden md:block).
          ========================================================================= */}
       <div className="hidden md:block space-y-6">
-        {/* Filter & Search Bar */}
-        <div className="bg-white border border-jet-black/10 rounded-2xl p-5 shadow-sm space-y-4">
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+        {/* Sleek Operations Hero Banner with + New Task CTA */}
+        <OperationsBanner
+          subtitle="PROJECT OPERATIONS"
+          title="Tasks"
+          description="Create, assign and track work across all teams"
+          action={{
+            label: "+ New Task",
+            onClick: () => {
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('siep_open_create_modal'));
+              }
+            },
+          }}
+        />
+
+        {/* Filter Tabs & Search Controls Row Matching Mockup 2 */}
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+          {/* Filter Pills on the left */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+            {[
+              { id: 'all', label: 'All Tasks', count: tasks.length },
+              { id: 'my', label: 'My Tasks', count: myAssignedCount },
+              { id: 'assigned', label: 'Assigned', count: desktopAssignedCount },
+              { id: 'review', label: 'Review', count: desktopReviewCount },
+              { id: 'completed', label: 'Completed', count: desktopDoneCount },
+            ].map((pill) => {
+              const isActive = desktopFilterPill === pill.id;
+              return (
+                <button
+                  key={pill.id}
+                  type="button"
+                  onClick={() => {
+                    setDesktopFilterPill(pill.id as any);
+                    setDesktopTablePage(1);
+                  }}
+                  className={`px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shadow-xs ${
+                    isActive
+                      ? 'bg-[#0e131f] text-white shadow-sm'
+                      : 'bg-white text-slate-700 border border-slate-200/80 hover:bg-slate-50'
+                  }`}
+                >
+                  <span>{pill.label}</span>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    {pill.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search, Filters Dropdown, and View Mode Switcher on the right */}
+          <div className="flex items-center gap-2.5 self-start xl:self-auto shrink-0">
             {/* Search Input */}
-            <div className="relative flex-1">
+            <div className="relative w-64 lg:w-72">
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search tasks by title, description, or squad..."
-                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-jet-black/15 text-xs sm:text-sm font-sans text-zinc-800 placeholder:text-zinc-400 focus:ring-2 focus:ring-orange focus:outline-none"
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setDesktopTablePage(1);
+                }}
+                placeholder="Search tasks..."
+                className="w-full pl-9 pr-8 py-2 rounded-xl bg-white border border-slate-200 text-xs font-sans text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-orange-500 focus:outline-none shadow-xs"
               />
               <svg
-                className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3"
+                className="w-4 h-4 text-slate-400 absolute left-3 top-2.5"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -505,471 +598,432 @@ export default function TeamTasksTab({
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3.5 top-2.5 text-zinc-400 hover:text-zinc-700 text-xs font-sans cursor-pointer"
+                  className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700 text-xs font-sans cursor-pointer"
                 >
                   ✕
                 </button>
               )}
             </div>
 
-            {/* Priority Selector */}
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-xs font-sans text-zinc-500 font-semibold">Priority:</span>
-              <select
-                value={selectedPriorityFilter}
-                onChange={(e) => setSelectedPriorityFilter(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-jet-black/15 text-xs sm:text-sm font-sans text-zinc-700 font-medium focus:ring-2 focus:ring-orange focus:outline-none bg-white cursor-pointer"
-              >
-                <option value="all">All Priorities</option>
-                <option value="urgent">Urgent</option>
-                <option value="high">High Priority</option>
-                <option value="medium">Medium Priority</option>
-                <option value="low">Low Priority</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Subsystem Filter Pills with smooth horizontal scroll and right-edge gradient indicator */}
-          <div className="relative">
-            <div className="pt-3 border-t border-jet-black/5 flex items-center gap-2 overflow-x-auto hide-scrollbar touch-pan-x scroll-smooth pr-10">
-              {/* Core Leadership Scope Switcher */}
-              {isCoreAdmin && (
-                <div className="flex items-center gap-1 p-0.5 bg-zinc-100 rounded-xl text-xs font-sans font-medium shrink-0 mr-1 border border-zinc-200/80">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDomainViewScope('assigned');
-                      setSelectedSubsystemFilter('all');
-                    }}
-                    className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                      domainViewScope === 'assigned'
-                        ? 'bg-jet-black text-white font-semibold shadow-xs'
-                        : 'text-zinc-600 hover:text-zinc-900'
-                    }`}
-                  >
-                    My Domains ({memberDomainIds.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDomainViewScope('all');
-                    }}
-                    className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                      domainViewScope === 'all'
-                        ? 'bg-jet-black text-white font-semibold shadow-xs'
-                        : 'text-zinc-600 hover:text-zinc-900'
-                    }`}
-                  >
-                    All Squads (9)
-                  </button>
-                </div>
-              )}
-
-              <span className="text-xs font-sans text-zinc-500 font-semibold shrink-0">
-                Subsystem:
-              </span>
-
+            {/* Filters Trigger with Dropdown */}
+            <div className="relative">
               <button
                 type="button"
-                onClick={() => {
-                  setSelectedSubsystemFilter('all');
-                  setAssignedToMeOnly(false);
-                }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-sans transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                  selectedSubsystemFilter === 'all' && !assignedToMeOnly
-                    ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
-                    : 'bg-alice-blue/60 text-zinc-600 hover:text-jet-black hover:bg-alice-blue'
+                onClick={() => setIsFilterDropdownOpen((prev) => !prev)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border shadow-xs ${
+                  isFilterDropdownOpen || selectedSubsystemFilter !== 'all' || selectedPriorityFilter !== 'all'
+                    ? 'bg-slate-900 text-white border-slate-900'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                 }`}
               >
-                {!isCoreAdmin || domainViewScope === 'assigned'
-                  ? `All My Squads (${tasks.filter((t) => memberDomainIds.includes(t.teamId)).length})`
-                  : `All Tasks (${tasks.length})`}
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                <span>Filters</span>
+                {(selectedSubsystemFilter !== 'all' || selectedPriorityFilter !== 'all') && (
+                  <span className="w-2 h-2 rounded-full bg-orange-500" />
+                )}
               </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  const nextVal = !assignedToMeOnly;
-                  setAssignedToMeOnly(nextVal);
-                  if (nextVal) {
-                    setSelectedSubsystemFilter('all');
-                  }
-                }}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-sans transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 ${
-                  assignedToMeOnly
-                    ? 'bg-orange text-white font-semibold shadow-md'
-                    : 'bg-alice-blue/60 text-zinc-600 hover:text-jet-black hover:bg-alice-blue'
-                }`}
-              >
-                <span>Assigned to Me</span>
-                <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                    assignedToMeOnly ? 'bg-white/30 text-white' : 'bg-jet-black/10 text-zinc-700'
-                  }`}
-                >
-                  {myAssignedCount}
-                </span>
-              </button>
-
-              {availableSquads.map((team) => {
-                const count = tasks.filter((t) => t.teamId === team.id).length;
-                const isSelected = selectedSubsystemFilter === team.id && !assignedToMeOnly;
-
-                return (
-                  <button
-                    key={team.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedSubsystemFilter(team.id);
-                      setAssignedToMeOnly(false);
-                    }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-sans transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 ${
-                      isSelected
-                        ? 'bg-jet-black text-alice-blue font-semibold shadow-sm'
-                        : 'bg-alice-blue/60 text-zinc-600 hover:text-jet-black hover:bg-alice-blue'
-                    }`}
-                  >
-                    <span className="font-medium">{team.shortName}</span>
-                    <span
-                      className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                        isSelected ? 'bg-white/20 text-alice-blue' : 'bg-jet-black/10 text-zinc-700'
-                      }`}
+              {/* Filters Dropdown Card */}
+              {isFilterDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-200 p-4 z-50 text-slate-800 space-y-3 font-sans animate-in fade-in zoom-in-95 duration-100">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="text-xs font-bold text-slate-900">Task Filters</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedSubsystemFilter('all');
+                        setSelectedPriorityFilter('all');
+                        setIsFilterDropdownOpen(false);
+                      }}
+                      className="text-[11px] text-orange-600 hover:underline cursor-pointer font-medium"
                     >
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
+                      Reset All
+                    </button>
+                  </div>
 
-              {specialDeadlineFilter !== 'all' && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-orange/15 border border-orange/30 text-orange text-xs font-sans font-semibold whitespace-nowrap shrink-0">
-                  <span>
-                    Filter:{' '}
-                    {specialDeadlineFilter === 'due_week'
-                      ? 'Due This Week'
-                      : specialDeadlineFilter === 'overdue'
-                      ? 'Overdue'
-                      : 'Review Queue'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setSpecialDeadlineFilter('all')}
-                    className="hover:text-jet-black font-bold ml-0.5 cursor-pointer"
-                    title="Clear deadline filter"
-                  >
-                    ✕
-                  </button>
+                  {/* Subsystem filter */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-500 uppercase">Squad / Subsystem</label>
+                    <select
+                      value={selectedSubsystemFilter}
+                      onChange={(e) => {
+                        setSelectedSubsystemFilter(e.target.value);
+                        setDesktopTablePage(1);
+                      }}
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-white text-slate-800 focus:ring-1 focus:ring-orange-500 focus:outline-none"
+                    >
+                      <option value="all">All Squads ({tasks.length})</option>
+                      {TEAMS_LIST.map((tm) => (
+                        <option key={tm.id} value={tm.id}>
+                          {tm.shortName} ({tasks.filter((t) => t.teamId === tm.id).length})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Priority filter */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-500 uppercase">Priority</label>
+                    <select
+                      value={selectedPriorityFilter}
+                      onChange={(e) => {
+                        setSelectedPriorityFilter(e.target.value);
+                        setDesktopTablePage(1);
+                      }}
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-white text-slate-800 focus:ring-1 focus:ring-orange-500 focus:outline-none"
+                    >
+                      <option value="all">All Priorities</option>
+                      <option value="urgent">Urgent</option>
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                  </div>
                 </div>
               )}
+            </div>
 
-              {(selectedSubsystemFilter !== 'all' ||
-                selectedPriorityFilter !== 'all' ||
-                searchQuery ||
-                assignedToMeOnly ||
-                specialDeadlineFilter !== 'all') && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedSubsystemFilter('all');
-                    setSelectedPriorityFilter('all');
-                    setSearchQuery('');
-                    setAssignedToMeOnly(false);
-                    setSpecialDeadlineFilter('all');
-                  }}
-                  className="text-xs font-sans text-orange hover:text-jet-black font-semibold whitespace-nowrap shrink-0 cursor-pointer underline"
-                >
-                  Reset Filters
-                </button>
-              )}
+            {/* View Mode Switcher (Table vs Kanban) */}
+            <div className="p-1 rounded-xl bg-slate-100 border border-slate-200 flex items-center gap-1 text-xs">
+              <button
+                type="button"
+                onClick={() => setDesktopViewMode('table')}
+                title="Table View (Mockup 2)"
+                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                  desktopViewMode === 'table'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDesktopViewMode('kanban')}
+                title="Kanban Board View"
+                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                  desktopViewMode === 'kanban'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Kanban Columns */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          {STATUS_COLUMNS.map((col) => {
-            const columnTasks = filteredTasks.filter((t) => t.status === col.id);
-
-            return (
-              <div
-                key={col.id}
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, col.id)}
-                className="bg-white border border-jet-black/10 rounded-2xl p-4 sm:p-5 flex flex-col min-h-[200px] h-fit shadow-sm"
-              >
-                {/* Column Header */}
-                <div className="flex items-center justify-between pb-3.5 mb-3.5 border-b border-jet-black/10">
-                  <div className="flex items-center gap-2">
-                    <span className={`w-2.5 h-2.5 rounded-full ${col.dotColor}`} />
-                    <h3 className="text-sm font-sans font-bold text-zinc-800">
-                      {col.label}
-                    </h3>
-                  </div>
-                  <span className="text-xs font-sans px-2.5 py-0.5 rounded-full bg-alice-blue text-zinc-700 font-bold border border-jet-black/10">
-                    {columnTasks.length}
-                  </span>
-                </div>
-
-                {/* Cards List */}
-                <div className="space-y-3.5 flex-1 overflow-y-auto pr-0.5">
-                  {columnTasks.length === 0 ? (
-                    <div className="py-8 px-4 border border-dashed border-zinc-200 rounded-xl flex flex-col items-center justify-center text-center">
-                      <span className="text-xs font-sans text-zinc-500 font-medium">
-                        {filteredTasks.length === 0 &&
-                        (selectedSubsystemFilter !== 'all' || searchQuery || specialDeadlineFilter !== 'all')
-                          ? 'No matching deliverables'
-                          : `No tasks in ${col.label}`}
-                      </span>
-                      <span className="text-[11px] font-sans text-zinc-400 mt-1">
-                        Drag or advance deliverables here
-                      </span>
-                    </div>
+        {/* View Mode 1: Uniform Tasks Table Matching Mockup 2 */}
+        {desktopViewMode === 'table' ? (
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50/70 text-[11px] font-bold text-slate-500 uppercase tracking-wider font-sans">
+                    <th className="py-3.5 pl-6 pr-3 w-10">
+                      <input
+                        type="checkbox"
+                        checked={paginatedTasks.length > 0 && paginatedTasks.every((t) => selectedTaskIds.has(t.id))}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedTaskIds(new Set([...Array.from(selectedTaskIds), ...paginatedTasks.map((t) => t.id)]));
+                          } else {
+                            const next = new Set(selectedTaskIds);
+                            paginatedTasks.forEach((t) => next.delete(t.id));
+                            setSelectedTaskIds(next);
+                          }
+                        }}
+                        className="rounded text-orange-500 focus:ring-orange-500"
+                      />
+                    </th>
+                    <th className="py-3.5 px-3">Task</th>
+                    <th className="py-3.5 px-3">Team</th>
+                    <th className="py-3.5 px-3">Priority</th>
+                    <th className="py-3.5 px-3">Status</th>
+                    <th className="py-3.5 px-3">Assignee</th>
+                    <th className="py-3.5 px-3">Due Date</th>
+                    <th className="py-3.5 pr-6 pl-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-sans text-xs">
+                  {paginatedTasks.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-12 text-center text-slate-400 font-sans">
+                        No tasks match the active filters.
+                      </td>
+                    </tr>
                   ) : (
-                    columnTasks.map((task) => {
-                      const taskTeam = TEAMS[task.teamId];
-                      const priorityInfo = PRIORITY_BADGES[task.priority] || PRIORITY_BADGES.medium;
-                      const isTaskAssignedToMe = isTaskAssignedToUser(task, user);
-                      const canManageThisTask = isCoreAdmin || user.teamId === task.teamId || isTaskAssignedToMe;
-                      const dueInfo = formatRelativeDueDate(task.dueDate);
+                    paginatedTasks.map((task) => {
+                      const isChecked = selectedTaskIds.has(task.id);
+                      const domainInfo = getDomainBadge(task.teamId);
+
+                      // Priority styling matching Mockup 2
+                      const priorityPill =
+                        task.priority === 'urgent' || task.priority === 'high'
+                          ? { label: '^ High', class: 'bg-rose-50 text-rose-600 border-rose-200' }
+                          : task.priority === 'medium'
+                          ? { label: '★ Medium', class: 'bg-amber-50 text-amber-600 border-amber-200' }
+                          : { label: '✽ Low', class: 'bg-emerald-50 text-emerald-600 border-emerald-200' };
+
+                      // Status pill matching Mockup 2
+                      const statusPill =
+                        task.status === 'done'
+                          ? { label: '✓ Completed', class: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+                          : task.status === 'in_progress'
+                          ? { label: '▶ In Progress', class: 'bg-amber-50 text-amber-700 border-amber-200' }
+                          : task.status === 'review'
+                          ? { label: '⚗ Under Review', class: 'bg-purple-50 text-purple-700 border-purple-200' }
+                          : { label: '○ To Do', class: 'bg-slate-50 text-slate-700 border-slate-200' };
+
+                      // Due date formatted
+                      const dueDateFormatted = task.dueDate
+                        ? new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : '—';
 
                       return (
-                        <div
+                        <tr
                           key={task.id}
-                          draggable={canManageThisTask}
-                          onDragStart={(e) => handleDragStart(e, task.id)}
                           onClick={() => handleOpenTaskDetail(task)}
-                          className="group bg-alice-blue/40 hover:bg-white border border-jet-black/10 hover:border-orange/60 rounded-xl p-3.5 sm:p-4 shadow-2xs hover:shadow-md transition-all space-y-3 cursor-pointer relative"
+                          className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
                         >
-                          {/* Team & Priority Row */}
-                          <div className="flex items-center justify-between gap-2">
-                            <span
-                              className={`px-2 py-0.5 rounded-md text-[11px] font-sans font-semibold border whitespace-nowrap flex-shrink-0 ${
-                                taskTeam ? taskTeam.badgeBg : 'bg-alice-blue text-jet-black border-jet-black/10'
-                              }`}
-                            >
-                              {taskTeam ? taskTeam.shortName : task.teamId}
+                          {/* Checkbox */}
+                          <td className="py-3.5 pl-6 pr-3" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                const next = new Set(selectedTaskIds);
+                                if (e.target.checked) next.add(task.id);
+                                else next.delete(task.id);
+                                setSelectedTaskIds(next);
+                              }}
+                              className="rounded text-orange-500 focus:ring-orange-500"
+                            />
+                          </td>
+
+                          {/* Task Title */}
+                          <td className="py-3.5 px-3 font-semibold text-slate-900 group-hover:text-orange-600 transition-colors max-w-xs truncate">
+                            {task.title}
+                          </td>
+
+                          {/* Team */}
+                          <td className="py-3.5 px-3">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${domainInfo.bg}`}>
+                              {domainInfo.code}
                             </span>
-                            <div className="flex items-center gap-1.5 flex-shrink-0">
-                              {task.isBlocked && (
-                                <span
-                                  className="px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-500/30 text-rose-700 text-[10px] font-sans font-bold flex items-center gap-1"
-                                  title={task.blockerReason || 'Blocked deliverable'}
-                                >
-                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Blocked
-                                </span>
-                              )}
-                              <span
-                                className={`px-2 py-0.5 rounded text-[10px] font-sans font-bold uppercase tracking-wider ${priorityInfo.bg}`}
-                              >
-                                {priorityInfo.label}
-                              </span>
-                            </div>
-                          </div>
+                          </td>
 
-                          {/* Title & Desc */}
-                          <div>
-                            <h4 className="text-sm font-sans font-semibold text-jet-black leading-snug group-hover:text-orange transition-colors">
-                              {task.title}
-                            </h4>
-                            {task.description && (
-                              <p className="text-xs text-zinc-600 mt-1 font-normal line-clamp-2 leading-relaxed">
-                                {task.description}
-                              </p>
-                            )}
-                          </div>
+                          {/* Priority */}
+                          <td className="py-3.5 px-3">
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${priorityPill.class}`}>
+                              {priorityPill.label}
+                            </span>
+                          </td>
 
-                          {/* Subtasks Progress Bar */}
-                          {task.subtasks && task.subtasks.length > 0 && (
-                            <div className="space-y-1 pt-0.5">
-                              <div className="flex items-center justify-between text-[11px] font-sans text-zinc-500">
-                                <span>Checklist</span>
-                                <span className="font-semibold text-zinc-800">
-                                  {task.subtasks.filter((st) => st.completed).length}/{task.subtasks.length}
-                                </span>
-                              </div>
-                              <div className="w-full h-1.5 bg-jet-black/10 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-emerald-500 transition-all duration-300"
-                                  style={{
-                                    width: `${Math.round(
-                                      (task.subtasks.filter((st) => st.completed).length / task.subtasks.length) * 100
-                                    )}%`,
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          )}
+                          {/* Status */}
+                          <td className="py-3.5 px-3">
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${statusPill.class}`}>
+                              {statusPill.label}
+                            </span>
+                          </td>
 
-                          {/* Assignee & Due Date Row */}
-                          <div className="pt-2 border-t border-jet-black/5 flex items-center justify-between text-xs text-zinc-500 gap-2">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              {task.assignedMembers && task.assignedMembers.length > 0 ? (
-                                <div className="flex items-center -space-x-1.5">
-                                  {task.assignedMembers.slice(0, 3).map((name) => (
-                                    <span
-                                      key={name}
-                                      title={name}
-                                      className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[9px] font-sans font-bold border-2 border-white uppercase shadow-xs ${getAvatarColorClass(
-                                        name
-                                      )}`}
-                                    >
-                                      {getMemberInitials(name)}
-                                    </span>
-                                  ))}
-                                  {task.assignedMembers.length > 3 && (
-                                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[9px] font-bold bg-zinc-200 text-zinc-700 border-2 border-white">
-                                      +{task.assignedMembers.length - 3}
-                                    </span>
-                                  )}
-                                </div>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-[11px] text-zinc-400 italic font-sans">
-                                  <span className="w-5 h-5 rounded-full border border-dashed border-zinc-300 flex items-center justify-center text-[9px] text-zinc-400">
-                                    ?
+                          {/* Assignees */}
+                          <td className="py-3.5 px-3">
+                            {task.assignedMembers && task.assignedMembers.length > 0 ? (
+                              <div className="flex items-center -space-x-1.5">
+                                {task.assignedMembers.slice(0, 3).map((name) => (
+                                  <span
+                                    key={name}
+                                    title={name}
+                                    className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[9px] font-bold border-2 border-white uppercase shadow-xs ${getAvatarColorClass(name)}`}
+                                  >
+                                    {getMemberInitials(name)}
                                   </span>
-                                  Unassigned
-                                </span>
-                              )}
-
-                              {task.comments && task.comments.length > 0 && (
-                                <span className="px-1.5 py-0.5 rounded bg-white border border-jet-black/10 text-zinc-500 font-bold flex items-center gap-0.5 text-[10px]">
-                                  💬 {task.comments.length}
-                                </span>
-                              )}
-                              {Boolean(task.actualHours) && (
-                                <span className="px-1.5 py-0.5 rounded bg-white border border-jet-black/10 text-zinc-500 font-medium text-[10px]">
-                                  {task.actualHours}h
-                                </span>
-                              )}
-
-                              {!isTaskAssignedToMe && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => handleQuickAssignToMe(e, task)}
-                                  className="px-2 py-0.5 rounded-md bg-zinc-100 hover:bg-orange hover:text-white border border-zinc-200 text-[10px] font-sans font-medium text-zinc-600 transition-all cursor-pointer"
-                                  title="Assign this task to yourself"
-                                >
-                                  + Claim
-                                </button>
-                              )}
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              {dueInfo && (
-                                <span
-                                  className={`text-[11px] font-sans font-medium flex items-center gap-1 ${dueInfo.className}`}
-                                >
-                                  <span>{dueInfo.text}</span>
-                                </span>
-                              )}
-
-                              <div className="relative">
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setCardMenuTaskId(cardMenuTaskId === task.id ? null : task.id);
-                                  }}
-                                  className="p-1 rounded-md text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200 transition-colors"
-                                  title="Task Actions"
-                                >
-                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                                    />
-                                  </svg>
-                                </button>
-
-                                {cardMenuTaskId === task.id && (
-                                  <>
-                                    <div
-                                      className="fixed inset-0 z-40"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setCardMenuTaskId(null);
-                                      }}
-                                    />
-                                    <div
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="absolute right-0 bottom-full mb-1 w-44 bg-white border border-jet-black/10 rounded-xl shadow-xl z-50 py-1 text-xs font-sans animate-in fade-in zoom-in-95 duration-100"
-                                    >
-                                      <div className="px-3 py-1 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                                        Move Status
-                                      </div>
-                                      {STATUS_COLUMNS.filter((c) => c.id !== task.status).map((c) => {
-                                        const isCompletionBlocked = c.id === 'done' && !canApproveCompletion;
-                                        return isCompletionBlocked ? (
-                                          <button
-                                            key={c.id}
-                                            type="button"
-                                            disabled
-                                            title="Under Review: Only Squad Leads and Core Leadership can approve and complete tasks"
-                                            className="w-full px-3 py-1.5 text-left text-zinc-400 bg-zinc-50 flex items-center justify-between cursor-not-allowed opacity-60 text-xs"
-                                          >
-                                            <div className="flex items-center gap-2">
-                                              <span className={`w-1.5 h-1.5 rounded-full ${c.dotColor}`} />
-                                              <span>Move to {c.label}</span>
-                                            </div>
-                                            <span className="text-[10px] text-zinc-500 font-semibold">🔒 Lead only</span>
-                                          </button>
-                                        ) : (
-                                          <button
-                                            key={c.id}
-                                            type="button"
-                                            onClick={(e) => {
-                                              handleMoveStatus(e, task.id, c.id);
-                                              setCardMenuTaskId(null);
-                                            }}
-                                            className="w-full px-3 py-1.5 text-left text-zinc-700 hover:bg-alice-blue flex items-center gap-2 cursor-pointer"
-                                          >
-                                            <span className={`w-1.5 h-1.5 rounded-full ${c.dotColor}`} />
-                                            <span>Move to {c.label}</span>
-                                          </button>
-                                        );
-                                      })}
-
-                                      {isCoreAdmin && (
-                                        <>
-                                          <div className="border-t border-jet-black/10 my-1" />
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setCardMenuTaskId(null);
-                                              setCardTaskToDelete(task);
-                                            }}
-                                            className="w-full px-3 py-1.5 text-left text-red-600 hover:bg-red-50 flex items-center gap-2 cursor-pointer font-medium"
-                                          >
-                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                              <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                              />
-                                            </svg>
-                                            <span>Delete Deliverable</span>
-                                          </button>
-                                        </>
-                                      )}
-                                    </div>
-                                  </>
+                                ))}
+                                {task.assignedMembers.length > 3 && (
+                                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[9px] font-bold bg-slate-200 text-slate-700 border-2 border-white">
+                                    +{task.assignedMembers.length - 3}
+                                  </span>
                                 )}
                               </div>
+                            ) : (
+                              <span className="text-slate-400 text-xs italic">Unassigned</span>
+                            )}
+                          </td>
+
+                          {/* Due Date */}
+                          <td className="py-3.5 px-3 text-slate-600 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5">
+                              <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              <span>{dueDateFormatted}</span>
                             </div>
-                          </div>
-                        </div>
+                          </td>
+
+                          {/* Action */}
+                          <td className="py-3.5 pr-6 pl-3 text-right" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenTaskDetail(task)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                              title="View Task Details"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+                              </svg>
+                            </button>
+                          </td>
+                        </tr>
                       );
                     })
                   )}
-                </div>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Footer Matching Mockup 2 */}
+            <div className="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 font-sans">
+              <span>
+                Showing {desktopFilteredTasks.length > 0 ? (desktopTablePage - 1) * ITEMS_PER_PAGE + 1 : 0}–
+                {Math.min(desktopTablePage * ITEMS_PER_PAGE, desktopFilteredTasks.length)} of {desktopFilteredTasks.length} tasks
+              </span>
+
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  disabled={desktopTablePage <= 1}
+                  onClick={() => setDesktopTablePage((p) => Math.max(1, p - 1))}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  &lt;
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).slice(0, 7).map((pg) => (
+                  <button
+                    key={pg}
+                    type="button"
+                    onClick={() => setDesktopTablePage(pg)}
+                    className={`w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
+                      desktopTablePage === pg
+                        ? 'bg-[#0e131f] text-white shadow-xs'
+                        : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    {pg}
+                  </button>
+                ))}
+
+                <button
+                  type="button"
+                  disabled={desktopTablePage >= totalPages}
+                  onClick={() => setDesktopTablePage((p) => Math.min(totalPages, p + 1))}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  &gt;
+                </button>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          </div>
+        ) : (
+          /* View Mode 2: Kanban Columns Drag and Drop */
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            {STATUS_COLUMNS.map((col) => {
+              const columnTasks = desktopFilteredTasks.filter((t) => t.status === col.id);
+
+              return (
+                <div
+                  key={col.id}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, col.id)}
+                  className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 flex flex-col min-h-[200px] h-fit shadow-xs"
+                >
+                  {/* Column Header */}
+                  <div className="flex items-center justify-between pb-3.5 mb-3.5 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2.5 h-2.5 rounded-full ${col.dotColor}`} />
+                      <h3 className="text-sm font-sans font-bold text-slate-800">
+                        {col.label}
+                      </h3>
+                    </div>
+                    <span className="text-xs font-sans px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold border border-slate-200">
+                      {columnTasks.length}
+                    </span>
+                  </div>
+
+                  {/* Cards List */}
+                  <div className="space-y-3.5 flex-1 overflow-y-auto pr-0.5">
+                    {columnTasks.length === 0 ? (
+                      <div className="py-8 px-4 border border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-center">
+                        <span className="text-xs font-sans text-slate-500 font-medium">
+                          No tasks in {col.label}
+                        </span>
+                        <span className="text-[11px] font-sans text-slate-400 mt-1">
+                          Drag or advance deliverables here
+                        </span>
+                      </div>
+                    ) : (
+                      columnTasks.map((task) => {
+                        const taskTeam = TEAMS[task.teamId];
+                        const priorityInfo = PRIORITY_BADGES[task.priority] || PRIORITY_BADGES.medium;
+                        const isTaskAssignedToMe = isTaskAssignedToUser(task, user);
+                        const canManageThisTask = isCoreAdmin || user.teamId === task.teamId || isTaskAssignedToMe;
+                        const dueInfo = formatRelativeDueDate(task.dueDate);
+
+                        return (
+                          <div
+                            key={task.id}
+                            draggable={canManageThisTask}
+                            onDragStart={(e) => handleDragStart(e, task.id)}
+                            onClick={() => handleOpenTaskDetail(task)}
+                            className="group bg-slate-50/50 hover:bg-white border border-slate-200 hover:border-orange-500 rounded-xl p-3.5 sm:p-4 shadow-2xs hover:shadow-md transition-all space-y-3 cursor-pointer relative"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span
+                                className={`px-2 py-0.5 rounded-md text-[11px] font-sans font-semibold border whitespace-nowrap flex-shrink-0 ${
+                                  taskTeam ? taskTeam.badgeBg : 'bg-slate-100 text-slate-800 border-slate-200'
+                                }`}
+                              >
+                                {taskTeam ? taskTeam.shortName : task.teamId}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-sans font-bold uppercase tracking-wider ${priorityInfo.bg}`}>
+                                {priorityInfo.label}
+                              </span>
+                            </div>
+
+                            <h4 className="text-sm font-sans font-semibold text-slate-900 group-hover:text-orange-600 transition-colors">
+                              {task.title}
+                            </h4>
+
+                            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 gap-2">
+                              {dueInfo && <span className={`text-[11px] ${dueInfo.className}`}>{dueInfo.text}</span>}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenTaskDetail(task);
+                                }}
+                                className="text-xs text-slate-500 hover:text-slate-900"
+                              >
+                                Details &rarr;
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

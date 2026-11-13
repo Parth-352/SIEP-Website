@@ -284,3 +284,34 @@
 - **Consequences:**
   - Smooth, frictionless logging workflow for shop floor engineers across all squads.
   - Clean, distraction-free navigation matching reference design.
+
+---
+
+## 🏛️ ADR-018: Desktop Portal Redesign (PRD v1.0 & 5 Reference Mockups)
+- **Date:** 2026-11-13
+- **Status:** Accepted & Implemented
+- **Context:**
+  - The desktop web experience required redesign per PRD v1.0 and 5 authoritative reference mockups (Dashboard, Tasks, Build Log, Teams, Reports) while strictly leaving the mobile experience (`md:hidden`) intact.
+  - Legacy desktop elements suffered from duplicate dashboard navigation, non-functional credentials buttons, fragmented Team Tasks vs My Tasks, and repetitive subsystem boxes.
+- **Decisions:**
+  1. **Strict Responsive Screen Isolation:**
+     - All desktop redesign components are scoped with `hidden md:block` / `hidden md:flex`.
+     - Mobile web app screens (`BottomNav.tsx`, slide-over burger menu, mobile single-status list, 2x2 KPI grids) are protected under `md:hidden` without modification.
+  2. **Unified Desktop Navigation Bar:**
+     - 5 persistent primary pills: `Dashboard`, `Tasks`, `Build Log`, `Teams`, `Reports` with dark active pill indicator.
+     - Real-time notification bell (triggers `siep_open_activity_drawer`) and user avatar profile dropdown (`My Profile`, `Account & Security`, `Access Settings (Core Admin)`, `Sign Out`).
+     - Persistent direct URL routing with redirects (`/tasks`, `/teams`, `/reports`, `/build-log`, `/profile`), `popstate` browser back/forward history support, and instant tab synchronization (`siep_tab_change`).
+  3. **Standardized Operations Hero Banners (`OperationsBanner.tsx`):**
+     - Dark navy container with glowing golden-orange arc wave, uppercase subtitle (`PROJECT OPERATIONS`), bold title, description, and optional right CTA button (`+ New Task`, `+ Add Log`, `+ Add Member`, `Export Report`).
+  4. **Uniform Stat Cards (`StatCard.tsx`):**
+     - Pastel icon squircles, subtle rounded borders, tabular counts, and optional mini progress bars.
+  5. **Component Redesigns Matching Mockups 1–5:**
+     - **Dashboard (`DashboardOverviewTab.tsx` - Mockup 1):** 4 stat cards, 2-column grid featuring `Team Progress` (squad codes, orange progress bars, %, fractions, `View Teams ->`) and `Recent Activity` (connected vertical timeline, squircle node icons, squad badges, relative timestamps, `View All ->`).
+     - **Tasks (`TeamTasksTab.tsx` - Mockup 2):** Single unified task workspace combining Team Tasks and My Tasks. Filter pills (`All Tasks`, `My Tasks`, `Assigned`, `Review`, `Completed`), search input, filters dropdown, table/kanban view toggle, and comprehensive tasks table (checkbox, title, team code, priority pill, status pill, assignee initials, formatted due date, actions, and pagination).
+     - **Build Log (`web/src/app/log/page.tsx` - Mockup 3):** 4 stat cards, timeline table with filters (`All Logs`, `Builds`, `Tests`, `Design`, `Analysis`, `All Time ▾`), `Recent Build Media` 2x2 preview grid, and `Quick Actions` (New Build Log, New Test Log, Upload Media).
+     - **Teams (`SubsystemsTab.tsx` - Mockup 4):** 4 stat cards, directory table (`All Members`, `Squads`, `Core Committee`, `Roles`), member details with email, role badge with icon, squad, `● Active` status, joined date, and `Squad Overview` card with orange progress bars.
+     - **Reports (`VelocityMetricsTab.tsx` - Mockup 5):** 5 stat cards, middle row featuring `Progress Overview` (SVG spline area chart), `Squad Progress` bars, and `Recent Reports` (PDF badges and download action), plus 6 `Quick Reports` instant export tiles.
+- **Consequences:**
+  - Complete 1:1 fidelity with the 5 reference mockups.
+  - 100% preservation of mobile layouts, auth models, member PINs, and Firestore schemas.
+  - Zero TypeScript or Turbopack compilation errors across all 25 Next.js static pages.

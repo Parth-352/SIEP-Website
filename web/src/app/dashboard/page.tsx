@@ -104,10 +104,45 @@ function DashboardContent() {
         ].includes(detail)
       ) {
         setActiveTab(detail as DashboardTab);
+        if (typeof window !== 'undefined') {
+          const url = new URL(window.location.href);
+          url.searchParams.set('tab', detail);
+          window.history.pushState(null, '', url.toString());
+        }
       }
     };
     window.addEventListener('siep_tab_change', handleCustomTab);
     return () => window.removeEventListener('siep_tab_change', handleCustomTab);
+  }, []);
+
+  // Browser back and forward button navigation support
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab') as DashboardTab;
+      if (tab && ['dashboard', 'team_tasks', 'my_tasks', 'profile', 'teams', 'videos', 'metrics', 'accounts'].includes(tab)) {
+        setActiveTab(tab);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Global event listeners for desktop navigation and action shortcuts
+  useEffect(() => {
+    const handleOpenActivity = () => setIsActivityDrawerOpen(true);
+    const handleOpenBackup = () => setIsBackupModalOpen(true);
+    const handleOpenCreate = () => setIsCreateModalOpen(true);
+
+    window.addEventListener('siep_open_activity_drawer', handleOpenActivity);
+    window.addEventListener('siep_open_backup_modal', handleOpenBackup);
+    window.addEventListener('siep_open_create_modal', handleOpenCreate);
+
+    return () => {
+      window.removeEventListener('siep_open_activity_drawer', handleOpenActivity);
+      window.removeEventListener('siep_open_backup_modal', handleOpenBackup);
+      window.removeEventListener('siep_open_create_modal', handleOpenCreate);
+    };
   }, []);
 
   // Instagram-style Create Action Sheet for center [+] button
@@ -851,63 +886,6 @@ function DashboardContent() {
       <div className="fixed inset-0 opacity-[0.02] pointer-events-none bg-[radial-gradient(#2B303A_1px,transparent_1px)] [background-size:24px_24px]" />
 
       <div className="max-w-7xl mx-auto relative z-10 space-y-5 sm:space-y-8">
-        {/* Header (Desktop only; on mobile, each view features its dedicated purpose-built header matching PRD) */}
-        {activeTab !== 'profile' && (
-          <div className="hidden md:block">
-            <DashboardHeader
-              user={user}
-              isCore={isCore}
-              isCoreAdmin={isCoreAdmin}
-              isOnline={isOnline}
-              pendingQueueCount={pendingQueueCount}
-              unreadActivitiesCount={unreadActivitiesCount}
-              isMoreMenuOpen={isMoreMenuOpen}
-              setIsMoreMenuOpen={setIsMoreMenuOpen}
-              handleOpenActivityDrawer={handleOpenActivityDrawer}
-              setIsBackupModalOpen={setIsBackupModalOpen}
-              setIsCreateModalOpen={setIsCreateModalOpen}
-              isInstalled={isInstalled}
-              installApp={installApp}
-              restrictedNotice={restrictedNotice}
-              dismissRestrictedNotice={() => router.replace('/dashboard')}
-            />
-          </div>
-        )}
-
-        {/* Actionable KPI Ribbon (Desktop only; mobile views have their dedicated KPI blocks per PRD) */}
-        {activeTab !== 'profile' && (
-          <div className="hidden md:block">
-            <ActionableKpiRibbon
-              totalTasksCount={tasks.length}
-              activeTasksCount={inProgressTasks}
-              dueThisWeekCount={dueThisWeekTasksList.length}
-              overdueCount={overdueTasksList.length}
-              underReviewCount={underReviewTasksList.length}
-              setSpecialDeadlineFilter={setSpecialDeadlineFilter}
-              setSelectedSubsystemFilter={setSelectedSubsystemFilter}
-              setAssignedToMeOnly={setAssignedToMeOnly}
-              setActiveTab={setActiveTab}
-            />
-          </div>
-        )}
-
-        {/* Elevated View Tabs (Desktop only; on mobile, persistent bottom navigation is the single source) */}
-        {activeTab !== 'profile' && (
-          <div className="hidden md:block">
-            <DashboardTabBar
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              filteredTasksCount={filteredTasks.length}
-              myAssignedCount={myAssignedCount}
-              teamsCount={TEAMS_LIST.length}
-              videoLogsCount={videoLogsCount}
-              completedTasksCount={completedTasks}
-              totalTasksCount={tasks.length}
-              isCore={isCore}
-            />
-          </div>
-        )}
-
         {/* Tab 1: Dashboard Overview */}
         {activeTab === 'dashboard' && (
           <DashboardOverviewTab
