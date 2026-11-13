@@ -43,9 +43,11 @@
    - Standardized Table: Checkbox, Task title, Team badge, Priority pill (`^ High`, `★ Medium`, `✽ Low`), Status pill (`✓ Completed`, `▶ In Progress`, `⚗ Under Review`, `○ To Do`), Assignee initials avatar circles, formatted Due Date, actions menu (`...`), and pagination footer.
 5. **Mockup 3 — Build Log (`web/src/app/log/page.tsx`):**
    - Operations Banner (`PROJECT OPERATIONS / Build Log / + Add Log`).
+   - Standardized container to `max-w-7xl mx-auto` and `pb-12 sm:pb-16`, eliminating the horizontal layout jump when switching between tabs.
    - 4 Stat Cards: `Total Logs`, `Builds`, `Tests`, `Validated`.
-   - Left Column: Category filter tabs (`All Logs`, `Builds`, `Tests`, `Design`, `Analysis`), Time filter (`All Time ▾`), comprehensive timeline table (`#`, `Log Title`, `Type`, `Team`, `Date`, `Status`, `...`), and pagination footer.
-   - Right Column: `Recent Build Media` (2x2 preview grid of thumbnails) and `Quick Actions` (`New Build Log`, `New Test Log`, `Upload Media`).
+   - Left Column: Standalone Filter Bar card matching Tasks and Teams with category filter tabs (`All Logs`, `Builds`, `Tests`, `Design`, `Analysis`), desktop search input (`Search build logs...`) with clear button, and time filter (`All Time ▾`).
+   - Comprehensive timeline table (`#`, `Log Title`, `Type`, `Team`, `Date`, `Status`, `...`) powered by dynamic `desktopFilteredLogs` memoized filter, and uniform pagination footer (`Showing X–Y of Z logs`).
+   - Right Column: Standardized card headers with orange squircle + subtitles for `Recent Build Media` (2x2 preview grid of thumbnails with `View All ->`) and `Quick Actions` (`New Build Log`, `New Test Log`, `Upload Media`).
    - Preserved all log creation, editing, deletion, and video playback modals.
 6. **Mockup 4 — Teams Directory (`SubsystemsTab.tsx`):**
    - Operations Banner (`PROJECT OPERATIONS / Teams / + Add Member`).

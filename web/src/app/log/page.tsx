@@ -251,6 +251,41 @@ function LogPageContent() {
   const [desktopLogPill, setDesktopLogPill] = useState<'all' | 'builds' | 'tests' | 'design' | 'analysis'>('all');
   const [desktopLogPage, setDesktopLogPage] = useState<number>(1);
   const [desktopLogTimeFilter, setDesktopLogTimeFilter] = useState<'all' | '30d' | '90d'>('all');
+  const [desktopLogSearch, setDesktopLogSearch] = useState<string>('');
+
+  // Dynamic filtered logs feed for desktop
+  const desktopFilteredLogs = useMemo(() => {
+    return logs.filter((log) => {
+      const txt = `${log.stepTitle || ''} ${log.description || ''}`.toLowerCase();
+
+      // 1. Category Pill Filter
+      if (desktopLogPill === 'builds' && !(txt.includes('weld') || txt.includes('build') || txt.includes('fab') || log.status === 'completed')) return false;
+      if (desktopLogPill === 'tests' && !(txt.includes('test') || txt.includes('dyno') || log.status === 'testing')) return false;
+      if (desktopLogPill === 'design' && !(txt.includes('cad') || txt.includes('design') || txt.includes('ui') || log.teamId === 'design' || log.teamId === 'software')) return false;
+      if (desktopLogPill === 'analysis' && !(txt.includes('analysis') || txt.includes('fea') || log.teamId === 'research')) return false;
+
+      // 2. Time Filter
+      if (desktopLogTimeFilter === '30d') {
+        const logTime = log.createdAt ? new Date(log.createdAt).getTime() : 0;
+        if (Date.now() - logTime > 30 * 24 * 60 * 60 * 1000) return false;
+      } else if (desktopLogTimeFilter === '90d') {
+        const logTime = log.createdAt ? new Date(log.createdAt).getTime() : 0;
+        if (Date.now() - logTime > 90 * 24 * 60 * 60 * 1000) return false;
+      }
+
+      // 3. Search Query
+      if (desktopLogSearch.trim()) {
+        const q = desktopLogSearch.toLowerCase().trim();
+        const titleMatch = (log.stepTitle || '').toLowerCase().includes(q);
+        const descMatch = (log.description || '').toLowerCase().includes(q);
+        const memberMatch = (log.membersPresent || []).some((m) => m.toLowerCase().includes(q)) || (log.authorName || '').toLowerCase().includes(q);
+        const teamMatch = (log.teamName || log.teamId || '').toLowerCase().includes(q);
+        if (!titleMatch && !descMatch && !memberMatch && !teamMatch) return false;
+      }
+
+      return true;
+    });
+  }, [logs, desktopLogPill, desktopLogTimeFilter, desktopLogSearch]);
 
   // Dynamic status counts calculated live from Firestore logs (respects team selection)
   const statusCounts = useMemo(() => {
@@ -705,12 +740,12 @@ function LogPageContent() {
   });
 
   return (
-    <main className="min-h-screen bg-alice-blue text-jet-black pt-20 sm:pt-24 pb-16 sm:pb-24 px-3 sm:px-6 lg:px-8 font-sans">
+    <main className="min-h-screen bg-alice-blue text-jet-black pt-20 sm:pt-24 pb-12 sm:pb-16 px-3 sm:px-6 lg:px-8 font-sans">
       
       {/* Background CAD Accent */}
       <div className="fixed inset-0 opacity-[0.02] pointer-events-none bg-[radial-gradient(#2B303A_1px,transparent_1px)] [background-size:24px_24px]"></div>
 
-      <div className="max-w-6xl mx-auto relative z-10 space-y-5 sm:space-y-8">
+      <div className="max-w-7xl mx-auto relative z-10 space-y-5 sm:space-y-8">
 
         {/* =========================================================================
             MOBILE BUILD LOG VIEW (PRD v1.0 & Mockup media_1794510271459_0a6999fe.jpg)
@@ -1076,13 +1111,14 @@ function LogPageContent() {
             />
           </div>
 
-          {/* Main 2-Column Content Grid (2/3 Left Table, 1/3 Right Sidebar) */}
+          {/* Main 2-Column Content Grid (2/3 Left Column, 1/3 Right Sidebar) */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-            {/* Left Column: Logs Table Card */}
-            <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden space-y-0">
-              {/* Filter Tabs & Time Range Header */}
-              <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-white">
-                <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+            {/* Left Column: Filter Bar + Table */}
+            <div className="lg:col-span-2 space-y-4">
+              {/* Standalone Filter Bar Card matching Tasks and Teams exactly */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex flex-wrap items-center justify-between gap-4">
+                {/* Category Pill Tabs */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar">
                   {[
                     { id: 'all', label: 'All Logs', count: logs.length },
                     {
@@ -1146,232 +1182,282 @@ function LogPageContent() {
                   })}
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <select
-                    value={desktopLogTimeFilter}
-                    onChange={(e) => setDesktopLogTimeFilter(e.target.value as any)}
-                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-sans text-slate-700 bg-white focus:outline-none shadow-xs cursor-pointer"
-                  >
-                    <option value="all">All Time</option>
-                    <option value="30d">Last 30 Days</option>
-                    <option value="90d">Last 90 Days</option>
-                  </select>
+                {/* Search & Time Filter Controls */}
+                <div className="flex items-center gap-3">
+                  {/* Search Input matching Tasks & Teams */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search build logs..."
+                      value={desktopLogSearch}
+                      onChange={(e) => {
+                        setDesktopLogSearch(e.target.value);
+                        setDesktopLogPage(1);
+                      }}
+                      className="w-56 lg:w-64 pl-9 pr-8 py-2 rounded-xl bg-white border border-slate-200 text-xs font-sans text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-orange-500 focus:outline-none shadow-xs"
+                    />
+                    <svg
+                      className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    {desktopLogSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setDesktopLogSearch('')}
+                        className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-700 cursor-pointer"
+                        aria-label="Clear build log search"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Time Range Filter Selector */}
+                  <div className="relative">
+                    <select
+                      value={desktopLogTimeFilter}
+                      onChange={(e) => {
+                        setDesktopLogTimeFilter(e.target.value as any);
+                        setDesktopLogPage(1);
+                      }}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-sans text-slate-700 bg-white focus:outline-none shadow-xs cursor-pointer"
+                    >
+                      <option value="all">All Time</option>
+                      <option value="30d">Last 30 Days</option>
+                      <option value="90d">Last 90 Days</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              {/* Table of Build Logs */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/70 text-[11px] font-bold text-slate-500 uppercase tracking-wider font-sans">
-                      <th className="py-3.5 pl-6 pr-3 w-20">#</th>
-                      <th className="py-3.5 px-3">Log Title</th>
-                      <th className="py-3.5 px-3">Type</th>
-                      <th className="py-3.5 px-3">Team</th>
-                      <th className="py-3.5 px-3">Date</th>
-                      <th className="py-3.5 px-3">Status</th>
-                      <th className="py-3.5 pr-6 pl-3 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 font-sans text-xs">
-                    {(() => {
-                      const displayLogs = logs.filter((log) => {
-                        const txt = `${log.stepTitle || ''} ${log.description || ''}`.toLowerCase();
-                        if (desktopLogPill === 'builds') return txt.includes('weld') || txt.includes('build') || txt.includes('fab') || log.status === 'completed';
-                        if (desktopLogPill === 'tests') return txt.includes('test') || txt.includes('dyno') || log.status === 'testing';
-                        if (desktopLogPill === 'design') return txt.includes('cad') || txt.includes('design') || txt.includes('ui') || log.teamId === 'design' || log.teamId === 'software';
-                        if (desktopLogPill === 'analysis') return txt.includes('analysis') || txt.includes('fea') || log.teamId === 'research';
-                        return true;
-                      });
+              {/* Logs Table Card */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50/70 text-[11px] font-bold text-slate-500 uppercase tracking-wider font-sans">
+                        <th className="py-3.5 pl-6 pr-3 w-20">#</th>
+                        <th className="py-3.5 px-3">Log Title</th>
+                        <th className="py-3.5 px-3">Type</th>
+                        <th className="py-3.5 px-3">Team</th>
+                        <th className="py-3.5 px-3">Date</th>
+                        <th className="py-3.5 px-3">Status</th>
+                        <th className="py-3.5 pr-6 pl-3 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-sans text-xs">
+                      {(() => {
+                        const ITEMS_PER_PAGE = 8;
+                        const totalPages = Math.max(1, Math.ceil(desktopFilteredLogs.length / ITEMS_PER_PAGE));
+                        const start = (desktopLogPage - 1) * ITEMS_PER_PAGE;
+                        const pageLogs = desktopFilteredLogs.slice(start, start + ITEMS_PER_PAGE);
 
-                      const ITEMS_PER_PAGE = 8;
-                      const totalPages = Math.max(1, Math.ceil(displayLogs.length / ITEMS_PER_PAGE));
-                      const start = (desktopLogPage - 1) * ITEMS_PER_PAGE;
-                      const pageLogs = displayLogs.slice(start, start + ITEMS_PER_PAGE);
+                        if (pageLogs.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={7} className="py-12 text-center text-slate-400 font-sans">
+                                {logs.length === 0
+                                  ? "No build logs recorded yet. Click '+ Add Log' above to record the first build step."
+                                  : "No build logs match the selected filter or search query."}
+                              </td>
+                            </tr>
+                          );
+                        }
 
-                      if (pageLogs.length === 0) {
-                        return (
-                          <tr>
-                            <td colSpan={7} className="py-12 text-center text-slate-400 font-sans">
-                              {logs.length === 0
-                                ? "No build logs recorded yet. Click '+ Add Log' above to record the first build step."
-                                : "No build logs match the selected filter."}
-                            </td>
-                          </tr>
-                        );
-                      }
+                        return pageLogs.map((log, idx) => {
+                          const domainBadge = getDomainBadge(log.teamId);
+                          const workStatus = getLogWorkStatus(log);
 
-                      return pageLogs.map((log, idx) => {
-                        const domainBadge = getDomainBadge(log.teamId);
-                        const workStatus = getLogWorkStatus(log);
-
-                        const logType = (() => {
-                          const txt = `${log.stepTitle || ''} ${log.description || ''}`.toLowerCase();
-                          if (txt.includes('test') || txt.includes('dyno') || workStatus === 'testing') {
-                            return {
-                              label: 'Test',
-                              badge: 'bg-purple-50 text-purple-700 border-purple-200',
-                              icon: (
-                                <svg className="w-2.5 h-2.5 text-purple-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                                </svg>
-                              ),
-                            };
-                          }
-                          if (txt.includes('cad') || txt.includes('ui') || txt.includes('design')) {
-                            return {
-                              label: 'Design',
-                              badge: 'bg-pink-50 text-pink-700 border-pink-200',
-                              icon: (
-                                <svg className="w-2.5 h-2.5 text-pink-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                                </svg>
-                              ),
-                            };
-                          }
-                          return {
-                            label: 'Build',
-                            badge: 'bg-slate-100 text-slate-700 border-slate-200',
-                            icon: (
-                              <svg className="w-2.5 h-2.5 text-slate-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
-                              </svg>
-                            ),
-                          };
-                        })();
-
-                        const statusBadge =
-                          workStatus === 'completed'
-                            ? {
-                                label: 'Completed',
-                                icon: (
-                                  <svg className="w-2.5 h-2.5 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                ),
-                                class: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                              }
-                            : workStatus === 'review'
-                            ? {
-                                label: 'Under Review',
+                          const logType = (() => {
+                            const txt = `${log.stepTitle || ''} ${log.description || ''}`.toLowerCase();
+                            if (txt.includes('test') || txt.includes('dyno') || workStatus === 'testing') {
+                              return {
+                                label: 'Test',
+                                badge: 'bg-purple-50 text-purple-700 border-purple-200',
                                 icon: (
                                   <svg className="w-2.5 h-2.5 text-purple-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
                                   </svg>
                                 ),
-                                class: 'bg-purple-50 text-purple-700 border-purple-200',
-                              }
-                            : {
-                                label: 'In Progress',
+                              };
+                            }
+                            if (txt.includes('cad') || txt.includes('ui') || txt.includes('design')) {
+                              return {
+                                label: 'Design',
+                                badge: 'bg-pink-50 text-pink-700 border-pink-200',
                                 icon: (
-                                  <svg className="w-2 h-2 text-amber-600 shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M8 5v14l11-7z" />
+                                  <svg className="w-2.5 h-2.5 text-pink-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                                   </svg>
                                 ),
-                                class: 'bg-amber-50 text-amber-700 border-amber-200',
                               };
-
-                        const logCode = `BL-${String(log.stepNumber || displayLogs.length - idx).padStart(3, '0')}`;
-
-                        return (
-                          <tr
-                            key={log.id}
-                            onClick={() => setSelectedMobileDetailLog(log)}
-                            className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
-                          >
-                            <td className="py-3.5 pl-6 pr-3 font-mono text-[11px] font-bold text-slate-500">
-                              {logCode}
-                            </td>
-
-                            <td className="py-3.5 px-3 font-semibold text-slate-900 group-hover:text-orange-600 transition-colors max-w-xs truncate">
-                              {log.stepTitle}
-                            </td>
-
-                            <td className="py-3.5 px-3">
-                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border ${logType.badge}`}>
-                                {logType.icon}
-                                <span>{logType.label}</span>
-                              </span>
-                            </td>
-
-                            <td className="py-3.5 px-3">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${domainBadge.bg}`}>
-                                {domainBadge.code}
-                              </span>
-                            </td>
-
-                            <td className="py-3.5 px-3 text-slate-600 whitespace-nowrap">
-                              <div className="flex items-center gap-1.5">
-                                <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            }
+                            return {
+                              label: 'Build',
+                              badge: 'bg-slate-100 text-slate-700 border-slate-200',
+                              icon: (
+                                <svg className="w-2.5 h-2.5 text-slate-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
                                 </svg>
-                                <span>{log.date || formatLogDate(log.createdAt)}</span>
-                              </div>
-                            </td>
+                              ),
+                            };
+                          })();
 
-                            <td className="py-3.5 px-3">
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${statusBadge.class}`}>
-                                {statusBadge.icon}
-                                <span>{statusBadge.label}</span>
-                              </span>
-                            </td>
+                          const statusBadge =
+                            workStatus === 'completed'
+                              ? {
+                                  label: 'Completed',
+                                  icon: (
+                                    <svg className="w-2.5 h-2.5 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  ),
+                                  class: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                }
+                              : workStatus === 'review'
+                              ? {
+                                  label: 'Under Review',
+                                  icon: (
+                                    <svg className="w-2.5 h-2.5 text-purple-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                                    </svg>
+                                  ),
+                                  class: 'bg-purple-50 text-purple-700 border-purple-200',
+                                }
+                              : {
+                                  label: 'In Progress',
+                                  icon: (
+                                    <svg className="w-2 h-2 text-amber-600 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M8 5v14l11-7z" />
+                                    </svg>
+                                  ),
+                                  class: 'bg-amber-50 text-amber-700 border-amber-200',
+                                };
 
-                            <td className="py-3.5 pr-6 pl-3 text-right" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                type="button"
-                                onClick={() => setSelectedMobileDetailLog(log)}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-                                title="View Step Details"
-                              >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-                                </svg>
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      });
-                    })()}
-                  </tbody>
-                </table>
-              </div>
+                          const logCode = `BL-${String(log.stepNumber || desktopFilteredLogs.length - idx).padStart(3, '0')}`;
 
-              {/* Pagination Footer */}
-              {logs.length > 0 && (
-                <div className="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 font-sans">
-                  <span>Showing 1–{Math.min(8, logs.length)} of {logs.length} logs</span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setDesktopLogPage((p) => Math.max(1, p - 1))}
-                      className="w-8 h-8 rounded-lg flex items-center justify-center border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
-                    >
-                      &lt;
-                    </button>
-                    {Array.from({ length: Math.max(1, Math.ceil(logs.length / 8)) }, (_, i) => i + 1).slice(0, 5).map((pg) => (
+                          return (
+                            <tr
+                              key={log.id}
+                              onClick={() => setSelectedMobileDetailLog(log)}
+                              className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                            >
+                              <td className="py-3.5 pl-6 pr-3 font-mono text-[11px] font-bold text-slate-500">
+                                {logCode}
+                              </td>
+
+                              <td className="py-3.5 px-3 font-semibold text-slate-900 group-hover:text-orange-600 transition-colors max-w-xs truncate">
+                                {log.stepTitle}
+                              </td>
+
+                              <td className="py-3.5 px-3">
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border ${logType.badge}`}>
+                                  {logType.icon}
+                                  <span>{logType.label}</span>
+                                </span>
+                              </td>
+
+                              <td className="py-3.5 px-3">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${domainBadge.bg}`}>
+                                  {domainBadge.code}
+                                </span>
+                              </td>
+
+                              <td className="py-3.5 px-3 text-slate-600 whitespace-nowrap">
+                                <div className="flex items-center gap-1.5">
+                                  <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                  <span>{log.date || formatLogDate(log.createdAt)}</span>
+                                </div>
+                              </td>
+
+                              <td className="py-3.5 px-3">
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${statusBadge.class}`}>
+                                  {statusBadge.icon}
+                                  <span>{statusBadge.label}</span>
+                                </span>
+                              </td>
+
+                              <td className="py-3.5 pr-6 pl-3 text-right" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedMobileDetailLog(log)}
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                                  title="View Step Details"
+                                >
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+                                  </svg>
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination Footer */}
+                {desktopFilteredLogs.length > 0 && (
+                  <div className="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 font-sans">
+                    <span>
+                      Showing {Math.min((desktopLogPage - 1) * 8 + 1, desktopFilteredLogs.length)}–
+                      {Math.min(desktopLogPage * 8, desktopFilteredLogs.length)} of {desktopFilteredLogs.length} logs
+                    </span>
+                    <div className="flex items-center gap-1">
                       <button
-                        key={pg}
                         type="button"
-                        onClick={() => setDesktopLogPage(pg)}
-                        className={`w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
-                          desktopLogPage === pg
-                            ? 'bg-[#0e131f] text-white shadow-xs'
-                            : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
+                        onClick={() => setDesktopLogPage((p) => Math.max(1, p - 1))}
+                        disabled={desktopLogPage <= 1}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center border border-slate-200 text-slate-600 transition-all ${
+                          desktopLogPage <= 1 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-50 cursor-pointer'
                         }`}
                       >
-                        {pg}
+                        &lt;
                       </button>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => setDesktopLogPage((p) => p + 1)}
-                      className="w-8 h-8 rounded-lg flex items-center justify-center border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
-                    >
-                      &gt;
-                    </button>
+                      {Array.from(
+                        { length: Math.max(1, Math.ceil(desktopFilteredLogs.length / 8)) },
+                        (_, i) => i + 1
+                      )
+                        .slice(0, 5)
+                        .map((pg) => (
+                          <button
+                            key={pg}
+                            type="button"
+                            onClick={() => setDesktopLogPage(pg)}
+                            className={`w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
+                              desktopLogPage === pg
+                                ? 'bg-[#0e131f] text-white shadow-xs'
+                                : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            {pg}
+                          </button>
+                        ))}
+                      <button
+                        type="button"
+                        onClick={() => setDesktopLogPage((p) => Math.min(Math.ceil(desktopFilteredLogs.length / 8), p + 1))}
+                        disabled={desktopLogPage >= Math.ceil(desktopFilteredLogs.length / 8)}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center border border-slate-200 text-slate-600 transition-all ${
+                          desktopLogPage >= Math.ceil(desktopFilteredLogs.length / 8)
+                            ? 'opacity-40 cursor-not-allowed'
+                            : 'hover:bg-slate-50 cursor-pointer'
+                        }`}
+                      >
+                        &gt;
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {/* Right Column: Recent Build Media & Quick Actions */}
@@ -1380,12 +1466,19 @@ function LogPageContent() {
               <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-4">
                 <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <h3 className="text-sm font-bold text-slate-900 font-sans">
-                      Recent Build Media
-                    </h3>
+                    <div className="w-7 h-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 font-sans">
+                        Recent Build Media
+                      </h3>
+                      <p className="text-[11px] text-slate-500 font-sans">
+                        Photos and video evidence from workshop
+                      </p>
+                    </div>
                   </div>
 
                   <button
@@ -1394,10 +1487,10 @@ function LogPageContent() {
                       const withVideo = logs.find((l) => Boolean(l.videoUrl));
                       if (withVideo) setSelectedMobileDetailLog(withVideo);
                     }}
-                    className="text-xs font-semibold text-slate-600 hover:text-orange-600 transition-colors flex items-center gap-1 cursor-pointer"
+                    className="text-xs font-semibold text-slate-600 hover:text-orange-600 transition-colors flex items-center gap-1 cursor-pointer shrink-0"
                   >
                     <span>View All</span>
-                    <span>&rarr;</span>
+                    <span className="text-sm font-normal">&rarr;</span>
                   </button>
                 </div>
 
@@ -1461,12 +1554,19 @@ function LogPageContent() {
               {/* Card 2: Quick Actions Matching Mockup 3 */}
               <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-4">
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-                  <svg className="w-4 h-4 text-orange-600" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  <h3 className="text-sm font-bold text-slate-900 font-sans">
-                    Quick Actions
-                  </h3>
+                  <div className="w-7 h-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 font-sans">
+                      Quick Actions
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-sans">
+                      Log new builds, tests or media assets
+                    </p>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
@@ -2113,9 +2213,7 @@ function LogPageContent() {
           </div>
         )}
 
-        {/* End of Desktop View */}
         </div>
-
       </div>
 
       {/* =========================================================================
