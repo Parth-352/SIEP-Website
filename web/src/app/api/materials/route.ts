@@ -54,6 +54,69 @@ export async function POST(request: NextRequest) {
     // ANY authenticated member (non-core, non-lead, leads, core admin) is allowed to upload materials!
     const body = await request.json();
 
+    // ─── BATCH UPLOAD SUPPORT ──────────────────────────────────────────
+    if (Array.isArray(body.materials)) {
+      const createdList: ResearchMaterial[] = [];
+
+      for (const item of body.materials) {
+        const title = (item.title || item.fileName || '').trim();
+        const fileUrl = (item.fileUrl || '').trim();
+        if (!title || !fileUrl) continue;
+
+        const teamId: TeamId = (item.teamId || session.teamId || 'research') as TeamId;
+        const category: MaterialCategory = (item.category || 'research') as MaterialCategory;
+        const teamName = TEAMS[teamId]?.name || teamId;
+
+        const newMat: ResearchMaterial = {
+          id: `mat_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          title,
+          description: (item.description || '').trim(),
+          category,
+          teamId,
+          teamName,
+          authorEmail: session.email,
+          authorName: session.name || session.email.split('@')[0],
+          fileName: (item.fileName || title).trim(),
+          fileSize: Number(item.fileSize || 0),
+          mimeType: item.mimeType || 'application/pdf',
+          fileUrl,
+          driveFileId: item.driveFileId || undefined,
+          tags: Array.isArray(item.tags) ? item.tags : [],
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+
+        createMaterial(newMat);
+        try {
+          await saveFirestoreMaterial(newMat);
+        } catch (fsErr) {
+          console.warn('Firestore saveMaterial batch warn:', fsErr);
+        }
+
+        createdList.push(newMat);
+      }
+
+      if (createdList.length > 0) {
+        try {
+          recordActivity({
+            type: 'log_submitted',
+            memberName: session.name || session.email,
+            teamId: session.teamId || 'research',
+            title: `Batch Materials Uploaded (${createdList.length} files)`,
+            detail: `Published ${createdList.length} new technical documents across squads.`,
+          });
+        } catch {
+          // ignore
+        }
+      }
+
+      return NextResponse.json(
+        { success: true, count: createdList.length, materials: createdList },
+        { status: 201 }
+      );
+    }
+
+    // ─── SINGLE MATERIAL UPLOAD ────────────────────────────────────────
     const title = (body.title || '').trim();
     if (!title) {
       return NextResponse.json(

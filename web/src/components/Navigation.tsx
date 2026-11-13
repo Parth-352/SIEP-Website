@@ -7,6 +7,9 @@ import { useAuth } from '@/context/AuthContext';
 import { usePwaInstall } from '@/components/PwaInstallProvider';
 import { TEAMS } from '@/lib/teams';
 import { isParthMasterAdmin } from '@/lib/members';
+import NotificationDrawer from '@/components/notifications/NotificationDrawer';
+import { generateDeckNotifications } from '@/lib/notifications';
+import { Task, ResearchMaterial } from '@/lib/types';
 
 export default function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -25,6 +28,41 @@ export default function Navigation() {
 
   // Track active dashboard tab from URL search parameters for active pill highlight
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
+  const [isNotificationDrawerOpen, setIsNotificationDrawerOpen] = useState(false);
+  const [deckTasks, setDeckTasks] = useState<Task[]>([]);
+  const [deckMaterials, setDeckMaterials] = useState<ResearchMaterial[]>([]);
+  const [deckNotificationsCount, setDeckNotificationsCount] = useState<number>(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchDeckData = async () => {
+      try {
+        const [taskRes, matRes] = await Promise.all([
+          fetch('/api/tasks').then((r) => r.json()).catch(() => ({ tasks: [] })),
+          fetch('/api/materials').then((r) => r.json()).catch(() => ({ materials: [] })),
+        ]);
+        const tasksList = Array.isArray(taskRes.tasks) ? taskRes.tasks : [];
+        const matsList = Array.isArray(matRes.materials) ? matRes.materials : [];
+        setDeckTasks(tasksList);
+        setDeckMaterials(matsList);
+
+        const list = generateDeckNotifications(user, tasksList, matsList);
+        const unread = list.filter((n) => !n.read && n.isPersonalDeck).length;
+        setDeckNotificationsCount(unread);
+      } catch {
+        // ignore
+      }
+    };
+    fetchDeckData();
+
+    const handleOpenNotifs = () => setIsNotificationDrawerOpen(true);
+    window.addEventListener('siep_open_activity_drawer', handleOpenNotifs);
+    window.addEventListener('siep_open_notifications', handleOpenNotifs);
+    return () => {
+      window.removeEventListener('siep_open_activity_drawer', handleOpenNotifs);
+      window.removeEventListener('siep_open_notifications', handleOpenNotifs);
+    };
+  }, [user]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -343,18 +381,20 @@ export default function Navigation() {
                   {/* Notification Bell */}
                   <button
                     type="button"
-                    onClick={() => {
-                      if (typeof window !== 'undefined') {
-                        window.dispatchEvent(new CustomEvent('siep_open_activity_drawer'));
-                      }
-                    }}
-                    title="Real-time Team Activity"
+                    onClick={() => setIsNotificationDrawerOpen(true)}
+                    title="Personal Deck Alerts & Reminders"
                     className="w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors relative cursor-pointer"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                     </svg>
-                    <span className="w-2 h-2 rounded-full bg-orange-500 absolute top-2 right-2 ring-2 ring-white" />
+                    {deckNotificationsCount > 0 ? (
+                      <span className="min-w-4 h-4 px-1 rounded-full bg-orange-500 text-white text-[9px] font-bold flex items-center justify-center absolute -top-0.5 -right-0.5 ring-2 ring-white">
+                        {deckNotificationsCount}
+                      </span>
+                    ) : (
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 absolute top-2 right-2 ring-2 ring-white" />
+                    )}
                   </button>
 
                   {/* User Profile Dropdown */}
@@ -406,6 +446,27 @@ export default function Navigation() {
                         </div>
 
                         {/* Navigation Items */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsUserDropdownOpen(false);
+                            setIsNotificationDrawerOpen(true);
+                          }}
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors text-left cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                            </svg>
+                            <span>Notifications &amp; Alerts</span>
+                          </div>
+                          {deckNotificationsCount > 0 && (
+                            <span className="px-1.5 py-0.5 rounded-full bg-orange-500 text-white text-[10px] font-bold">
+                              {deckNotificationsCount}
+                            </span>
+                          )}
+                        </button>
+
                         <button
                           type="button"
                           onClick={() => {
@@ -624,7 +685,7 @@ export default function Navigation() {
           - Sliding in smoothly from right
           - Crisp white card with rounded left edge (rounded-l-3xl)
           - Dimmed blurred backdrop overlay
-          - Riders Bay. logo + Close button (✕)
+          - Riders Bay. logo + Close button (Close)
           - 4 uniform card items: Dashboard, Team Tasks, Build Log, Assigned
           - Profile item (if authenticated)
           - Soft red Log Out card at bottom
@@ -1348,6 +1409,17 @@ export default function Navigation() {
             )}
           </div>
         </nav>
+      )}
+
+      {/* Personal Deck & Squad Notifications Drawer */}
+      {user && (
+        <NotificationDrawer
+          isOpen={isNotificationDrawerOpen}
+          onClose={() => setIsNotificationDrawerOpen(false)}
+          user={user}
+          tasks={deckTasks}
+          materials={deckMaterials}
+        />
       )}
     </>
   );

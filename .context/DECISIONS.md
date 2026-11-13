@@ -33,6 +33,8 @@
 | **ADR-021** | Role Editing Resilience, Absolute Domain Equality & Dynamic Public Roster Sync | 2026-11-13 | Accepted |
 | **ADR-022** | Roles Management Console UI Simplification & Authority Gate Streamlining | 2026-11-13 | Accepted |
 | **ADR-023** | Specific Domain Leadership, Public Hierarchy Protocol & Domain Lead Highlighting | 2026-11-13 | Accepted |
+| **ADR-024** | Mobile/Web Permission Parity, Build Log Hierarchy Lockdown, Desktop Task Review Workflow & Zero-Emoji Enforcement | 2026-11-13 | Accepted |
+| **ADR-025** | Multi-Document Batch Upload, Gemini AI Auto-Bifurcation, Tag Indexing & Personal Deck Notifications | 2026-11-13 | Accepted |
 
 ---
 
@@ -525,3 +527,32 @@
   - 100% login, permission, and workflow parity between mobile and desktop web applications.
   - Bulletproof engineering hierarchy enforcement across build logs and task approvals.
   - Strict append-only tracking maintained in `bugs.md`.
+
+
+---
+
+## 🚀 ADR-025: Multi-Document Batch Upload, Gemini AI Auto-Bifurcation, Tag Indexing & Personal Deck Notifications
+- **Date:** 2026-11-13
+- **Status:** Accepted & Implemented
+- **Context:**
+  - Team members frequently upload batches of technical research documents, CAD specs, and testing reports. Manual categorization into 8 engineering squads was slow and prone to misfiling.
+  - Furthermore, fast keyword search across hundreds of PDF reports was absent, and team members lacked proactive native notifications tailored to their personal task decks and squad assignments.
+- **Decisions:**
+  1. **Batch Multi-Document Upload with Staged Queue:**
+     - Enabled multi-file file picker in Materials (`<input type="file" multiple />`) with a pre-upload staged review table.
+     - Allows members to review, adjust squad assignments, or remove items before batch uploading in a single flow.
+  2. **Gemini AI Auto-Bifurcation & Engineering Heuristics Fallback:**
+     - Implemented `web/src/lib/geminiService.ts` utilizing Google's Gemini 1.5 Flash REST API to analyze document metadata and context.
+     - Automatically infers engineering squad (`mechanical`, `entc`, `software`, `design`, `research`, `sponsorship`, `documentation`, `socialmedia`) and technical category (`research`, `specs`, `reports`, `datasheets`, `cad`).
+     - Backed by EV motorcycle domain heuristic keyword mappings ensuring immediate zero-latency categorization and resilient offline operation.
+  3. **High-Speed Technical Tag Indexing:**
+     - AI extracts searchable technical tags (e.g. `#BMS`, `#CAN-bus`, `#Thermal-Runaway`, `#LiFePO4`, `#AIS-156`, `#FEA`).
+     - Stored alongside materials in Firestore and rendered as 1-click interactive filter pills in the Materials UI.
+  4. **Personal Deck Notifications & Native Web Push:**
+     - Built `web/src/lib/notifications.ts` and `web/src/components/notifications/NotificationDrawer.tsx`.
+     - Generates personalized alerts based on member assignments: due date warnings (due within 24h or overdue), squad review alerts for Squad Leads, and new materials in member domains.
+     - Connected native browser Notification API and PWA Service Worker push/click handlers (`sw.js`) for background OS notifications.
+- **Consequences:**
+  - Fast, friction-free multi-document ingestion into Google Drive and Firestore.
+  - High-precision search indexing across engineering artifacts.
+  - Proactive personalized alerts keeping squad members on schedule.

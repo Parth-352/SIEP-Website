@@ -195,3 +195,23 @@
   8. Master Roles console `/api/roles` rejects regular members and Captain with HTTP 403; authorizes Parth with HTTP 200.
   9. Regular member direct task creation with `done` status rejected with HTTP 403.
   10. DELETE handlers in `/api/logs` and `/api/tasks` support both URL query params and JSON request body payloads with early authorization checks.
+
+
+### [RES-006] Feature Implementation & Verification: Multi-Document Batch Upload, Gemini AI Auto-Bifurcation, Tag Indexing & Deck Notifications
+- **Completion Date:** 2026-11-13 20:25 IST
+- **Files Modified / Created:**
+  - `web/src/lib/geminiService.ts` (NEW: Gemini 1.5 Flash auto-bifurcation & tag indexing service with EV engineering heuristics fallback)
+  - `web/src/app/api/materials/analyze/route.ts` (NEW: Batch AI analysis & tag extraction endpoint)
+  - `web/src/app/api/materials/route.ts` (Upgraded to handle single and batch uploads with Firestore persistence)
+  - `web/src/components/dashboard/MaterialsTab.tsx` (Multi-file drag-drop queue, instant bifurcation preview, AI tag chips, progress bars, tag filtering bar)
+  - `web/src/lib/notifications.ts` (NEW: Personal deck alerts, due date reminders, squad review triggers, native Notification API integration)
+  - `web/src/components/notifications/NotificationDrawer.tsx` (NEW: Native-style alert drawer with My Deck vs All Alerts tabs, priority badges)
+  - `web/src/components/Navigation.tsx` (Integrated NotificationDrawer, reactive unread count bell badge, and mobile dropdown action)
+  - `web/public/sw.js` (PWA service worker push & notificationclick background listeners)
+- **Actions Taken:**
+  1. Multi-Document Batch Upload: Added multi-file selection support (`multiple`) in Materials tab with a staged upload queue.
+  2. Automatic Squad Bifurcation: Integrated immediate EV motorcycle domain heuristics and background Gemini 1.5 Flash analysis to categorize files into mechanical, entc, software, design, research, sponsorship, documentation, and socialmedia squads.
+  3. AI Tag Indexing: Extracted and indexed searchable engineering keywords (`#BMS`, `#CAN-bus`, `#AIS-156`, etc.) in Firestore with instant 1-click filter pills in the Materials UI.
+  4. Personal Deck Notifications: Implemented personalized notification generator alerting members to approaching task deadlines (within 24h), squad reviews awaiting lead sign-off, and new materials published in their domains.
+  5. Native Web Push Parity: Connected native browser `Notification.requestPermission()`, `new Notification()`, and PWA service worker background listeners in `sw.js`.
+  6. Zero-Emoji Compliance: Verified and eliminated all non-ASCII dingbats/glyphs across new components with automated Python Unicode scanner.
