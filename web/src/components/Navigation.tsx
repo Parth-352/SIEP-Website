@@ -8,6 +8,7 @@ import { usePwaInstall } from '@/components/PwaInstallProvider';
 import { TEAMS } from '@/lib/teams';
 import { isParthMasterAdmin } from '@/lib/members';
 import NotificationDrawer from '@/components/notifications/NotificationDrawer';
+import RulebookCopilotDrawer from '@/components/copilot/RulebookCopilotDrawer';
 import { generateDeckNotifications } from '@/lib/notifications';
 import { Task, ResearchMaterial } from '@/lib/types';
 
@@ -29,6 +30,7 @@ export default function Navigation() {
   // Track active dashboard tab from URL search parameters for active pill highlight
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
   const [isNotificationDrawerOpen, setIsNotificationDrawerOpen] = useState(false);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [deckTasks, setDeckTasks] = useState<Task[]>([]);
   const [deckMaterials, setDeckMaterials] = useState<ResearchMaterial[]>([]);
   const [deckNotificationsCount, setDeckNotificationsCount] = useState<number>(0);
@@ -56,11 +58,14 @@ export default function Navigation() {
     fetchDeckData();
 
     const handleOpenNotifs = () => setIsNotificationDrawerOpen(true);
+    const handleOpenCopilot = () => setIsCopilotOpen(true);
     window.addEventListener('siep_open_activity_drawer', handleOpenNotifs);
     window.addEventListener('siep_open_notifications', handleOpenNotifs);
+    window.addEventListener('siep_open_copilot', handleOpenCopilot);
     return () => {
       window.removeEventListener('siep_open_activity_drawer', handleOpenNotifs);
       window.removeEventListener('siep_open_notifications', handleOpenNotifs);
+      window.removeEventListener('siep_open_copilot', handleOpenCopilot);
     };
   }, [user]);
 
@@ -376,8 +381,21 @@ export default function Navigation() {
                   )}
                 </div>
 
-                {/* Right Area: Notifications & User Menu */}
+                {/* Right Area: Notifications, Rulebook AI & User Menu */}
                 <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+                  {/* SIEP Rulebook AI Copilot Button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsCopilotOpen(true)}
+                    title="SIEP Season 7.0 Rulebook & Technical Copilot (Verified Section & Page Citations)"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-900 hover:bg-orange-600 text-white transition-all text-xs font-bold cursor-pointer shadow-xs group"
+                  >
+                    <svg className="w-3.5 h-3.5 text-amber-400 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    <span className="hidden sm:inline text-[11px] font-sans">Rulebook AI</span>
+                  </button>
+
                   {/* Notification Bell */}
                   <button
                     type="button"
@@ -446,6 +464,25 @@ export default function Navigation() {
                         </div>
 
                         {/* Navigation Items */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsUserDropdownOpen(false);
+                            setIsCopilotOpen(true);
+                          }}
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-amber-900 bg-amber-50 hover:bg-amber-100/80 transition-colors text-left cursor-pointer border border-amber-200/50"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                            </svg>
+                            <span>SIEP Rulebook Copilot</span>
+                          </div>
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-200 text-amber-950 font-bold">
+                            AI
+                          </span>
+                        </button>
+
                         <button
                           type="button"
                           onClick={() => {
@@ -1421,6 +1458,13 @@ export default function Navigation() {
           materials={deckMaterials}
         />
       )}
+
+      {/* Official SIEP Rulebook & Engineering Copilot Drawer */}
+      <RulebookCopilotDrawer
+        isOpen={isCopilotOpen}
+        onClose={() => setIsCopilotOpen(false)}
+        user={user}
+      />
     </>
   );
 }

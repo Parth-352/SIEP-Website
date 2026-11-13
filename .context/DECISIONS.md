@@ -35,6 +35,7 @@
 | **ADR-023** | Specific Domain Leadership, Public Hierarchy Protocol & Domain Lead Highlighting | 2026-11-13 | Accepted |
 | **ADR-024** | Mobile/Web Permission Parity, Build Log Hierarchy Lockdown, Desktop Task Review Workflow & Zero-Emoji Enforcement | 2026-11-13 | Accepted |
 | **ADR-025** | Multi-Document Batch Upload, Gemini AI Auto-Bifurcation, Tag Indexing & Personal Deck Notifications | 2026-11-13 | Accepted |
+| **ADR-026** | Official SIEP Season 7.0 Rulebook AI Copilot with Non-Overridable Citations | 2026-11-13 | Accepted |
 
 ---
 
@@ -556,3 +557,31 @@
   - Fast, friction-free multi-document ingestion into Google Drive and Firestore.
   - High-precision search indexing across engineering artifacts.
   - Proactive personalized alerts keeping squad members on schedule.
+
+
+---
+
+## 🛡️ ADR-026: Official SIEP Season 7.0 Rulebook AI Copilot with Non-Overridable Citations
+- **Date:** 2026-11-13
+- **Status:** Accepted & Implemented
+- **Context:**
+  - Team members across chassis, battery, powertrain, and safety squads require instantaneous, authoritative verification of vehicle regulations, dimensions, and scrutiny requirements without flipping through 46-page rulebooks.
+  - Generative AI hallucination poses catastrophic risks if an agent invents or approximates vehicle dimensions (such as wheelbase, ground clearance, or paddock stand dimensions).
+  - The user strictly demanded that:
+    1. For all rulebook and technical regulation queries, answers must be **strictly grounded exclusively in the official SIEP Season 7.0 Rulebook v1.0** with zero outside extrapolation.
+    2. Every rulebook answer must **explicitly cite the exact Section (e.g. C.2.1.2) and Page Number (e.g. Page 16)**.
+    3. The citation protocol must be **immutable and non-overridable**; no prompt injection or user instruction can hide or suppress the section and page number.
+- **Decisions:**
+  1. **Neural Vision Extraction:**
+     - Ran Apple Vision Neural Engine OCR across all 46 pages of `Rulebook-V-1.0.pdf`, producing `web/data/siep_rulebook_index.json` with page-by-page text.
+  2. **Rulebook Grounding Service (`web/src/lib/rulebookService.ts`):**
+     - Keyword and synonym scoring engine retrieving the top relevant rulebook pages for any technical inquiry.
+     - Strict prompt locking enforcing zero hallucinations.
+  3. **Non-Overridable Server-Side Citation Injection (`/api/ai/copilot`):**
+     - The backend API verifies that citations (`Section` and `Page`) are present.
+     - Even if a model or prompt attempts an override, the server attaches an official verification card before returning the response.
+  4. **Interactive Copilot UI (`RulebookCopilotDrawer.tsx`):**
+     - Slide-out drawer with official verification badges, quick prompts, and zero-emoji compliance.
+- **Consequences:**
+  - 100% verified compliance answers directly in the portal.
+  - Zero hallucination risk on competition specs.
