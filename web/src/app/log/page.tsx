@@ -1020,7 +1020,7 @@ function LogPageContent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
               label="Total Logs"
-              value={logs.length > 0 ? logs.length : 68}
+              value={logs.length}
               iconBg="bg-blue-50 text-blue-600 border-blue-100"
               icon={
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1033,9 +1033,9 @@ function LogPageContent() {
               label="Builds"
               value={
                 logs.filter((l) => {
-                  const txt = `${l.stepTitle} ${l.description}`.toLowerCase();
+                  const txt = `${l.stepTitle || ''} ${l.description || ''}`.toLowerCase();
                   return txt.includes('build') || txt.includes('weld') || txt.includes('fab') || l.status === 'completed';
-                }).length || 24
+                }).length
               }
               iconBg="bg-amber-50 text-amber-600 border-amber-100"
               icon={
@@ -1050,9 +1050,9 @@ function LogPageContent() {
               label="Tests"
               value={
                 logs.filter((l) => {
-                  const txt = `${l.stepTitle} ${l.description}`.toLowerCase();
+                  const txt = `${l.stepTitle || ''} ${l.description || ''}`.toLowerCase();
                   return txt.includes('test') || txt.includes('dyno') || txt.includes('bench') || l.status === 'testing';
-                }).length || 18
+                }).length
               }
               iconBg="bg-purple-50 text-purple-600 border-purple-100"
               icon={
@@ -1065,7 +1065,7 @@ function LogPageContent() {
             <StatCard
               label="Validated"
               value={
-                logs.filter((l) => Boolean(l.videoUrl || l.status === 'completed')).length || 26
+                logs.filter((l) => Boolean(l.videoUrl || l.status === 'completed')).length
               }
               iconBg="bg-emerald-50 text-emerald-600 border-emerald-100"
               icon={
@@ -1082,13 +1082,41 @@ function LogPageContent() {
             <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden space-y-0">
               {/* Filter Tabs & Time Range Header */}
               <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-white">
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
                   {[
-                    { id: 'all', label: 'All Logs' },
-                    { id: 'builds', label: 'Builds' },
-                    { id: 'tests', label: 'Tests' },
-                    { id: 'design', label: 'Design' },
-                    { id: 'analysis', label: 'Analysis' },
+                    { id: 'all', label: 'All Logs', count: logs.length },
+                    {
+                      id: 'builds',
+                      label: 'Builds',
+                      count: logs.filter((l) => {
+                        const txt = `${l.stepTitle || ''} ${l.description || ''}`.toLowerCase();
+                        return txt.includes('weld') || txt.includes('build') || txt.includes('fab') || l.status === 'completed';
+                      }).length,
+                    },
+                    {
+                      id: 'tests',
+                      label: 'Tests',
+                      count: logs.filter((l) => {
+                        const txt = `${l.stepTitle || ''} ${l.description || ''}`.toLowerCase();
+                        return txt.includes('test') || txt.includes('dyno') || l.status === 'testing';
+                      }).length,
+                    },
+                    {
+                      id: 'design',
+                      label: 'Design',
+                      count: logs.filter((l) => {
+                        const txt = `${l.stepTitle || ''} ${l.description || ''}`.toLowerCase();
+                        return txt.includes('cad') || txt.includes('design') || txt.includes('ui') || l.teamId === 'design' || l.teamId === 'software';
+                      }).length,
+                    },
+                    {
+                      id: 'analysis',
+                      label: 'Analysis',
+                      count: logs.filter((l) => {
+                        const txt = `${l.stepTitle || ''} ${l.description || ''}`.toLowerCase();
+                        return txt.includes('analysis') || txt.includes('fea') || l.teamId === 'research';
+                      }).length,
+                    },
                   ].map((tab) => {
                     const isActive = desktopLogPill === tab.id;
                     return (
@@ -1099,13 +1127,20 @@ function LogPageContent() {
                           setDesktopLogPill(tab.id as any);
                           setDesktopLogPage(1);
                         }}
-                        className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                        className={`px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shadow-xs ${
                           isActive
-                            ? 'bg-[#0e131f] text-white shadow-xs'
-                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                            ? 'bg-[#0e131f] text-white shadow-sm'
+                            : 'bg-white text-slate-700 border border-slate-200/80 hover:bg-slate-50'
                         }`}
                       >
-                        {tab.label}
+                        <span>{tab.label}</span>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {tab.count}
+                        </span>
                       </button>
                     );
                   })}
@@ -1115,7 +1150,7 @@ function LogPageContent() {
                   <select
                     value={desktopLogTimeFilter}
                     onChange={(e) => setDesktopLogTimeFilter(e.target.value as any)}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-sans text-slate-700 bg-white focus:outline-none cursor-pointer"
+                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-sans text-slate-700 bg-white focus:outline-none shadow-xs cursor-pointer"
                   >
                     <option value="all">All Time</option>
                     <option value="30d">Last 30 Days</option>
@@ -1124,7 +1159,7 @@ function LogPageContent() {
                 </div>
               </div>
 
-              {/* Table of Build Logs Matching Mockup 3 */}
+              {/* Table of Build Logs */}
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
@@ -1140,23 +1175,14 @@ function LogPageContent() {
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-sans text-xs">
                     {(() => {
-                      const displayLogs = (logs.length > 0
-                        ? logs
-                        : [
-                            { id: 'mock-1', stepNumber: 68, stepTitle: 'Chassis welding – front section', teamId: 'mechanical', teamName: 'Mechanical', status: 'completed', date: 'Nov 10, 2026', hoursSpent: '4' },
-                            { id: 'mock-2', stepNumber: 67, stepTitle: 'BMS integration – v1', teamId: 'entc', teamName: 'Electrical & Electronics', status: 'in_progress', date: 'Nov 08, 2026', hoursSpent: '5' },
-                            { id: 'mock-3', stepNumber: 66, stepTitle: 'Dashboard UI – sensor view', teamId: 'software', teamName: 'Software', status: 'in_progress', date: 'Nov 06, 2026', hoursSpent: '6' },
-                            { id: 'mock-4', stepNumber: 65, stepTitle: 'Chassis CAD – revision B', teamId: 'design', teamName: 'Design', status: 'review', date: 'Nov 04, 2026', hoursSpent: '3' },
-                            { id: 'mock-5', stepNumber: 64, stepTitle: 'Battery pack enclosure – v1', teamId: 'entc', teamName: 'Electrical & Electronics', status: 'completed', date: 'Nov 02, 2026', hoursSpent: '8' },
-                          ] as unknown as WorkLog[])
-                        .filter((log) => {
-                          const txt = `${log.stepTitle || ''} ${log.description || ''}`.toLowerCase();
-                          if (desktopLogPill === 'builds') return txt.includes('weld') || txt.includes('build') || txt.includes('fab') || log.status === 'completed';
-                          if (desktopLogPill === 'tests') return txt.includes('test') || txt.includes('dyno') || log.status === 'testing';
-                          if (desktopLogPill === 'design') return txt.includes('cad') || txt.includes('design') || txt.includes('ui') || log.teamId === 'design' || log.teamId === 'software';
-                          if (desktopLogPill === 'analysis') return txt.includes('analysis') || txt.includes('fea') || log.teamId === 'research';
-                          return true;
-                        });
+                      const displayLogs = logs.filter((log) => {
+                        const txt = `${log.stepTitle || ''} ${log.description || ''}`.toLowerCase();
+                        if (desktopLogPill === 'builds') return txt.includes('weld') || txt.includes('build') || txt.includes('fab') || log.status === 'completed';
+                        if (desktopLogPill === 'tests') return txt.includes('test') || txt.includes('dyno') || log.status === 'testing';
+                        if (desktopLogPill === 'design') return txt.includes('cad') || txt.includes('design') || txt.includes('ui') || log.teamId === 'design' || log.teamId === 'software';
+                        if (desktopLogPill === 'analysis') return txt.includes('analysis') || txt.includes('fea') || log.teamId === 'research';
+                        return true;
+                      });
 
                       const ITEMS_PER_PAGE = 8;
                       const totalPages = Math.max(1, Math.ceil(displayLogs.length / ITEMS_PER_PAGE));
@@ -1167,7 +1193,9 @@ function LogPageContent() {
                         return (
                           <tr>
                             <td colSpan={7} className="py-12 text-center text-slate-400 font-sans">
-                              No build logs found in this category.
+                              {logs.length === 0
+                                ? "No build logs recorded yet. Click '+ Add Log' above to record the first build step."
+                                : "No build logs match the selected filter."}
                             </td>
                           </tr>
                         );
@@ -1259,44 +1287,46 @@ function LogPageContent() {
               </div>
 
               {/* Pagination Footer */}
-              <div className="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 font-sans">
-                <span>Showing 1–5 of {logs.length > 0 ? logs.length : 68} logs</span>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setDesktopLogPage((p) => Math.max(1, p - 1))}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
-                  >
-                    &lt;
-                  </button>
-                  {[1, 2, 3, 4, 5].map((pg) => (
+              {logs.length > 0 && (
+                <div className="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 font-sans">
+                  <span>Showing 1–{Math.min(8, logs.length)} of {logs.length} logs</span>
+                  <div className="flex items-center gap-1">
                     <button
-                      key={pg}
                       type="button"
-                      onClick={() => setDesktopLogPage(pg)}
-                      className={`w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
-                        desktopLogPage === pg
-                          ? 'bg-[#0e131f] text-white shadow-xs'
-                          : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
-                      }`}
+                      onClick={() => setDesktopLogPage((p) => Math.max(1, p - 1))}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
                     >
-                      {pg}
+                      &lt;
                     </button>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => setDesktopLogPage((p) => p + 1)}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
-                  >
-                    &gt;
-                  </button>
+                    {Array.from({ length: Math.max(1, Math.ceil(logs.length / 8)) }, (_, i) => i + 1).slice(0, 5).map((pg) => (
+                      <button
+                        key={pg}
+                        type="button"
+                        onClick={() => setDesktopLogPage(pg)}
+                        className={`w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
+                          desktopLogPage === pg
+                            ? 'bg-[#0e131f] text-white shadow-xs'
+                            : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        {pg}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setDesktopLogPage((p) => p + 1)}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
+                    >
+                      &gt;
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Right Column: Recent Build Media & Quick Actions */}
             <div className="space-y-6">
-              {/* Card 1: Recent Build Media Matching Mockup 3 */}
+              {/* Card 1: Recent Build Media */}
               <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-4">
                 <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-2">
@@ -1321,55 +1351,46 @@ function LogPageContent() {
                   </button>
                 </div>
 
-                {/* 2x2 Photo/Video Grid */}
-                <div className="grid grid-cols-2 gap-2.5">
-                  {[
-                    {
-                      title: 'Chassis TIG Welding',
-                      desc: 'Double cradle frame alignment',
-                      bg: 'from-amber-900 to-slate-900',
-                      icon: '⚡ Weld',
-                    },
-                    {
-                      title: 'Chassis Spaceframe CAD',
-                      desc: 'Blender / Fusion Digital Twin',
-                      bg: 'from-slate-800 to-slate-950',
-                      icon: '📐 Frame',
-                    },
-                    {
-                      title: 'Smart BMS Microcontroller',
-                      desc: 'PCB bench testing & wiring',
-                      bg: 'from-blue-900 to-slate-900',
-                      icon: '🔌 PCB',
-                    },
-                    {
-                      title: '72V Battery Enclosure',
-                      desc: 'Aluminium pack structural test',
-                      bg: 'from-emerald-950 to-slate-900',
-                      icon: '🔋 Pack',
-                    },
-                  ].map((media, mIdx) => (
-                    <div
-                      key={mIdx}
-                      onClick={() => {
-                        const matchingLog = logs.find((l) => Boolean(l.videoUrl));
-                        if (matchingLog) setSelectedMobileDetailLog(matchingLog);
-                        else setIsFormOpen(true);
-                      }}
-                      className="group relative aspect-video rounded-xl overflow-hidden bg-slate-900 border border-slate-200 cursor-pointer shadow-xs hover:border-orange-500 transition-all flex flex-col justify-end p-2 text-white"
-                    >
-                      <div className={`absolute inset-0 bg-gradient-to-t ${media.bg} opacity-80 group-hover:opacity-100 transition-opacity`} />
-                      <div className="relative z-10">
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-xs text-orange-400 inline-block mb-1">
-                          {media.icon}
-                        </span>
-                        <p className="text-[11px] font-bold text-white leading-tight truncate">
-                          {media.title}
-                        </p>
+                {/* Real Media Grid or Clean Empty State */}
+                {(() => {
+                  const mediaLogs = logs.filter((l) => Boolean(l.videoUrl || l.driveFileId));
+
+                  if (mediaLogs.length === 0) {
+                    return (
+                      <div className="py-8 px-4 text-center border border-dashed border-slate-200 rounded-xl space-y-2">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <p className="text-xs font-medium text-slate-600">No media evidence recorded yet</p>
+                        <p className="text-[11px] text-slate-400">Attach videos or photos to build logs to showcase workshop progress.</p>
                       </div>
+                    );
+                  }
+
+                  return (
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {mediaLogs.slice(0, 4).map((mLog, mIdx) => (
+                        <div
+                          key={mLog.id || mIdx}
+                          onClick={() => setSelectedMobileDetailLog(mLog)}
+                          className="group relative aspect-video rounded-xl overflow-hidden bg-slate-900 border border-slate-200 cursor-pointer shadow-xs hover:border-orange-500 transition-all flex flex-col justify-end p-2 text-white"
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
+                          <div className="relative z-10">
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-xs text-orange-400 inline-block mb-1">
+                              {mLog.videoUrl ? '▶ Video' : '📷 Photo'}
+                            </span>
+                            <p className="text-[11px] font-bold text-white leading-tight truncate">
+                              {mLog.stepTitle}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  );
+                })()}
               </div>
 
               {/* Card 2: Quick Actions Matching Mockup 3 */}

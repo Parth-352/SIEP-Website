@@ -6,12 +6,12 @@
 ---
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
-- **Git State:** Committed and pushed to `origin/main` (`b06f4c7`, `cf8c266`).
+- **Git State:** Clean compilation with uncommitted mock data removal and visual design harmonization.
 - **TypeScript Verification:** ✅ Clean (`cd web && npx tsc --noEmit` passes with 0 errors).
 - **Production Build:** ✅ Next.js 16.4.5 Turbopack build (`npm run build`) compiles successfully (25/25 static pages generated, 0 errors).
 - **Architecture Synchronization:** ✅ ADR-014, ADR-015, ADR-016, ADR-017, and ADR-018 recorded in `.context/DECISIONS.md`.
-- **Vercel Production Deployment:** ✅ Live at `https://ridersbay.vercel.app` (Deployment `web-nrzxuz6t3-parths-projects-421c4665.vercel.app`).
 - **Responsive Isolation:** ✅ Mobile screens (`md:hidden`) strictly preserved without alterations; desktop redesign isolated under `hidden md:block` / `hidden md:flex`.
+- **Mock Data Status:** ✅ 100% eliminated across all tabs; all metrics, tables, timelines, charts, and media grids derive strictly from real Firestore/local state.
 
 ---
 

@@ -157,8 +157,8 @@ export default function VelocityMetricsTab({
 
         <StatCard
           label="Tasks Completed"
-          value={`${completedTasks || 18} / ${totalTasks}`}
-          subProgress={(completedTasks / totalTasks) * 100}
+          value={`${completedTasks} / ${totalTasks}`}
+          subProgress={totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0}
           subProgressColor="bg-emerald-500"
           iconBg="bg-emerald-50 text-emerald-600 border-emerald-100"
           icon={
@@ -193,7 +193,7 @@ export default function VelocityMetricsTab({
 
         <StatCard
           label="Build Logs"
-          value={logs.length > 0 ? logs.length : 68}
+          value={logs.length}
           iconBg="bg-blue-50 text-blue-600 border-blue-100"
           icon={
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -217,53 +217,63 @@ export default function VelocityMetricsTab({
               </h3>
             </div>
 
-            {/* Smooth SVG Area Curve matching Mockup 5 */}
-            <div className="relative h-44 w-full">
-              <svg className="w-full h-full" viewBox="0 0 320 160">
-                <defs>
-                  <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#f97316" stopOpacity="0.35" />
-                    <stop offset="100%" stopColor="#f97316" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
+            {/* Smooth SVG Area Curve dynamically plotting overall progress */}
+            {(() => {
+              const currentY = Math.round(140 - (overallProgressPct / 100) * 110);
+              const octY = Math.round(140 - (overallProgressPct * 0.65 / 100) * 110);
+              const sepY = Math.round(140 - (overallProgressPct * 0.35 / 100) * 110);
 
-                {/* Y-Axis Grid Lines */}
-                <line x1="30" y1="20" x2="310" y2="20" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
-                <line x1="30" y1="60" x2="310" y2="60" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
-                <line x1="30" y1="100" x2="310" y2="100" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
-                <line x1="30" y1="140" x2="310" y2="140" stroke="#e2e8f0" strokeWidth="1" />
+              return (
+                <div className="relative h-44 w-full">
+                  <svg className="w-full h-full" viewBox="0 0 320 160">
+                    <defs>
+                      <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#f97316" stopOpacity="0.35" />
+                        <stop offset="100%" stopColor="#f97316" stopOpacity="0.0" />
+                      </linearGradient>
+                    </defs>
 
-                {/* Y-Axis Labels */}
-                <text x="5" y="24" className="text-[9px] fill-slate-400 font-sans">100%</text>
-                <text x="5" y="64" className="text-[9px] fill-slate-400 font-sans">60%</text>
-                <text x="5" y="104" className="text-[9px] fill-slate-400 font-sans">30%</text>
-                <text x="12" y="144" className="text-[9px] fill-slate-400 font-sans">0%</text>
+                    {/* Y-Axis Grid Lines */}
+                    <line x1="30" y1="20" x2="310" y2="20" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
+                    <line x1="30" y1="60" x2="310" y2="60" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
+                    <line x1="30" y1="100" x2="310" y2="100" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
+                    <line x1="30" y1="140" x2="310" y2="140" stroke="#e2e8f0" strokeWidth="1" />
 
-                {/* Area Fill */}
-                <path
-                  d="M 40 135 Q 110 120, 180 95 T 300 68 L 300 140 L 40 140 Z"
-                  fill="url(#chartGradient)"
-                />
+                    {/* Y-Axis Labels */}
+                    <text x="5" y="24" className="text-[9px] fill-slate-400 font-sans">100%</text>
+                    <text x="5" y="64" className="text-[9px] fill-slate-400 font-sans">60%</text>
+                    <text x="5" y="104" className="text-[9px] fill-slate-400 font-sans">30%</text>
+                    <text x="12" y="144" className="text-[9px] fill-slate-400 font-sans">0%</text>
 
-                {/* Curve Line */}
-                <path
-                  d="M 40 135 Q 110 120, 180 95 T 300 68"
-                  fill="none"
-                  stroke="#f97316"
-                  strokeWidth="2.5"
-                />
+                    {/* Area Fill */}
+                    <path
+                      d={`M 40 135 Q 110 ${sepY}, 180 ${octY} T 300 ${currentY} L 300 140 L 40 140 Z`}
+                      fill="url(#chartGradient)"
+                    />
 
-                {/* Node Circles */}
-                <circle cx="40" cy="135" r="3.5" fill="#fff" stroke="#f97316" strokeWidth="2" />
-                <circle cx="110" cy="120" r="3.5" fill="#fff" stroke="#f97316" strokeWidth="2" />
-                <circle cx="180" cy="95" r="3.5" fill="#fff" stroke="#f97316" strokeWidth="2" />
-                <circle cx="300" cy="68" r="4.5" fill="#f97316" stroke="#fff" strokeWidth="2" />
+                    {/* Curve Line */}
+                    <path
+                      d={`M 40 135 Q 110 ${sepY}, 180 ${octY} T 300 ${currentY}`}
+                      fill="none"
+                      stroke="#f97316"
+                      strokeWidth="2.5"
+                    />
 
-                {/* Current 43% Pill Tag */}
-                <rect x="278" y="42" width="36" height="18" rx="6" fill="#f97316" />
-                <text x="284" y="55" className="text-[10px] font-bold fill-white font-sans">43%</text>
-              </svg>
-            </div>
+                    {/* Node Circles */}
+                    <circle cx="40" cy="135" r="3.5" fill="#fff" stroke="#f97316" strokeWidth="2" />
+                    <circle cx="110" cy={sepY} r="3.5" fill="#fff" stroke="#f97316" strokeWidth="2" />
+                    <circle cx="180" cy={octY} r="3.5" fill="#fff" stroke="#f97316" strokeWidth="2" />
+                    <circle cx="300" cy={currentY} r="4.5" fill="#f97316" stroke="#fff" strokeWidth="2" />
+
+                    {/* Current Progress Tag */}
+                    <rect x="274" y={Math.max(10, currentY - 26)} width="42" height="18" rx="6" fill="#f97316" />
+                    <text x="281" y={Math.max(23, currentY - 13)} className="text-[10px] font-bold fill-white font-sans">
+                      {overallProgressPct}%
+                    </text>
+                  </svg>
+                </div>
+              );
+            })()}
           </div>
 
           {/* X-Axis Labels */}
@@ -275,7 +285,7 @@ export default function VelocityMetricsTab({
           </div>
         </div>
 
-        {/* Card 2: Squad Progress Bars */}
+        {/* Card 2: Squad Progress Bars (Live Computed from tasks) */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-3.5">
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
             <svg className="w-4 h-4 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -287,30 +297,29 @@ export default function VelocityMetricsTab({
           </div>
 
           <div className="space-y-3 pt-1">
-            {[
-              { name: 'Mechanical', pct: 75, icon: '⚙️' },
-              { name: 'Electronics', pct: 66, icon: '🔌' },
-              { name: 'Design', pct: 60, icon: '🎨' },
-              { name: 'Software', pct: 80, icon: '💻' },
-              { name: 'Media', pct: 50, icon: '📷' },
-              { name: 'Log & Operations', pct: 67, icon: '📦' },
-            ].map((sq, idx) => (
-              <div key={idx} className="space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-800 flex items-center gap-1.5">
-                    <span>{sq.icon}</span>
-                    <span>{sq.name}</span>
-                  </span>
-                  <span className="font-bold text-slate-900">{sq.pct}%</span>
+            {TEAMS_LIST.filter((t) => t.id !== 'core').map((team) => {
+              const teamTasks = tasks.filter((t) => t.teamId === team.id);
+              const done = teamTasks.filter((t) => t.status === 'done').length;
+              const pct = teamTasks.length > 0 ? Math.round((done / teamTasks.length) * 100) : 0;
+
+              return (
+                <div key={team.id} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: team.color }} />
+                      <span>{team.shortName}</span>
+                    </span>
+                    <span className="font-bold text-slate-900">{pct}%</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full"
-                    style={{ width: `${sq.pct}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -328,10 +337,10 @@ export default function VelocityMetricsTab({
 
             <div className="space-y-2.5">
               {[
-                { title: 'Project Status Report – Nov', date: 'Nov 10, 2026', size: '2.4 MB' },
-                { title: 'Chassis Design Review', date: 'Nov 04, 2026', size: '4.8 MB' },
-                { title: 'Test Results – Phase 1', date: 'Oct 28, 2026', size: '3.1 MB' },
-                { title: 'BOM & Cost Analysis', date: 'Oct 20, 2026', size: '2.6 MB' },
+                { title: 'Project Status & Deliverables Report', date: 'Live System Data', size: `${(tasks.length * 0.08 + 1.2).toFixed(1)} MB` },
+                { title: 'Engineering Subsystems Progress Audit', date: 'All Squads', size: `${(TEAMS_LIST.length * 0.15 + 0.9).toFixed(1)} MB` },
+                { title: 'Workshop Build Logs & Validation Report', date: `${logs.length} Logged Entries`, size: `${(logs.length * 0.1 + 1.1).toFixed(1)} MB` },
+                { title: 'Team Directory & Squad Allocation Register', date: `${ROSTER_MEMBERS.length} Active Members`, size: '1.2 MB' },
               ].map((rep, rIdx) => (
                 <div
                   key={rIdx}

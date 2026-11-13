@@ -454,7 +454,8 @@ export default function DashboardOverviewTab({
         {/* Sleek Operations Hero Banner */}
         <OperationsBanner
           subtitle="PROJECT OPERATIONS"
-          title="DASHBOARD"
+          title="Dashboard"
+          description="Monitor vehicle engineering progress, subsystem telemetry, and recent activities"
         />
 
         {/* 4 Stat Cards Grid Matching Mockup */}
@@ -512,16 +513,16 @@ export default function DashboardOverviewTab({
         {/* Two Columns Grid: Team Progress & Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           {/* Left Column: Team Progress Card */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-5">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900 font-sans">
+                  <h3 className="text-sm font-bold text-slate-900 font-sans">
                     Team Progress
                   </h3>
                   <p className="text-xs text-slate-500 font-sans">
@@ -533,30 +534,20 @@ export default function DashboardOverviewTab({
               <button
                 type="button"
                 onClick={() => setActiveTab('teams')}
-                className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:text-orange-600 hover:border-orange-200 hover:bg-orange-50/50 transition-all flex items-center gap-1 cursor-pointer"
+                className="text-xs font-semibold text-slate-600 hover:text-orange-600 transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <span>View Teams</span>
                 <span className="text-sm font-normal">&rarr;</span>
               </button>
             </div>
 
-            {/* Squads Progress Rows Matching Mockup 1 */}
-            <div className="space-y-4 pt-1">
-              {[
-                { id: 'software', code: 'SOFT', name: 'Software', badge: 'bg-purple-100 text-purple-700 border-purple-200' },
-                { id: 'entc', code: 'E&E', name: 'Electrical & Electronics', badge: 'bg-sky-100 text-sky-700 border-sky-200' },
-                { id: 'mechanical', code: 'MECH', name: 'Mechanical', badge: 'bg-amber-100 text-amber-800 border-amber-200' },
-                { id: 'design', code: 'DSGN', name: 'Design', badge: 'bg-pink-100 text-pink-700 border-pink-200' },
-                { id: 'research', code: 'RBDI', name: 'Research', badge: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
-                { id: 'sponsorship', code: 'SPON', name: 'Sponsorship', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-                { id: 'documentation', code: 'DOCS', name: 'Documentation', badge: 'bg-amber-50 text-amber-800 border-amber-300' },
-                { id: 'socialmedia', code: 'SOCM', name: 'Social Media', badge: 'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200' },
-              ].map((squad) => {
+            {/* Squads Progress Rows Computed from Real Tasks */}
+            <div className="space-y-3 pt-1">
+              {TEAMS_LIST.filter((t) => t.id !== 'core').map((squad) => {
                 const squadTasks = tasks.filter((t) => t.teamId === squad.id);
                 const squadCompleted = squadTasks.filter((t) => t.status === 'done').length;
-                const squadTotal = squadTasks.length > 0 ? squadTasks.length : 10;
-                const effectiveDone = squadTasks.length > 0 ? squadCompleted : Math.round(squadTotal * 0.5);
-                const pct = Math.round((effectiveDone / squadTotal) * 100);
+                const squadTotal = squadTasks.length;
+                const pct = squadTotal > 0 ? Math.round((squadCompleted / squadTotal) * 100) : 0;
 
                 return (
                   <div
@@ -568,12 +559,12 @@ export default function DashboardOverviewTab({
                     className="flex items-center gap-3.5 hover:bg-slate-50/80 p-2 rounded-xl transition-colors cursor-pointer group"
                   >
                     {/* Squad Code Pill */}
-                    <span className={`w-14 text-center py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider border shrink-0 ${squad.badge}`}>
+                    <span className={`w-14 text-center py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider border shrink-0 ${squad.badgeBg}`}>
                       {squad.code}
                     </span>
 
                     {/* Squad Name */}
-                    <span className="text-xs font-semibold text-slate-800 font-sans w-40 truncate shrink-0 group-hover:text-orange-600 transition-colors">
+                    <span className="text-xs font-semibold text-slate-800 font-sans w-36 sm:w-44 truncate shrink-0 group-hover:text-orange-600 transition-colors">
                       {squad.name}
                     </span>
 
@@ -592,7 +583,7 @@ export default function DashboardOverviewTab({
 
                     {/* Fraction */}
                     <span className="text-xs text-slate-400 font-medium font-sans w-12 text-right shrink-0">
-                      {effectiveDone} / {squadTotal}
+                      {squadCompleted} / {squadTotal}
                     </span>
                   </div>
                 );
@@ -601,16 +592,16 @@ export default function DashboardOverviewTab({
           </div>
 
           {/* Right Column: Recent Activity Card */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-5">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900 font-sans">
+                  <h3 className="text-sm font-bold text-slate-900 font-sans">
                     Recent Activity
                   </h3>
                   <p className="text-xs text-slate-500 font-sans">
@@ -626,140 +617,124 @@ export default function DashboardOverviewTab({
                     window.dispatchEvent(new CustomEvent('siep_open_activity_drawer'));
                   }
                 }}
-                className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:text-orange-600 hover:border-orange-200 hover:bg-orange-50/50 transition-all flex items-center gap-1 cursor-pointer"
+                className="text-xs font-semibold text-slate-600 hover:text-orange-600 transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <span>View All</span>
                 <span className="text-sm font-normal">&rarr;</span>
               </button>
             </div>
 
-            {/* Connected Timeline List Matching Mockup 1 */}
-            <div className="relative pl-6 space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[1.5px] before:bg-slate-200">
-              {[
-                {
-                  id: 'act-1',
-                  title: 'Chassis welding – front section',
-                  desc: 'Welding and alignment completed.',
-                  teamCode: 'MECH',
-                  teamBadge: 'bg-amber-100 text-amber-800 border-amber-200',
-                  status: 'Completed',
-                  statusClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                  statusIcon: (
+            {/* Connected Timeline List Computed from Real Logs and Tasks */}
+            {(() => {
+              const realActivities = [
+                ...logs.map((log) => ({
+                  id: `log-${log.id}`,
+                  title: log.stepTitle,
+                  desc: log.description || `Build step completed for ${TEAMS[log.teamId]?.shortName || log.teamName}.`,
+                  teamCode: TEAMS[log.teamId]?.code || 'LOG',
+                  teamBadge: TEAMS[log.teamId]?.badgeBg || 'bg-amber-100 text-amber-800 border-amber-200',
+                  status: log.status === 'completed' ? 'Completed' : log.status === 'testing' ? 'Testing' : 'In Progress',
+                  statusClass: log.status === 'completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200',
+                  statusIcon: log.status === 'completed' ? (
                     <svg className="w-3 h-3 text-emerald-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
+                  ) : (
+                    <svg className="w-2.5 h-2.5 text-amber-600 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
                   ),
-                  time: '2h ago',
+                  time: getRelativeTime(log.createdAt),
+                  rawTime: log.createdAt ? new Date(log.createdAt).getTime() : 0,
                   icon: (
                     <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>
                   ),
                   iconBg: 'bg-amber-50 border-amber-200',
-                },
-                {
-                  id: 'act-2',
-                  title: 'BMS integration – v1',
-                  desc: 'Initial integration and bench test in progress.',
-                  teamCode: 'E&E',
-                  teamBadge: 'bg-sky-100 text-sky-700 border-sky-200',
-                  status: 'In Progress',
-                  statusClass: 'bg-amber-50 text-amber-700 border-amber-200',
-                  statusIcon: (
+                })),
+                ...tasks.map((task) => ({
+                  id: `task-${task.id}`,
+                  title: task.title,
+                  desc: task.description || `Deliverable managed in ${TEAMS[task.teamId]?.shortName || task.teamId}.`,
+                  teamCode: TEAMS[task.teamId]?.code || 'TASK',
+                  teamBadge: TEAMS[task.teamId]?.badgeBg || 'bg-blue-100 text-blue-800 border-blue-200',
+                  status: task.status === 'done' ? 'Completed' : task.status === 'review' ? 'Under Review' : task.status === 'in_progress' ? 'In Progress' : 'To Do',
+                  statusClass: task.status === 'done' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : task.status === 'review' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-amber-50 text-amber-700 border-amber-200',
+                  statusIcon: task.status === 'done' ? (
+                    <svg className="w-3 h-3 text-emerald-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
                     <svg className="w-2.5 h-2.5 text-amber-600 mr-1" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   ),
-                  time: '4h ago',
+                  time: getRelativeTime(task.createdAt || task.dueDate),
+                  rawTime: task.createdAt ? new Date(task.createdAt).getTime() : 0,
                   icon: (
                     <svg className="w-4 h-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                     </svg>
                   ),
                   iconBg: 'bg-sky-50 border-sky-200',
-                },
-                {
-                  id: 'act-3',
-                  title: 'Dashboard UI – sensor view',
-                  desc: 'Added live data view for motor, battery and temperature.',
-                  teamCode: 'SOFT',
-                  teamBadge: 'bg-purple-100 text-purple-700 border-purple-200',
-                  status: 'In Progress',
-                  statusClass: 'bg-amber-50 text-amber-700 border-amber-200',
-                  statusIcon: (
-                    <svg className="w-2.5 h-2.5 text-amber-600 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  ),
-                  time: '6h ago',
-                  icon: (
-                    <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  ),
-                  iconBg: 'bg-purple-50 border-purple-200',
-                },
-                {
-                  id: 'act-4',
-                  title: 'Chassis CAD – revision B',
-                  desc: 'Updated for double cradle configuration.',
-                  teamCode: 'DSGN',
-                  teamBadge: 'bg-pink-100 text-pink-700 border-pink-200',
-                  status: 'Under Review',
-                  statusClass: 'bg-purple-50 text-purple-700 border-purple-200',
-                  statusIcon: (
-                    <svg className="w-3 h-3 text-purple-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                    </svg>
-                  ),
-                  time: '1d ago',
-                  icon: (
-                    <svg className="w-4 h-4 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
-                  ),
-                  iconBg: 'bg-pink-50 border-pink-200',
-                },
-              ].map((item) => (
-                <div key={item.id} className="relative flex items-start gap-3.5 group">
-                  {/* Circular Node Dot on the timeline */}
-                  <span className="absolute -left-[19px] top-4 w-3.5 h-3.5 rounded-full bg-slate-900 ring-4 ring-white" />
+                })),
+              ]
+                .sort((a, b) => b.rawTime - a.rawTime)
+                .slice(0, 5);
 
-                  {/* Icon squircle */}
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${item.iconBg}`}>
-                    {item.icon}
+              if (realActivities.length === 0) {
+                return (
+                  <div className="py-12 text-center text-xs text-slate-400 font-sans">
+                    No recent activity recorded yet.
                   </div>
+                );
+              }
 
-                  {/* Item Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <h4 className="text-xs font-bold text-slate-900 font-sans group-hover:text-orange-600 transition-colors">
-                        {item.title}
-                      </h4>
-                      <span className="text-[11px] text-slate-400 font-sans shrink-0">
-                        {item.time}
-                      </span>
+              return (
+                <div className="relative pl-6 space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[1.5px] before:bg-slate-200">
+                  {realActivities.map((item) => (
+                    <div key={item.id} className="relative flex items-start gap-3.5 group">
+                      {/* Circular Node Dot on the timeline */}
+                      <span className="absolute -left-[19px] top-4 w-3.5 h-3.5 rounded-full bg-slate-900 ring-4 ring-white" />
+
+                      {/* Icon squircle */}
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${item.iconBg}`}>
+                        {item.icon}
+                      </div>
+
+                      {/* Item Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="text-xs font-bold text-slate-900 font-sans group-hover:text-orange-600 transition-colors">
+                            {item.title}
+                          </h4>
+                          <span className="text-[11px] text-slate-400 font-sans shrink-0">
+                            {item.time}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-slate-500 font-sans mt-0.5 line-clamp-1">
+                          {item.desc}
+                        </p>
+
+                        {/* Meta Badges */}
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${item.teamBadge}`}>
+                            {item.teamCode}
+                          </span>
+
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${item.statusClass}`}>
+                            {item.statusIcon}
+                            <span>{item.status}</span>
+                          </span>
+                        </div>
+                      </div>
                     </div>
-
-                    <p className="text-xs text-slate-500 font-sans mt-0.5 line-clamp-1">
-                      {item.desc}
-                    </p>
-
-                    {/* Meta Badges */}
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${item.teamBadge}`}>
-                        {item.teamCode}
-                      </span>
-
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${item.statusClass}`}>
-                        {item.statusIcon}
-                        <span>{item.status}</span>
-                      </span>
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              );
+            })()}
           </div>
         </div>
       </div>

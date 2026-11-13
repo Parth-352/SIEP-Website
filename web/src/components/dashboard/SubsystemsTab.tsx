@@ -62,18 +62,18 @@ export default function SubsystemsTab({
 
   // Squad metrics
   const squadProgressList = useMemo(() => {
-    return TEAMS_LIST.map((team) => {
+    return TEAMS_LIST.filter((t) => t.id !== 'core').map((team) => {
       const teamTasks = tasks.filter((t) => t.teamId === team.id);
       const completed = teamTasks.filter((t) => t.status === 'done').length;
       const total = teamTasks.length;
-      const pct = total > 0 ? Math.round((completed / total) * 100) : 65;
+      const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
       const memberCount = ROSTER_MEMBERS.filter((m) => m.teamId === team.id || m.secondaryTeams?.includes(team.id)).length;
       return {
         ...team,
-        memberCount: Math.max(3, memberCount),
+        memberCount,
         pct,
         completed,
-        total: Math.max(total, 8),
+        total,
       };
     });
   }, [tasks]);
@@ -101,7 +101,7 @@ export default function SubsystemsTab({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Total Members"
-          value={ROSTER_MEMBERS.length > 0 ? ROSTER_MEMBERS.length : 36}
+          value={ROSTER_MEMBERS.length}
           iconBg="bg-blue-50 text-blue-600 border-blue-100"
           icon={
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -112,7 +112,7 @@ export default function SubsystemsTab({
 
         <StatCard
           label="Squads"
-          value={TEAMS_LIST.length}
+          value={TEAMS_LIST.filter((t) => t.id !== 'core').length}
           iconBg="bg-amber-50 text-amber-600 border-amber-100"
           icon={
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -124,7 +124,7 @@ export default function SubsystemsTab({
 
         <StatCard
           label="Core Committee"
-          value={ROSTER_MEMBERS.filter((m) => m.isCore).length || 5}
+          value={ROSTER_MEMBERS.filter((m) => m.isCore).length}
           iconBg="bg-purple-50 text-purple-600 border-purple-100"
           icon={
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -136,7 +136,7 @@ export default function SubsystemsTab({
 
         <StatCard
           label="Active Members"
-          value={ROSTER_MEMBERS.length > 0 ? ROSTER_MEMBERS.length : 34}
+          value={ROSTER_MEMBERS.length}
           iconBg="bg-emerald-50 text-emerald-600 border-emerald-100"
           icon={
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -151,13 +151,13 @@ export default function SubsystemsTab({
         {/* Left Column: Members Directory Table */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden space-y-0">
           {/* Filter Tabs & Search Header Matching Mockup 4 */}
-          <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-white">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
               {[
-                { id: 'all', label: 'All Members' },
-                { id: 'squads', label: 'Squads' },
-                { id: 'core', label: 'Core Committee' },
-                { id: 'roles', label: 'Roles' },
+                { id: 'all', label: 'All Members', count: ROSTER_MEMBERS.length },
+                { id: 'squads', label: 'Squads', count: TEAMS_LIST.filter((t) => t.id !== 'core').length },
+                { id: 'core', label: 'Core Committee', count: ROSTER_MEMBERS.filter((m) => m.isCore).length },
+                { id: 'roles', label: 'Roles', count: 4 },
               ].map((tab) => {
                 const isActive = activeTabFilter === tab.id;
                 return (
@@ -168,20 +168,27 @@ export default function SubsystemsTab({
                       setActiveTabFilter(tab.id as any);
                       setMemberPage(1);
                     }}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                    className={`px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shadow-xs ${
                       isActive
-                        ? 'bg-[#0e131f] text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                        ? 'bg-[#0e131f] text-white shadow-sm'
+                        : 'bg-white text-slate-700 border border-slate-200/80 hover:bg-slate-50'
                     }`}
                   >
-                    {tab.label}
+                    <span>{tab.label}</span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
                   </button>
                 );
               })}
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="relative w-48 sm:w-56">
+            <div className="flex items-center gap-2.5">
+              <div className="relative w-64 lg:w-72">
                 <input
                   type="text"
                   value={memberSearch}
@@ -190,10 +197,10 @@ export default function SubsystemsTab({
                     setMemberPage(1);
                   }}
                   placeholder="Search members..."
-                  className="w-full pl-8 pr-7 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-orange-500 shadow-xs"
+                  className="w-full pl-9 pr-8 py-2 rounded-xl bg-white border border-slate-200 text-xs font-sans text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-orange-500 focus:outline-none shadow-xs"
                 />
                 <svg
-                  className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"
+                  className="w-4 h-4 text-slate-400 absolute left-3 top-2.5"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -204,7 +211,7 @@ export default function SubsystemsTab({
                   <button
                     type="button"
                     onClick={() => setMemberSearch('')}
-                    className="absolute right-2 top-2 text-slate-400 hover:text-slate-700 text-xs"
+                    className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700 text-xs font-sans cursor-pointer"
                   >
                     ✕
                   </button>
@@ -221,7 +228,7 @@ export default function SubsystemsTab({
                 const teamLogs = logs.filter((l) => l.teamId === team.id);
                 const completedCount = teamTasks.filter((t) => t.status === 'done').length;
                 const members = ROSTER_MEMBERS.filter((m) => m.teamId === team.id || m.secondaryTeams?.includes(team.id));
-                const pct = teamTasks.length > 0 ? Math.round((completedCount / teamTasks.length) * 100) : 65;
+                const pct = teamTasks.length > 0 ? Math.round((completedCount / teamTasks.length) * 100) : 0;
 
                 return (
                   <div
