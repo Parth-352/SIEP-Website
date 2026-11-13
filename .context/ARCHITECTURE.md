@@ -172,7 +172,7 @@ The system implements a fast, workshop-optimized **Multi-Tier Identity & Role Go
 As established in ADR-021:
 - **No Primary/Secondary Bias:** The legacy concept of "primary vs. secondary domains" is completely removed. All squad allocations are stored in `domains: TeamId[]` with 100% equal standing.
 - **Visual Uniformity:** All assigned squads render identical badges with equal prominence. No squad or title is ever forced or prioritized over another.
-- **Square Bracket Codes Isolated:** Domain shortcodes (e.g. `[MECH] [DSGN] [RES] Meet Samdadiya`) appear **strictly in the Roles Management console table** for quick administrative scanning. In all other views (navigation, user profile, Teams tab, task cards, public website), members have clean names with zero bracket prefixes.
+- **Clean Member Identity & Layout Streamlining (ADR-022):** Member Name columns across the entire app—including the Master Roles Management console table—display clean First + Last names with zero bracket prefixes, duplicate gray tags, or redundant mini-badges. Column 1 cleanly displays Initials Avatar + Full Name + Email; Column 2 exclusively presents 'Role & Title' (`Core Lead & Captain`, `Vice Captain`, `Software Lead`, etc.); and Column 3 renders all 'Assigned Domains' using equal, colorful squad pills. In addition, the redundant 'Single Authority Gate' sidebar card was removed to maintain a streamlined, distraction-free administrative console.
 - **Dynamic Public Roster Sync:** Public components (`TeamSection.tsx`, `/about#team`) and portal tabs (`SubsystemsTab.tsx`) fetch real-time member records from `/api/members`. When Parth updates roles or domains, changes propagate immediately across the entire platform.
 
 ---

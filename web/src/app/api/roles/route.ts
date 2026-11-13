@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SESSION_COOKIE_NAME, decodeSession } from '@/lib/session';
-import { isParthMasterAdmin, TeamMemberEntry, ROSTER_MEMBERS, getMemberDomains } from '@/lib/members';
+import { isParthMasterAdmin, TeamMemberEntry, ROSTER_MEMBERS, getMemberDomains, getMemberLeadDomains } from '@/lib/members';
 import { getStoreMembers, saveStoreMember, deleteStoreMember, recordActivity } from '@/lib/store';
 import {
   getFirestoreMembers,
@@ -46,15 +46,19 @@ export async function GET(request: NextRequest) {
       const customProfile = profiles[email];
       const customPass = passwords[email];
       const domains = getMemberDomains(m);
+      const leadDomains = getMemberLeadDomains(m);
 
       return {
         ...m,
         name: customProfile?.displayName || m.name,
         domains,
+        leadDomains,
         teamId: domains[0] || m.teamId || 'software',
         secondaryTeams: domains.slice(1),
         photoUrl: customProfile?.photoUrl || m.photoUrl || undefined,
         password: customPass || m.password || DEFAULT_PIN,
+        isLead: leadDomains.length > 0 || Boolean(m.isLead),
+        isCore: Boolean(m.isCore),
       };
     });
 
@@ -130,7 +134,10 @@ export async function POST(request: NextRequest) {
       const domains: TeamId[] = Array.isArray(body.domains) && body.domains.length > 0
         ? body.domains
         : [((body.teamId as TeamId) || 'software')];
-      const isLead = Boolean(body.isLead);
+      const leadDomains: TeamId[] = Array.isArray(body.leadDomains)
+        ? body.leadDomains
+        : (body.isLead ? [domains[0] || 'software'] : []);
+      const isLead = leadDomains.length > 0 || Boolean(body.isLead);
       const isCore = Boolean(body.isCore);
       const tier: 1 | 2 | 3 = isCore ? 1 : isLead ? 2 : (body.tier || 3);
       const role = (body.role || (isCore ? 'Core Member' : isLead ? 'Domain Lead' : 'Team Member')).trim();
@@ -143,6 +150,7 @@ export async function POST(request: NextRequest) {
         email,
         role,
         domains,
+        leadDomains,
         teamId: domains[0] || 'software',
         secondaryTeams: domains.slice(1),
         isLead,
@@ -227,12 +235,17 @@ export async function POST(request: NextRequest) {
     let updatedMember: TeamMemberEntry = {
       ...existing,
       domains: getMemberDomains(existing),
+      leadDomains: getMemberLeadDomains(existing),
     };
 
     if (action === 'assign_captain') {
+      const captainLeadDomains = Array.isArray(body.leadDomains)
+        ? body.leadDomains
+        : getMemberLeadDomains(existing);
       updatedMember = {
         ...updatedMember,
         role: (body.roleTitle || 'Core Lead & Captain').trim(),
+        leadDomains: captainLeadDomains,
         isLead: true,
         isCore: true,
         tier: 1,
@@ -247,9 +260,13 @@ export async function POST(request: NextRequest) {
         detail: `Promoted ${existing.name} to Captain (${updatedMember.role}).`,
       });
     } else if (action === 'assign_vice_captain') {
+      const vcLeadDomains = Array.isArray(body.leadDomains)
+        ? body.leadDomains
+        : getMemberLeadDomains(existing);
       updatedMember = {
         ...updatedMember,
         role: (body.roleTitle || 'Vice Captain').trim(),
+        leadDomains: vcLeadDomains,
         isLead: true,
         isCore: true,
         tier: 1,
@@ -267,6 +284,7 @@ export async function POST(request: NextRequest) {
       updatedMember = {
         ...updatedMember,
         role: 'Team Member',
+        leadDomains: [],
         isLead: false,
         isCore: false,
         tier: 3,
@@ -284,7 +302,10 @@ export async function POST(request: NextRequest) {
       const domains: TeamId[] = Array.isArray(body.domains) && body.domains.length > 0
         ? body.domains
         : getMemberDomains(existing);
-      const isLead = body.isLead !== undefined ? Boolean(body.isLead) : existing.isLead;
+      const leadDomains: TeamId[] = Array.isArray(body.leadDomains)
+        ? body.leadDomains
+        : (body.isLead !== undefined ? (body.isLead ? getMemberLeadDomains(existing) : []) : getMemberLeadDomains(existing));
+      const isLead = leadDomains.length > 0 || (body.isLead !== undefined ? Boolean(body.isLead) : existing.isLead);
       const isCore = body.isCore !== undefined ? Boolean(body.isCore) : existing.isCore;
       const tier: 1 | 2 | 3 = isCore ? 1 : isLead ? 2 : (body.tier || 3);
 
@@ -295,6 +316,7 @@ export async function POST(request: NextRequest) {
         name: body.name ? body.name.trim() : existing.name,
         role: body.role ? body.role.trim() : existing.role,
         domains,
+        leadDomains,
         teamId: domains[0] || 'software',
         secondaryTeams: domains.slice(1),
         isLead,

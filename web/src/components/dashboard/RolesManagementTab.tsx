@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { TEAMS, TEAMS_LIST } from '@/lib/teams';
-import { TeamMemberEntry, isParthMasterAdmin, ROSTER_MEMBERS, getMemberDomains } from '@/lib/members';
+import { TeamMemberEntry, isParthMasterAdmin, ROSTER_MEMBERS, getMemberDomains, getMemberLeadDomains } from '@/lib/members';
 import { TeamId, UserProfile } from '@/lib/types';
 import OperationsBanner from './OperationsBanner';
 import StatCard from './StatCard';
@@ -53,6 +53,7 @@ export default function RolesManagementTab({ user }: RolesManagementTabProps) {
   const [formEmail, setFormEmail] = useState<string>('');
   const [formRole, setFormRole] = useState<string>('');
   const [formDomains, setFormDomains] = useState<TeamId[]>([]);
+  const [formLeadDomains, setFormLeadDomains] = useState<TeamId[]>([]);
   const [formPassword, setFormPassword] = useState<string>('');
   const [formPhotoUrl, setFormPhotoUrl] = useState<string>('');
   const [formRemovePhoto, setFormRemovePhoto] = useState<boolean>(false);
@@ -91,15 +92,17 @@ export default function RolesManagementTab({ user }: RolesManagementTabProps) {
   // Open Edit Modal
   const openEditModal = (member: TeamMemberEntry) => {
     const memberDomains = getMemberDomains(member);
+    const memberLeadDomains = getMemberLeadDomains(member);
     setEditingMember(member);
     setFormName(member.name || '');
     setFormEmail(member.email || '');
     setFormRole(member.role || 'Team Member');
     setFormDomains(memberDomains);
+    setFormLeadDomains(memberLeadDomains);
     setFormPassword(member.password || '935200');
     setFormPhotoUrl(member.photoUrl || '');
     setFormRemovePhoto(false);
-    setFormIsLead(Boolean(member.isLead));
+    setFormIsLead(memberLeadDomains.length > 0 || Boolean(member.isLead));
     setFormIsCore(Boolean(member.isCore));
     setFormTier(member.tier || (member.isCore ? 1 : member.isLead ? 2 : 3));
     setShowModalPassword(false);
@@ -113,6 +116,7 @@ export default function RolesManagementTab({ user }: RolesManagementTabProps) {
     setFormEmail('');
     setFormRole('Team Member');
     setFormDomains(['software']);
+    setFormLeadDomains([]);
     setFormPassword('935200');
     setFormPhotoUrl('');
     setFormRemovePhoto(false);
@@ -128,7 +132,9 @@ export default function RolesManagementTab({ user }: RolesManagementTabProps) {
     setFormDomains((prev) => {
       if (prev.includes(tid)) {
         if (prev.length === 1) return prev; // Keep at least 1 domain
-        return prev.filter((d) => d !== tid);
+        const next = prev.filter((d) => d !== tid);
+        setFormLeadDomains((leadPrev) => leadPrev.filter((d) => d !== tid));
+        return next;
       } else {
         return [...prev, tid];
       }
@@ -172,10 +178,11 @@ export default function RolesManagementTab({ user }: RolesManagementTabProps) {
           name: formName.trim(),
           role: formRole.trim(),
           domains: formDomains,
+          leadDomains: formLeadDomains,
           password: formPassword.trim() || undefined,
           photoUrl: formRemovePhoto ? '' : formPhotoUrl.trim(),
           removePhoto: formRemovePhoto,
-          isLead: formIsLead,
+          isLead: formLeadDomains.length > 0 || formIsLead,
           isCore: formIsCore,
           tier: formTier,
         }),
@@ -218,9 +225,10 @@ export default function RolesManagementTab({ user }: RolesManagementTabProps) {
           email: formEmail.trim().toLowerCase(),
           role: formRole.trim(),
           domains: formDomains,
+          leadDomains: formLeadDomains,
           password: formPassword.trim() || '935200',
           photoUrl: formPhotoUrl.trim(),
-          isLead: formIsLead,
+          isLead: formLeadDomains.length > 0 || formIsLead,
           isCore: formIsCore,
           tier: formTier,
         }),
@@ -356,9 +364,12 @@ export default function RolesManagementTab({ user }: RolesManagementTabProps) {
         const lower = (m.role || '').toLowerCase();
         if (!lower.includes('captain') && !lower.includes('vice') && !m.isCore) return false;
       } else if (filterTab === 'leads') {
-        if (!m.isLead || m.role?.toLowerCase().includes('captain')) return false;
+        const leadDomains = getMemberLeadDomains(m);
+        const leadsAny = leadDomains.length > 0 || m.isLead;
+        if (!leadsAny) return false;
       } else if (filterTab === 'members') {
-        if (m.isLead || m.isCore) return false;
+        const leadDomains = getMemberLeadDomains(m);
+        if (m.isLead || m.isCore || leadDomains.length > 0) return false;
       }
 
       // Squad filter (matches any of the member's assigned domains)
@@ -383,7 +394,7 @@ export default function RolesManagementTab({ user }: RolesManagementTabProps) {
   // Metrics
   const totalCount = members.length;
   const captainAndCoreCount = members.filter((m) => m.isCore || m.role?.toLowerCase().includes('captain')).length;
-  const domainLeadsCount = members.filter((m) => m.isLead && !m.isCore).length;
+  const domainLeadsCount = members.filter((m) => getMemberLeadDomains(m).length > 0 || m.isLead).length;
   const activeSquadsCount = new Set(members.flatMap((m) => getMemberDomains(m))).size;
 
   // Key Leaders
@@ -396,7 +407,7 @@ export default function RolesManagementTab({ user }: RolesManagementTabProps) {
   const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
   const pageMembers = filteredMembers.slice(startIdx, startIdx + ITEMS_PER_PAGE);
 
-  // If user is not Parth, block access completely
+  // If user is not authorized, block access completely
   if (!isAuthorized) {
     return (
       <div className="max-w-3xl mx-auto py-16 px-4 text-center">
@@ -409,7 +420,7 @@ export default function RolesManagementTab({ user }: RolesManagementTabProps) {
           Master Role Authority Restricted
         </h2>
         <p className="text-sm text-slate-600 max-w-md mx-auto mb-6">
-          This console is cryptographically restricted to Parth Kshirsagar (<span className="font-semibold text-slate-900">parthkshirsagrr@gmail.com</span>) for team governance, role assignment, and permission revocation.
+          This console is cryptographically restricted to Executive Command (<span className="font-semibold text-slate-900">parthkshirsagrr@gmail.com</span>) for team governance, role assignment, and permission revocation.
         </p>
         <button
           type="button"
@@ -691,22 +702,35 @@ export default function RolesManagementTab({ user }: RolesManagementTabProps) {
                             </span>
                           </td>
 
-                          {/* Assigned Domains: All domains equal with zero partiality */}
+                          {/* Assigned Domains: Highlight lead domain(s) for instant visibility */}
                           <td className="py-3 px-3">
                             <div className="flex flex-wrap items-center gap-1">
-                              {memberDomains.map((dom) => {
-                                const tInfo = TEAMS[dom];
-                                return (
-                                  <span
-                                    key={dom}
-                                    className="px-2 py-0.5 rounded-md font-bold text-[10px] uppercase text-white shadow-2xs"
-                                    style={{ backgroundColor: tInfo?.color || '#2B303A' }}
-                                    title={tInfo?.name || dom}
-                                  >
-                                    {tInfo?.code || dom.toUpperCase()}
-                                  </span>
-                                );
-                              })}
+                              {(() => {
+                                const memberLeadDomains = getMemberLeadDomains(member);
+                                return memberDomains.map((dom) => {
+                                  const tInfo = TEAMS[dom];
+                                  const isLeadingThis = memberLeadDomains.includes(dom);
+                                  return (
+                                    <span
+                                      key={dom}
+                                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase shadow-2xs transition-all ${
+                                        isLeadingThis
+                                          ? 'text-amber-950 bg-gradient-to-r from-amber-300 to-amber-400 ring-2 ring-amber-500/80 font-black shadow-amber-500/20 shadow-xs'
+                                          : 'text-white'
+                                      }`}
+                                      style={!isLeadingThis ? { backgroundColor: tInfo?.color || '#2B303A' } : undefined}
+                                      title={isLeadingThis ? `Domain Lead: ${tInfo?.name || dom}` : `Member: ${tInfo?.name || dom}`}
+                                    >
+                                      {isLeadingThis && (
+                                        <svg className="w-2.5 h-2.5 text-amber-950 shrink-0 fill-current" viewBox="0 0 24 24">
+                                          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                                        </svg>
+                                      )}
+                                      <span>{tInfo?.code || dom.toUpperCase()}</span>
+                                    </span>
+                                  );
+                                });
+                              })()}
                             </div>
                           </td>
 
@@ -1129,6 +1153,58 @@ export default function RolesManagementTab({ user }: RolesManagementTabProps) {
                 </div>
               </div>
 
+              {/* Domain Leadership Assignment: Works for Captain, Vice Captain, or any member */}
+              <div className="space-y-2 p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-amber-950 uppercase tracking-wider flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-amber-600 fill-current" viewBox="0 0 24 24">
+                      <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                    </svg>
+                    Domain Leadership ({formLeadDomains.length} Designated)
+                  </label>
+                  <span className="text-[10px] text-amber-800 font-semibold">
+                    Works for Captain, Vice Captain &amp; Leads
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600">
+                  Select which specific domain(s) this member leads. In domain views, they will appear as Lead; other members will appear as Team Members.
+                </p>
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {formDomains.map((dom) => {
+                    const isLeadOfDom = formLeadDomains.includes(dom);
+                    const tInfo = TEAMS[dom];
+                    return (
+                      <button
+                        key={dom}
+                        type="button"
+                        onClick={() => {
+                          setFormLeadDomains((prev) => {
+                            const next = prev.includes(dom) ? prev.filter((d) => d !== dom) : [...prev, dom];
+                            if (next.length > 0) setFormIsLead(true);
+                            return next;
+                          });
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border ${
+                          isLeadOfDom
+                            ? 'bg-amber-400 text-slate-900 border-amber-500 shadow-xs font-black'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        {isLeadOfDom ? (
+                          <svg className="w-3 h-3 text-slate-900 fill-current" viewBox="0 0 24 24">
+                            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                          </svg>
+                        ) : (
+                          <span className="w-2 h-2 rounded-full bg-slate-300" />
+                        )}
+                        <span>{tInfo?.name || dom}</span>
+                        <span className="text-[9px] uppercase font-mono opacity-80">[{tInfo?.code || dom}]</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Master Governance Checkboxes */}
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
                 <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
@@ -1294,6 +1370,58 @@ export default function RolesManagementTab({ user }: RolesManagementTabProps) {
                         >
                           {t.code}
                         </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Domain Leadership Assignment: Works for Captain, Vice Captain, or any member */}
+              <div className="space-y-2 p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-amber-950 uppercase tracking-wider flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-amber-600 fill-current" viewBox="0 0 24 24">
+                      <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                    </svg>
+                    Domain Leadership ({formLeadDomains.length} Designated)
+                  </label>
+                  <span className="text-[10px] text-amber-800 font-semibold">
+                    Works for Captain, Vice Captain &amp; Leads
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600">
+                  Select which specific domain(s) this member leads. In domain views, they will appear as Lead; other members will appear as Team Members.
+                </p>
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {formDomains.map((dom) => {
+                    const isLeadOfDom = formLeadDomains.includes(dom);
+                    const tInfo = TEAMS[dom];
+                    return (
+                      <button
+                        key={dom}
+                        type="button"
+                        onClick={() => {
+                          setFormLeadDomains((prev) => {
+                            const next = prev.includes(dom) ? prev.filter((d) => d !== dom) : [...prev, dom];
+                            if (next.length > 0) setFormIsLead(true);
+                            return next;
+                          });
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border ${
+                          isLeadOfDom
+                            ? 'bg-amber-400 text-slate-900 border-amber-500 shadow-xs font-black'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        {isLeadOfDom ? (
+                          <svg className="w-3 h-3 text-slate-900 fill-current" viewBox="0 0 24 24">
+                            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                          </svg>
+                        ) : (
+                          <span className="w-2 h-2 rounded-full bg-slate-300" />
+                        )}
+                        <span>{tInfo?.name || dom}</span>
+                        <span className="text-[9px] uppercase font-mono opacity-80">[{tInfo?.code || dom}]</span>
                       </button>
                     );
                   })}

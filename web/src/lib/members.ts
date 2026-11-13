@@ -8,6 +8,7 @@ export interface TeamMemberEntry {
   teamId: TeamId; // Retained for backwards-compatibility (matches domains[0])
   secondaryTeams?: TeamId[]; // Retained for backwards-compatibility
   isLead?: boolean;
+  leadDomains?: TeamId[]; // Specific domain(s) this member leads (applicable to Captain, Vice Captain & Domain Leads)
   isCore?: boolean; // Master administrative scope across all domains
   tier?: 1 | 2 | 3;
   email: string; // Personal Gmail
@@ -33,6 +34,24 @@ export function getMemberDomains(m: TeamMemberEntry | { domains?: TeamId[]; team
     });
   }
   return list.length > 0 ? Array.from(new Set(list)) : ['software'];
+}
+
+/**
+ * Returns the specific domain(s) that a member leads.
+ * Applicable to Captain, Vice Captain, or dedicated Domain Leads.
+ */
+export function getMemberLeadDomains(
+  m: TeamMemberEntry | { leadDomains?: TeamId[]; isLead?: boolean; domains?: TeamId[]; teamId?: TeamId }
+): TeamId[] {
+  if (Array.isArray(m.leadDomains) && m.leadDomains.length > 0) {
+    return Array.from(new Set(m.leadDomains));
+  }
+  if (m.isLead) {
+    const list = getMemberDomains(m as any);
+    const nonCore = list.filter((d) => d !== 'core');
+    return nonCore.length > 0 ? [nonCore[0]] : [];
+  }
+  return [];
 }
 
 /**
@@ -75,6 +94,7 @@ const BASELINE_ROSTER_DATA: Omit<TeamMemberEntry, 'domains'>[] = [
     teamId: 'core',
     secondaryTeams: ['entc', 'research', 'socialmedia'],
     isLead: true,
+    leadDomains: ['entc'],
     isCore: true,
     email: 'pawaletirthraj@gmail.com',
   },
@@ -85,6 +105,7 @@ const BASELINE_ROSTER_DATA: Omit<TeamMemberEntry, 'domains'>[] = [
     teamId: 'software',
     secondaryTeams: ['core', 'sponsorship', 'documentation'],
     isLead: true,
+    leadDomains: ['software'],
     isCore: true,
     email: 'parthkshirsagrr@gmail.com',
   },
@@ -95,6 +116,7 @@ const BASELINE_ROSTER_DATA: Omit<TeamMemberEntry, 'domains'>[] = [
     teamId: 'software',
     secondaryTeams: ['core', 'sponsorship', 'documentation'],
     isLead: false,
+    leadDomains: [],
     isCore: true,
     email: 'riddhimunot7@gmail.com',
   },
@@ -105,6 +127,7 @@ const BASELINE_ROSTER_DATA: Omit<TeamMemberEntry, 'domains'>[] = [
     teamId: 'documentation',
     secondaryTeams: ['core', 'entc', 'sponsorship'],
     isLead: true,
+    leadDomains: ['documentation'],
     isCore: true,
     email: 'desardapratik7@gmail.com',
   },
@@ -117,6 +140,7 @@ const BASELINE_ROSTER_DATA: Omit<TeamMemberEntry, 'domains'>[] = [
     teamId: 'mechanical',
     secondaryTeams: ['design', 'research', 'sponsorship'],
     isLead: true,
+    leadDomains: ['mechanical', 'design'],
     isCore: false,
     email: 'meetjain212@gmail.com',
   },
@@ -127,6 +151,7 @@ const BASELINE_ROSTER_DATA: Omit<TeamMemberEntry, 'domains'>[] = [
     teamId: 'design',
     secondaryTeams: ['entc'],
     isLead: true,
+    leadDomains: ['design'],
     isCore: false,
     email: 'premchaudhari0955@gmail.com',
   },
@@ -137,6 +162,7 @@ const BASELINE_ROSTER_DATA: Omit<TeamMemberEntry, 'domains'>[] = [
     teamId: 'research',
     secondaryTeams: ['design'],
     isLead: true,
+    leadDomains: ['research'],
     isCore: false,
     email: 'adityafuldeore0700@gmail.com',
   },
@@ -147,6 +173,7 @@ const BASELINE_ROSTER_DATA: Omit<TeamMemberEntry, 'domains'>[] = [
     teamId: 'sponsorship',
     secondaryTeams: ['software', 'research'],
     isLead: true,
+    leadDomains: ['sponsorship'],
     isCore: false,
     email: 'shravani.cg17@gmail.com',
   },
@@ -157,6 +184,7 @@ const BASELINE_ROSTER_DATA: Omit<TeamMemberEntry, 'domains'>[] = [
     teamId: 'socialmedia',
     secondaryTeams: ['software', 'sponsorship'],
     isLead: true,
+    leadDomains: ['socialmedia'],
     isCore: false,
     email: 'nishantshinde682@gmail.com',
   },

@@ -20,6 +20,7 @@ export interface TeamMember {
   name: string;
   role?: string;
   isMentor?: boolean;
+  isCore?: boolean;
   department: string;
   domains: DomainId[];
   leadDomains: DomainId[];
@@ -101,36 +102,43 @@ const TEAM_MEMBERS_DATA: TeamMember[] = [
   {
     id: 'meet',
     name: 'Meet Samdadiya',
+    role: 'Mechanical & Design Lead',
     department: 'Mechanical Engineering',
     domains: ['mechanical', 'design', 'research', 'sponsorship'],
     leadDomains: ['mechanical', 'design'],
     image: '/team/meet_jain.jpg',
   },
 
-  // 2. Tirthraj Pawale (Domain Lead: EnTC; Member: Research, Social Media)
+  // 2. Tirthraj Pawale (Team Captain & EnTC Lead)
   {
     id: 'tirthraj',
     name: 'Tirthraj Pawale',
+    role: 'Core Lead & Captain',
+    isCore: true,
     department: 'Electrical & Electronics',
     domains: ['entc', 'research', 'socialmedia'],
     leadDomains: ['entc'],
     image: '/team/tirthraj_pawale.jpg',
   },
 
-  // 3. Pratik Desarda (Domain Lead: Documentation; Member: EnTC, Sponsorship)
+  // 3. Pratik Desarda (Vice Captain & Documentation Lead)
   {
     id: 'pratik',
     name: 'Pratik Desarda',
+    role: 'Vice Captain',
+    isCore: true,
     department: 'Electrical & Electronics',
     domains: ['documentation', 'entc', 'sponsorship'],
     leadDomains: ['documentation'],
     image: '/team/pratik_desarda.jpg',
   },
 
-  // 4. Parth Kshirsagar (Domain Lead: Software; Member: Sponsorship, Documentation)
+  // 4. Parth Kshirsagar (Software Lead & Core Member)
   {
     id: 'parth',
     name: 'Parth Kshirsagar',
+    role: 'Software Lead',
+    isCore: true,
     department: 'Computer Engineering',
     domains: ['software', 'sponsorship', 'documentation'],
     leadDomains: ['software'],
@@ -140,6 +148,7 @@ const TEAM_MEMBERS_DATA: TeamMember[] = [
   {
     id: 'aditya',
     name: 'Aditya Fuldeore',
+    role: 'Research Lead',
     department: 'Mechanical Engineering',
     domains: ['research', 'design'],
     leadDomains: ['research'],
@@ -149,6 +158,7 @@ const TEAM_MEMBERS_DATA: TeamMember[] = [
   {
     id: 'shravani',
     name: 'Shravani Gadekar',
+    role: 'Sponsorship Lead',
     department: 'Computer Engineering',
     domains: ['sponsorship', 'software', 'research'],
     leadDomains: ['sponsorship'],
@@ -158,6 +168,7 @@ const TEAM_MEMBERS_DATA: TeamMember[] = [
   {
     id: 'nishant',
     name: 'Nishant Shinde',
+    role: 'Social Media Lead',
     department: 'Computer Engineering',
     domains: ['socialmedia', 'software', 'sponsorship'],
     leadDomains: ['socialmedia'],
@@ -167,15 +178,18 @@ const TEAM_MEMBERS_DATA: TeamMember[] = [
   {
     id: 'samiksha',
     name: 'Samiksha Patole',
+    role: 'Team Member',
     department: 'Computer Engineering',
     domains: ['software'],
     leadDomains: [],
   },
 
-  // 9. Riddhi Munot (Software, Sponsorship, Documentation)
+  // 9. Riddhi Munot (Software, Sponsorship, Documentation; Core Member)
   {
     id: 'riddhi',
     name: 'Riddhi Munot',
+    role: 'Core Member',
+    isCore: true,
     department: 'Computer Engineering',
     domains: ['software', 'sponsorship', 'documentation'],
     leadDomains: [],
@@ -217,13 +231,14 @@ const TEAM_MEMBERS_DATA: TeamMember[] = [
     leadDomains: [],
   },
 
-  // 14. Prem Chaudhari (EnTC, Design)
+  // 14. Prem Chaudhari (Design Lead; EnTC, Design)
   {
     id: 'prem',
     name: 'Prem Chaudhari',
+    role: 'Design Lead',
     department: 'Electrical & Electronics',
-    domains: ['entc', 'design'],
-    leadDomains: [],
+    domains: ['design', 'entc'],
+    leadDomains: ['design'],
   },
 
   // 15. Sharvari Bhambar (EnTC, Documentation)
@@ -330,19 +345,50 @@ function MemberCard({
     .slice(0, 2)
     .toUpperCase();
 
-  const isDomainLead = activeCategory === 'all'
-    ? member.leadDomains.length > 0
-    : member.leadDomains.includes(activeCategory as DomainId);
-
   const roleLower = (member.role || '').toLowerCase();
   const isCaptain = roleLower.includes('captain') && !roleLower.includes('vice');
-  const isViceCaptain = roleLower.includes('vice captain');
+  const isViceCaptain = roleLower.includes('vice captain') || roleLower.includes('vice-captain') || roleLower.includes('vice');
+  const isCore = member.isCore || roleLower.includes('core');
 
-  const roleLabel = member.role || (member.isMentor
-    ? 'Faculty Mentor'
-    : isDomainLead
-    ? 'Domain Lead'
-    : 'Team Member');
+  // Compute specific domain role vs global all-crew hierarchy:
+  let roleLabel = 'Team Member';
+  let badgeClass = 'bg-jet-black/5 text-jet-black/70';
+
+  if (activeCategory === 'all') {
+    if (member.isMentor) {
+      roleLabel = 'Faculty Mentor';
+      badgeClass = 'bg-jet-black text-alice-blue font-bold shadow-sm';
+    } else if (isCaptain) {
+      roleLabel = member.role || 'Team Captain';
+      badgeClass = 'bg-amber-100 text-amber-900 border border-amber-300 font-bold';
+    } else if (isViceCaptain) {
+      roleLabel = member.role || 'Vice Captain';
+      badgeClass = 'bg-indigo-100 text-indigo-900 border border-indigo-300 font-bold';
+    } else if (isCore) {
+      roleLabel = member.role || 'Core Member';
+      badgeClass = 'bg-purple-100 text-purple-900 border border-purple-300 font-bold';
+    } else if (member.leadDomains && member.leadDomains.length > 0) {
+      roleLabel = member.role || 'Domain Lead';
+      badgeClass = 'bg-orange/15 text-orange border border-orange/30 font-bold';
+    } else {
+      roleLabel = member.role || 'Team Member';
+      badgeClass = 'bg-jet-black/5 text-jet-black/70';
+    }
+  } else {
+    // Specific domain selected (e.g. software, entc, mechanical, etc.)
+    const isLeadOfThisDomain = member.leadDomains && member.leadDomains.includes(activeCategory as DomainId);
+    if (member.isMentor) {
+      roleLabel = 'Faculty Mentor';
+      badgeClass = 'bg-jet-black text-alice-blue font-bold shadow-sm';
+    } else if (isLeadOfThisDomain) {
+      roleLabel = 'Domain Lead';
+      badgeClass = 'bg-orange/15 text-orange border border-orange/30 font-bold';
+    } else {
+      // STRICT INVARIANT: All other members in this specific domain are displayed strictly as Team Member
+      roleLabel = 'Team Member';
+      badgeClass = 'bg-jet-black/5 text-jet-black/70';
+    }
+  }
 
   const domainBadgeText = activeCategory === 'all'
     ? (member.isMentor 
@@ -405,17 +451,7 @@ function MemberCard({
             {displayName}
           </h3>
           <div className="mt-1.5 flex items-center gap-2">
-            <span className={`text-[10px] font-mono uppercase tracking-wider font-semibold px-2 py-0.5 rounded ${
-              member.isMentor
-                ? 'bg-jet-black text-alice-blue font-bold shadow-sm'
-                : isCaptain
-                ? 'bg-amber-100 text-amber-900 border border-amber-300 font-bold'
-                : isViceCaptain
-                ? 'bg-indigo-100 text-indigo-900 border border-indigo-300 font-bold'
-                : isDomainLead
-                ? 'bg-orange/15 text-orange border border-orange/30 font-bold'
-                : 'bg-jet-black/5 text-jet-black/70'
-            }`}>
+            <span className={`text-[10px] font-mono uppercase tracking-wider font-semibold px-2 py-0.5 rounded ${badgeClass}`}>
               {roleLabel}
             </span>
           </div>
@@ -715,13 +751,29 @@ function MobileTeamAccordion({
             {team.memberIds.map((item) => {
               const member = memberLookup.get(item.id);
               if (!member) return null;
+
+              const isSpecificLead = team.id === 'core'
+                ? Boolean(item.isLead)
+                : Boolean(member.leadDomains && member.leadDomains.includes(team.id as DomainId));
+
+              let mobileRole = 'Team Member';
+              if (member.isMentor) {
+                mobileRole = 'Faculty Mentor & Advisor';
+              } else if (team.id === 'core') {
+                mobileRole = member.role || item.role;
+              } else if (isSpecificLead) {
+                mobileRole = 'Domain Lead';
+              } else {
+                mobileRole = 'Team Member';
+              }
+
               return (
                 <MobilePlayerCard
                   key={`${team.id}-${item.id}`}
                   member={member}
-                  role={member.role || item.role}
-                  isLead={item.isLead}
-                  isMentor={item.isMentor}
+                  role={mobileRole}
+                  isLead={isSpecificLead}
+                  isMentor={member.isMentor}
                   customProfile={getProfileForMember(member)}
                 />
               );
@@ -770,14 +822,24 @@ export default function TeamSection() {
           });
           if (validDomains.length === 0) validDomains.push('software');
 
+          const rawLeadDomains: string[] = Array.isArray(m.leadDomains) && m.leadDomains.length > 0
+            ? m.leadDomains
+            : baseline?.leadDomains || [];
+          const validLeadDomains: DomainId[] = [];
+          rawLeadDomains.forEach((d) => {
+            const norm = normalizeDomainId(d);
+            if (norm && !validLeadDomains.includes(norm)) validLeadDomains.push(norm);
+          });
+
           dynamicList.push({
             id: m.id,
             name: m.name,
             role: m.role || baseline?.role || (m.isLead ? 'Domain Lead' : 'Team Member'),
             isMentor: false,
+            isCore: Boolean(m.isCore || baseline?.isCore),
             department: baseline?.department || 'Engineering Division',
             domains: validDomains,
-            leadDomains: m.isLead ? validDomains : (baseline?.leadDomains || []),
+            leadDomains: validLeadDomains,
             image: m.photoUrl || baseline?.image,
           });
         });
@@ -806,22 +868,37 @@ export default function TeamSection() {
     return roster ? customProfiles[roster.email.toLowerCase()] : undefined;
   };
 
-  // Filter members strictly based on domain selection for desktop view
+  // Filter & sort members strictly based on requested hierarchy and domain context
   const filteredMembers = useMemo(() => {
     if (activeCategory === 'all') {
-      return teamMembers;
+      // Requested All Crew Hierarchy: Mentor (1) -> Captain (2) -> Vice Captain (3) -> Core Members (4) -> Leads (5) -> Members (6)
+      return [...teamMembers].sort((a, b) => {
+        const getRank = (m: TeamMember) => {
+          if (m.isMentor) return 1;
+          const r = (m.role || '').toLowerCase();
+          if (r.includes('captain') && !r.includes('vice')) return 2;
+          if (r.includes('vice captain') || r.includes('vice-captain') || r.includes('vice')) return 3;
+          if (m.isCore || r.includes('core')) return 4;
+          if ((m.leadDomains && m.leadDomains.length > 0) || r.includes('lead')) return 5;
+          return 6;
+        };
+        const rankA = getRank(a);
+        const rankB = getRank(b);
+        if (rankA !== rankB) return rankA - rankB;
+        return a.name.localeCompare(b.name);
+      });
     }
 
     const domainKey = activeCategory as DomainId;
     const matches = teamMembers.filter((m) => m.domains.includes(domainKey));
 
-    // Sort Domain Lead to the very top of each domain tab
+    // Sort Domain Lead of this specific domain to the very top, others follow alphabetically
     return matches.sort((a, b) => {
       const aIsLead = a.leadDomains.includes(domainKey);
       const bIsLead = b.leadDomains.includes(domainKey);
       if (aIsLead && !bIsLead) return -1;
       if (!aIsLead && bIsLead) return 1;
-      return 0;
+      return a.name.localeCompare(b.name);
     });
   }, [teamMembers, activeCategory]);
 

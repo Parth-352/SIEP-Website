@@ -311,7 +311,7 @@ export default function Navigation() {
                     <span>Materials</span>
                   </button>
 
-                  {/* 7. Roles (Parth Only) */}
+                  {/* 7. Roles Governance */}
                   {isParth && (
                     <button
                       type="button"
@@ -323,7 +323,7 @@ export default function Navigation() {
                           window.history.pushState(null, '', '/dashboard?tab=roles');
                         }
                       }}
-                      title="Master Role & Team Authority (Parth Only)"
+                      title="Master Role & Team Governance"
                       className={`px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                         isRolesActive
                           ? 'bg-[#0e131f] text-white shadow-xs'
@@ -482,7 +482,7 @@ export default function Navigation() {
                             <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                             </svg>
-                            <span>Role Management (Parth Only)</span>
+                            <span>Role Management</span>
                           </button>
                         )}
 
@@ -901,7 +901,7 @@ export default function Navigation() {
                   </svg>
                 </Link>
 
-                {/* 6. Roles (Parth Only) */}
+                {/* 6. Roles Governance */}
                 {isParth && (
                   <Link
                     href="/dashboard?tab=roles"
@@ -929,7 +929,7 @@ export default function Navigation() {
                           Role Management
                         </span>
                         <span className="text-[10px] text-amber-700 font-bold uppercase tracking-wider block">
-                          Parth Only
+                          Executive Authority
                         </span>
                       </div>
                     </div>

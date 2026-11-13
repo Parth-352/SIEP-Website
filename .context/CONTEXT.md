@@ -34,6 +34,7 @@ Riders Bay is an electric vehicle development team designing and fabricating an 
 ---
 
 ## 📜 3. RECENT GIT COMMITS & REPOSITORY ACTIVITY
+- `59f25d9` - `fix(roles): remove duplicate gray domain badges and remove single authority gate card`
 - `f616bb7` - `feat(portal): resolve role editing data bug, eliminate primary/secondary domain hierarchy, enable password and PFP management, and sync dynamic roster across website`
 - `cd0237c` - `docs(handover): record role management console implementation and deployment web-qipaowjaz`
 - `18c4d41` - `feat(portal): add master role management console restricted exclusively to parthkshirsagrr@gmail.com with captain/vice captain appointment and permission revocation`

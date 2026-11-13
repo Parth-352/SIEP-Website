@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getFirestoreMembers, getFirestoreMemberProfiles } from '@/lib/firestoreService';
-import { getMemberDomains } from '@/lib/members';
+import { getMemberDomains, getMemberLeadDomains } from '@/lib/members';
 import { MemberProfileData } from '@/lib/types';
 
 /**
@@ -17,15 +17,17 @@ export async function GET() {
       const email = m.email.toLowerCase().trim();
       const customProfile = profiles[email];
       const domains = getMemberDomains(m);
+      const leadDomains = getMemberLeadDomains(m);
 
       return {
         id: m.id,
         name: customProfile?.displayName || m.name,
         role: m.role || 'Team Member',
         domains,
+        leadDomains,
         teamId: domains[0] || m.teamId || 'software',
         secondaryTeams: domains.slice(1),
-        isLead: Boolean(m.isLead),
+        isLead: leadDomains.length > 0 || Boolean(m.isLead),
         isCore: Boolean(m.isCore),
         tier: m.tier || (m.isCore ? 1 : m.isLead ? 2 : 3),
         email: m.email,

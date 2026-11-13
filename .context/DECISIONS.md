@@ -7,7 +7,7 @@
 
 ---
 
-## 📑 QUICK ADR INDEX (001 - 021)
+## 📑 QUICK ADR INDEX (001 - 023)
 | ADR | Title | Date | Status |
 | :--- | :--- | :--- | :--- |
 | **ADR-001** | Next.js 16 App Router + React 19 + Tailwind CSS v4 | 2026-11-10 | Accepted |
@@ -31,6 +31,8 @@
 | **ADR-019** | Dedicated Research & Materials Repository with Direct Google Drive Upload | 2026-11-13 | Accepted |
 | **ADR-020** | Master Role & Team Governance Console (Exclusively for Parth Kshirsagar) | 2026-11-13 | Accepted |
 | **ADR-021** | Role Editing Resilience, Absolute Domain Equality & Dynamic Public Roster Sync | 2026-11-13 | Accepted |
+| **ADR-022** | Roles Management Console UI Simplification & Authority Gate Streamlining | 2026-11-13 | Accepted |
+| **ADR-023** | Specific Domain Leadership, Public Hierarchy Protocol & Domain Lead Highlighting | 2026-11-13 | Accepted |
 
 ---
 
@@ -371,7 +373,7 @@
      - Deletion is restricted to the original author or Core Administrators.
   4. **Persistence Layer:**
      - Created `/api/materials` endpoint handling `GET`, `POST`, and `DELETE`.
-     - Synchronizes to Firestore collection `research_materials` with local memory store fallback (`store.ts`).
+     - Synchronizes to Firestore collection `materials` with local memory store fallback (`store.ts`).
 - **Consequences:**
   - Team members across all 9 squads have a dedicated, organized technical document repository without cluttering the daily build log.
   - Large technical files bypass serverless limitations and are stored reliably in the team Google Drive.
@@ -433,3 +435,57 @@
   - Flawless, unbreakable role and credential management for Parth Kshirsagar.
   - Immediate real-time reflection of role and roster changes across both the internal portal and the public marketing website.
   - Fair, transparent multi-domain representation for all team members.
+
+---
+
+## 🏛️ ADR-022: Roles Management Console UI Simplification & Authority Gate Streamlining
+- **Date:** 2026-11-13
+- **Status:** Accepted & Implemented
+- **Context:**
+  - In ADR-021, bracket domain tags (e.g. `[MECH] [DSGN] [RES]`) and mini-role badges (`CAPTAIN`, `VICE CAPT`) were isolated to the Member Name column in the Master Roles console. However, this created visual duplication because Column 2 is already dedicated to `ROLE & TITLE` and Column 3 is already dedicated to `ASSIGNED DOMAINS` with full-color squad pills.
+  - Furthermore, the black "Single Authority Gate" card in the right sidebar of the console repeated information already enforced by the security model and added visual clutter to the executive appointments panel.
+- **Decisions:**
+  1. **Member Name Column Simplification:**
+     - Removed all bracket tags and mini-role badges from the Member Name column in `RolesManagementTab.tsx`.
+     - Column 1 now cleanly displays: Initials Avatar + Member Name (`font-bold text-slate-900`) + Email (`text-[11px] text-slate-500`).
+     - Column 2 retains the definitive, full `ROLE & TITLE`.
+     - Column 3 renders all assigned domains using equal, colorful squad pills.
+  2. **Removal of Redundant Authority Gate Card:**
+     - Removed the black "Single Authority Gate" sidebar card, giving the executive leadership overview and 1-click Captain/Vice Captain appointment tools clear visual focus.
+  3. **Preservation of Security Invariant:**
+     - The underlying cryptographic security gate (`isParthMasterAdmin()`) remains 100% active on the frontend route guard, navigation items, and the `/api/roles` backend endpoint.
+- **Consequences:**
+  - The Master Roles console table is significantly cleaner, easier to scan, and eliminates redundant visual indicators.
+  - Zero disruption to data structures, API security, or domain assignment logic.
+
+---
+
+## 🏛️ ADR-023: Specific Domain Leadership, Public Hierarchy Protocol & Domain Lead Highlighting
+- **Date:** 2026-11-13
+- **Status:** Accepted & Implemented
+- **Context:**
+  - Members often lead one specific domain while contributing as general members to others (e.g. Captain Tirthraj leads EnTC while contributing to Research; Vice Captain Pratik leads Documentation while contributing to EnTC and Sponsorship; Meet leads Mechanical & Design while contributing to Research; Parth leads Software while contributing to Sponsorship and Documentation).
+  - Previously, when clicking a specific domain tab (such as Software or Mechanical), members holding global titles (Captain, Vice Captain, or leads of other domains) displayed their global titles, muddying domain hierarchy and making it unclear who actually leads that specific domain.
+  - In the "All Crew" public view, the user required an exact hierarchy sequence: `Mentor (1) -> Captain (2) -> Vice Captain (3) -> Core Members (4) -> Domain Leads (5) -> Regular Members (6)`.
+  - In the Roles console, the user needed to designate domain leadership for any member (including Captain and Vice Captain), have Domain Leads tab include Captain/Vice Captain if they lead a domain, highlight lead domains in the Assigned Domains column, and eliminate all "(Parth Only)" text.
+- **Decisions:**
+  1. **Specific Domain Leadership (`leadDomains: TeamId[]`):**
+     - Extended `TeamMemberEntry` and `TeamMember` with `leadDomains: TeamId[]`.
+     - In the Master Roles console Edit/Add modals, introduced a dedicated Domain Leadership selector enabling Parth to toggle which assigned domain(s) a member leads. This works for Captain, Vice Captain, Core Members, or any member.
+     - Preserved `leadDomains` during 1-click Captain/Vice Captain promotions in `/api/roles`.
+  2. **Strict Specific Domain Role Context ("Applicable Everywhere"):**
+     - When viewing a specific domain (e.g. `/about#team` with a domain filter selected, or mobile accordion for that squad):
+       - ONLY the member who leads that specific domain (`member.leadDomains.includes(activeDomain)`) displays as `Domain Lead`.
+       - ALL other members in that domain—even if they are Captain, Vice Captain, or leads of another domain—are strictly badged as `Team Member` (`bg-jet-black/5 text-jet-black/70`).
+       - The domain lead is sorted to the top of the domain list.
+  3. **Strict "All Crew" Public Hierarchy:**
+     - When "All Crew" is active, members are sorted in the exact requested hierarchy:
+       `Mentor (1) -> Captain (2) -> Vice Captain (3) -> Core Members (4) -> Domain Leads (5) -> Regular Members (6)`.
+  4. **Domain Leads Filter & Highlight in Roles Console:**
+     - The "Domain Leads" filter tab in `RolesManagementTab.tsx` includes Captain and Vice Captain if they lead any domain (`getMemberLeadDomains(m).length > 0 || m.isLead`).
+     - In the `ASSIGNED DOMAINS` table column, domains that a member leads are visually highlighted with a gold gradient, star icon (`★`), dark bold text, and a golden border (`bg-gradient-to-r from-amber-300 to-amber-400 text-amber-950 ring-2 ring-amber-500/80 font-black`), making leads immediately distinguishable from general assignments.
+  5. **Removal of "Parth Only" Labeling:**
+     - Removed all "(Parth Only)" and "Parth Only" text from navigation tooltips, profile dropdowns, and mobile drawers, replacing them with professional executive labels (`Role Management`, `Master Role & Team Governance`, `Executive Authority`).
+- **Consequences:**
+  - Absolute clarity on domain leadership across both the public website and internal governance console.
+  - Clean, professional executive styling with zero emoji usage and total type safety.

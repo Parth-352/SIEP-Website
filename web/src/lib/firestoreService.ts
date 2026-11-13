@@ -437,14 +437,19 @@ export async function getFirestoreMembers(): Promise<TeamMemberEntry[]> {
           ? Array.from(new Set([data.teamId, ...data.secondaryTeams]))
           : existing?.domains || ['software'];
 
+        const leadDomains: TeamId[] = Array.isArray(data.leadDomains)
+          ? data.leadDomains
+          : existing?.leadDomains || (data.isLead && domains.length > 0 ? [domains.filter((d: TeamId) => d !== 'core')[0] || domains[0]] : []);
+
         const merged: TeamMemberEntry = {
           id,
           name: data.name || existing?.name || '',
           role: data.role || existing?.role || 'Team Member',
           domains,
+          leadDomains,
           teamId: domains[0] || (data.teamId as TeamId) || 'software',
           secondaryTeams: domains.slice(1),
-          isLead: data.isLead !== undefined ? Boolean(data.isLead) : Boolean(existing?.isLead),
+          isLead: data.isLead !== undefined ? Boolean(data.isLead) : (leadDomains.length > 0 || Boolean(existing?.isLead)),
           isCore: data.isCore !== undefined ? Boolean(data.isCore) : Boolean(existing?.isCore),
           tier: data.tier || existing?.tier || (data.isCore ? 1 : data.isLead ? 2 : 3),
           email: data.email || existing?.email || '',
@@ -473,6 +478,7 @@ export async function saveFirestoreMember(member: TeamMemberEntry): Promise<bool
       name: member.name,
       role: member.role,
       domains,
+      leadDomains: Array.isArray(member.leadDomains) ? member.leadDomains : [],
       teamId: domains[0] || member.teamId || 'software',
       secondaryTeams: domains.slice(1),
       isLead: Boolean(member.isLead),

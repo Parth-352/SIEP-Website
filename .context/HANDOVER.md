@@ -1,6 +1,6 @@
 # 📋 ACTIVE SESSION HANDOVER & STATE
 > **Last Updated:** 2026-11-13 (Daily Context Sync) | **Branch:** `main`  
-> **Head Commit:** `f616bb7` (*feat(portal): resolve role editing data bug, eliminate primary/secondary domain hierarchy, enable password and PFP management, and sync dynamic roster across website*)  
+> **Head Commit:** `59f25d9` (*fix(roles): remove duplicate gray domain badges and remove single authority gate card*)  
 > **Production Live URLs:** `https://ridersbay.vercel.app` and `https://riders-bay.vercel.app`  
 > *This document is the single source of truth for in-flight work across breaks and sessions. Agents and developers must read this before starting and update it before stopping.*
 
@@ -45,9 +45,9 @@
 1. **Hierarchy Elimination:**
    - Completely eradicated the legacy concept of "primary vs. secondary" domains.
    - All assigned squads are represented equally via `domains: TeamId[]` with identical badges and equal prominence.
-2. **Shortcode Isolation:**
-   - Square bracket shortcodes (e.g. `[MECH] [DSGN] [RES] Meet Samdadiya`) appear **strictly in the Roles Management console table** for quick scanning.
-   - Everywhere else (navigation, profile, Teams tab, task cards, public website), members have clean names with zero bracket prefixes.
+2. **Clean Identity Everywhere (ADR-022):**
+   - Bracket shortcodes and duplicate tags have been completely removed from all views, including the Roles Management table.
+   - Everywhere (navigation, profile, Teams tab, task cards, public website, and Roles console), members have clean First + Last names with zero bracket prefixes or redundant tags.
 
 ### D. Dedicated Research & Technical Materials Repository (ADR-019)
 1. **Dedicated Hub (`/materials`, `MaterialsTab.tsx`):**
@@ -74,6 +74,22 @@
    - Column 3 is dedicated to `ASSIGNED DOMAINS` with the colorful pills representing all assigned squads with zero partiality.
 2. **Removed "Single Authority Gate" Card:**
    - Completely removed the black "Single Authority Gate" card ("singularity wala stuff") from the right sidebar of the Roles console, leaving a clean, distraction-free view with the Executive Command appointments card.
+
+### G. Specific Domain Leadership & Hierarchy Context (ADR-023)
+1. **Domain Leadership for Captain, Vice Captain & All Members:**
+   - Introduced `leadDomains: TeamId[]` across Firestore, API routes (`/api/members`, `/api/roles`), and state.
+   - Dedicated multi-domain leadership selector in Edit & Add modals in `RolesManagementTab.tsx`, allowing Parth to assign specific domain leads to any member, Captain, or Vice Captain.
+2. **Specific Domain Role Context ("Applicable Everywhere"):**
+   - When viewing a specific domain (e.g. Software, Mechanical, EnTC) on the public website or mobile accordions, only the specific lead of that domain is badged as `Domain Lead` (and sorted to the top).
+   - All other members in that domain—even if they are Captain, Vice Captain, or leads of another domain—are displayed strictly as `Team Member` (`bg-jet-black/5 text-jet-black/70`).
+3. **Public Hierarchy Protocol in "All Crew":**
+   - When "All Crew" is active, members are strictly sorted in the requested order:
+     `Mentor (1) -> Captain (2) -> Vice Captain (3) -> Core Members (4) -> Domain Leads (5) -> Regular Members (6)`.
+4. **Domain Leads Highlighting & Filter:**
+   - In `RolesManagementTab.tsx`, domains that a member leads are highlighted in the `ASSIGNED DOMAINS` column with a gold gradient, star icon (`★`), and amber border.
+   - The "Domain Leads" filter tab includes Captain and Vice Captain if they lead any domain.
+5. **Removed "Parth Only" Text Everywhere:**
+   - Navigation tooltips, mobile menus, and profile links now use clean professional terms (`Role Management`, `Master Role & Team Governance`, `Executive Authority`).
 
 ---
 
