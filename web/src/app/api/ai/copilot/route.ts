@@ -12,7 +12,6 @@ import {
 } from '@/lib/rulebookService';
 
 export const maxDuration = 60;
-export const dynamic = 'force-dynamic';
 
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
