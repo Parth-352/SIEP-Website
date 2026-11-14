@@ -42,7 +42,7 @@ export default function RulebookCopilotDrawer({ isOpen, onClose, user }: Ruleboo
         {
           id: 'welcome',
           role: 'assistant',
-          content: `Hi! Ask me anything about the **SIEP Season 7.0 Rulebook** or our **Scrambler E-Bike** specs.`,
+          content: 'How can I help with the rulebook or bike specs?',
           timestamp: 'Just now',
           isRulebook: false,
         },
@@ -61,7 +61,7 @@ export default function RulebookCopilotDrawer({ isOpen, onClose, user }: Ruleboo
       {
         id: `welcome_${Date.now()}`,
         role: 'assistant',
-        content: `Chat cleared. Ask anything about rules or bike specs.`,
+        content: 'Chat cleared. How can I help?',
         timestamp: 'Just now',
         isRulebook: false,
       },
@@ -245,7 +245,7 @@ export default function RulebookCopilotDrawer({ isOpen, onClose, user }: Ruleboo
                 )}
 
                 {/* Quick Copy Action */}
-                {m.role === 'assistant' && (
+                {m.role === 'assistant' && !m.id.startsWith('welcome') && (
                   <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-end">
                     <button
                       type="button"

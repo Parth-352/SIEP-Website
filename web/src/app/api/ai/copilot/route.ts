@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     if (greetingWords.includes(cleanMsg)) {
       return NextResponse.json({
         success: true,
-        reply: `**Hey there!** I'm your **SIEP Season 7.0 Copilot** for Riders Bay.\n\nAsk me anything about:\n- **Official Season 7.0 Rules:** Ground clearance, chassis tubing, kill switches, paddock stands, battery scrutiny\n- **Riders Bay Scrambler Specs:** 72V 40Ah battery pack, 5.0 kW mid-drive BLDC motor, AISC 4130 spaceframe, telemetry, or team roster`,
+        reply: `**Hey!** How can I help with the rulebook or bike specs today?`,
         isRulebook: false,
         citations: [],
         modelUsed: 'instant-copilot',

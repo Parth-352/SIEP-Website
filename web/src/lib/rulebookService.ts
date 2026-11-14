@@ -391,11 +391,7 @@ ${bulletPoints}`;
   }
 
   // Conversational fallback
-  const reply = `Hey! I am your **SIEP Season 7.0 Copilot**.
-
-I can help with:
-- **Rulebook Regulations:** Ground clearance, paddock stands, chassis tubing, kill switches, or inspection tests.
-- **Riders Bay Scrambler Specs:** 5 kW BLDC motor, 72V 40Ah battery pack, AISC 4130 spaceframe, or team roster.`;
+  const reply = `**Hey!** How can I help with the rulebook or bike specs today?`;
 
   return { reply, isRulebook: false, citations: [] };
 }
