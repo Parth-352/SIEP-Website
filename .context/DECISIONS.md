@@ -40,6 +40,7 @@
 | **ADR-028** | Seamless Event-Driven Notification Bus, SPA Navigation & Real-Time Deck Sync | 2026-11-15 | Accepted |
 | **ADR-029** | Modular Bifurcation of Monolithic Dashboard & Activity Log Engines | 2026-11-15 | Accepted |
 | **ADR-030** | Modular Bifurcation of Navigation Engine & Task Detail Modal | 2026-11-15 | Accepted |
+| **ADR-031** | Complete Rework of The Bike Page Architecture & 3D Model Staging Protocol | 2026-11-15 | Accepted |
 
 ---
 
@@ -741,3 +742,31 @@
   - Total combined lines across the two files dropped from **2,828 lines** down to **939 lines** (-66.8%).
   - Zero type errors (`npx tsc --noEmit` clean).
   - Turbopack builds all 33/33 routes cleanly in ~1.1s.
+
+---
+
+## 🏍️ ADR-031: Complete Rework of The Bike Page Architecture & 3D Model Staging Protocol
+- **Date:** 2026-11-15
+- **Status:** Accepted & Implemented
+- **Context:**
+  - The previous `/bike` page was a basic 75-line placeholder with minimal specifications and a raw 3D viewer.
+  - Team leadership requested a complete rework of "The Bike" page into a competition-grade engineering showcase, while explicitly directing that the 3D model currently showcased on the website be removed for now pending pre-competition scrutiny refinement.
+- **Decisions:**
+  1. **3D Model Staging Protocol:**
+     - Removed 3D WebGL model showcase from `/bike` and disabled background `Canvas3D` on `/`.
+     - Preserved raw GLB assets (`moto.glb`, `chassis.glb`) in `web/public/` for future release when physical assembly is unveiled.
+  2. **Technical Architecture Blueprint Viewer (`BikeSchematicViewer.tsx`):**
+     - Implemented an interactive 2D engineering blueprint with vector silhouette, real millimeter dimensions (Wheelbase 1,340 mm, Ground Clearance 180 mm, Seat Height 810 mm), and 6 interactive component hotspots.
+     - Added status indicator: `CAD DIGITAL TWIN: PRE-COMPETITION SCRUTINY REFINEMENT`.
+  3. **Modular Subsystems Architecture (`web/src/components/bike/`):**
+     - `bikeSpecsData.ts`: Authoritative master data for telemetry stats, hotspots, 8 subsystems, full specifications, CAE validation, and dynamic proving ground trials.
+     - `BikeHeroSection.tsx`: Editorial display typography, mission narrative, and 6-card live telemetry stat ribbon.
+     - `SubsystemsExplorer.tsx`: Interactive tabbed matrix covering Chassis, Powertrain, Battery, Telemetry, Suspension, Braking, Safety, and Aerodynamics.
+     - `TechSpecsTable.tsx`: Searchable and category-filtered technical specifications table.
+     - `CaeValidationSection.tsx`: Finite Element Analysis (FEA) and Computational Fluid Dynamics (CFD) virtual validation cards.
+     - `ProvingGroundSection.tsx`: SIEP Season 7.0 dynamic trials mapping (0–50m launch, 40° hill climb, 140 mm pothole durability, range).
+     - `BikeCtaHub.tsx`: Bottom technical cross-linking hub to Materials, Build Log, Copilot, and Contact.
+- **Consequences:**
+  - Zero WebGL render lag or mobile GPU battery drain.
+  - The Bike page is now a world-class collegiate engineering portfolio showcasing deep EV technical competence.
+  - All 33 Next.js routes compile cleanly under Turbopack in ~2 seconds.

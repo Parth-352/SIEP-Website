@@ -1,47 +1,18 @@
 "use client";
 
-import dynamic from 'next/dynamic';
-import { useState } from 'react';
 import ScrollOverlay from '@/components/ScrollOverlay';
 import TimelineIndicator from '@/components/TimelineIndicator';
-import ErrorBoundary from '@/components/ErrorBoundary';
-
-const Canvas3D = dynamic(() => import('@/components/Canvas3D'), {
-  ssr: false,
-  loading: () => null,
-});
 
 export default function Home() {
-  const [is3DEnabled, setIs3DEnabled] = useState(true);
-
   return (
     <main className="relative w-full overflow-x-hidden bg-alice-blue min-h-screen">
       {/* Persistent Timeline */}
       <TimelineIndicator />
 
-      {/* 3D Canvas (Fixed in background) with ErrorBoundary protection */}
-      {is3DEnabled && (
-        <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-0">
-          <ErrorBoundary fallback={null}>
-            <Canvas3D />
-          </ErrorBoundary>
-        </div>
-      )}
-
       {/* The overlay is relative and dictates the total scroll height of the page */}
       <div className="relative z-10 w-full h-full">
         <ScrollOverlay />
       </div>
-
-      {/* 3D Engine Toggle for Resource Optimization */}
-      <button 
-        onClick={() => setIs3DEnabled(!is3DEnabled)}
-        className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-50 bg-jet-black/95 text-alice-blue text-[10px] uppercase font-mono tracking-widest px-3.5 py-2.5 md:px-4 md:py-3 min-h-[40px] rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2.5 border border-white/10 cursor-pointer whitespace-nowrap backdrop-blur-md"
-        aria-label="Toggle 3D rendering"
-      >
-        <div className={`w-2 h-2 rounded-full ${is3DEnabled ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]' : 'bg-red-500 opacity-50'}`}></div>
-        <span>{is3DEnabled ? '3D: ON' : '3D: OFF'}</span>
-      </button>
     </main>
   );
 }
