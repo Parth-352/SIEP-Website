@@ -18,9 +18,10 @@ export function middleware(request: NextRequest) {
   // Protected paths
   const isDashboardRoute = pathname.startsWith('/dashboard');
   const isLogRoute = pathname.startsWith('/log');
-  const isProtectedApi = pathname.startsWith('/api/logs') || pathname.startsWith('/api/tasks');
+  const isCopilotRoute = pathname.startsWith('/copilot');
+  const isProtectedApi = pathname.startsWith('/api/logs') || pathname.startsWith('/api/tasks') || pathname.startsWith('/api/ai/copilot');
 
-  if (!isDashboardRoute && !isLogRoute && !isProtectedApi) {
+  if (!isDashboardRoute && !isLogRoute && !isCopilotRoute && !isProtectedApi) {
     return NextResponse.next();
   }
 
@@ -55,8 +56,10 @@ export const config = {
   matcher: [
     '/dashboard/:path*',
     '/log/:path*',
+    '/copilot/:path*',
     '/api/logs/:path*',
     '/api/tasks/:path*',
+    '/api/ai/copilot/:path*',
     '/',
     '/about/:path*',
     '/bike/:path*',

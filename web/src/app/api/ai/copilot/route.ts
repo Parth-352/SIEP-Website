@@ -45,14 +45,19 @@ export async function POST(request: NextRequest) {
     const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
     const session = decodeSession(sessionCookie);
 
-    const userRole = session
-      ? session.isCore
-        ? 'Core Leadership'
-        : session.isLead
-        ? 'Squad Lead'
-        : 'Team Member'
-      : 'Guest / Team Member';
-    const userName = session ? session.name : 'Riders Bay Engineer';
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized: Portal login required to access Riders Bay AI Copilot.' },
+        { status: 401 }
+      );
+    }
+
+    const userRole = session.isCore
+      ? 'Core Leadership'
+      : session.isLead
+      ? 'Squad Lead'
+      : 'Team Member';
+    const userName = session.name || 'Riders Bay Engineer';
 
     const body = await request.json();
     const { message, conversationHistory = [] }: { message: string; conversationHistory: ChatMessage[] } = body;
