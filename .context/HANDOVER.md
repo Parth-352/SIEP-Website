@@ -1,7 +1,18 @@
 # 📋 ACTIVE SESSION HANDOVER & STATE
-> **Last Updated:** 2026-11-15 04:10 IST | **Branch:** `main`  
-> **Head Commit:** `055b7db` refactor: bifurcate top monolithic components into modular architecture (Rounds 1 & 2)  
-> **Production Live URLs:** `https://ridersbay.vercel.app` (Aliased & Live in 32s)  
+> **Last Updated:** 2026-11-15 04:25 IST | **Branch:** `main`  
+> **Head Commit:** in-flight  
+> **Production Live URLs:** `https://ridersbay.vercel.app`  
+
+---
+
+## 🚦 1. CURRENT WORKSPACE STATUS
+- **Production Status:** Clean working state. All 33 static & dynamic Next.js routes compile clean under Turbopack in ~1.0s.
+- **Contact Page Updates:**
+  1. Dynamically resolves Faculty Mentor, Team Captain, and Vice Captain from live `/api/members` roster (showing strictly those 3 contacts).
+  2. Responsive 3-column contact grid with dynamic `{teamContacts.length} Direct Contacts` badge.
+  3. Removed `Mechanical Engg. Dept.` label from campus location banner.
+  4. Removed weird sample placeholders from inquiry form.
+  5. Removed `Direct Routing` badge from inquiry header.
 > *This document is the single source of truth for in-flight work across breaks and sessions. Agents and developers must read this before starting and update it before stopping.*
 
 ---

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 const SUPPORT_AREAS = [
@@ -16,18 +16,112 @@ interface ContactPerson {
   name: string;
   role: string;
   phone?: string | null;
+  photoUrl?: string;
 }
 
-const TEAM_CONTACTS: ContactPerson[] = [
+const KNOWN_PHONES: Record<string, string> = {
+  'tirthraj pawale': '+91 9271647536',
+  'meet samdadiya': '+91 7058471449',
+  'meet jain': '+91 7058471449',
+  'pratik desarda': '+91 9307740350',
+  'parth kshirsagar': '+91 9271647536',
+  'riddhi munot': '+91 9271647536',
+  'yashodhan joshi': '+91 9271647536',
+};
+
+// Initial verified baseline (Mentor, Captain, Vice Captain only)
+const INITIAL_TEAM_CONTACTS: ContactPerson[] = [
   { name: "Prof. Deore H.S.", role: "Faculty Mentor & Advisor", phone: null },
-  { name: "Meet Samdadiya", role: "Team Captain", phone: "+91 7058471449" },
-  { name: "Tirthraj Pawale", role: "Vice Captain", phone: "+91 9271647536" },
-  { name: "Pratik Desarda", role: "Core member", phone: "+91 9307740350" },
+  { name: "Tirthraj Pawale", role: "Team Captain", phone: "+91 9271647536" },
+  { name: "Pratik Desarda", role: "Vice Captain", phone: "+91 9307740350" },
 ];
 
 export default function ContactPage() {
   const [formState, setFormState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [teamContacts, setTeamContacts] = useState<ContactPerson[]>(INITIAL_TEAM_CONTACTS);
+
+  // Dynamically resolve Faculty Mentor, Team Captain, and Vice Captain from live roster
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/api/members')
+      .then((res) => res.json())
+      .then((data) => {
+        if (!isMounted || !data?.success || !Array.isArray(data.members)) return;
+        const members: any[] = data.members;
+
+        // 1. Faculty Mentor & Advisor
+        const mentorContact: ContactPerson = {
+          name: "Prof. Deore H.S.",
+          role: "Faculty Mentor & Advisor",
+          phone: null,
+          photoUrl: '/team/prof_deore.jpg',
+        };
+
+        // 2. Team Captain (role contains 'captain' and NOT 'vice')
+        const captainMember = members.find((m) => {
+          const r = (m.role || '').toLowerCase();
+          return r.includes('captain') && !r.includes('vice');
+        });
+
+        // 3. Vice Captain (role contains 'vice')
+        const viceCaptainMember = members.find((m) => {
+          const r = (m.role || '').toLowerCase();
+          return r.includes('vice');
+        });
+
+        const dynamicList: ContactPerson[] = [mentorContact];
+
+        if (captainMember) {
+          const phone =
+            captainMember.phone ||
+            KNOWN_PHONES[captainMember.name.toLowerCase().trim()] ||
+            '+91 9271647536';
+          dynamicList.push({
+            name: captainMember.name,
+            role: "Team Captain",
+            phone,
+            photoUrl: captainMember.photoUrl || (captainMember.name.toLowerCase().includes('tirthraj') ? '/team/tirthraj_pawale.jpg' : undefined),
+          });
+        } else {
+          dynamicList.push({
+            name: "Tirthraj Pawale",
+            role: "Team Captain",
+            phone: "+91 9271647536",
+            photoUrl: '/team/tirthraj_pawale.jpg',
+          });
+        }
+
+        if (viceCaptainMember) {
+          const phone =
+            viceCaptainMember.phone ||
+            KNOWN_PHONES[viceCaptainMember.name.toLowerCase().trim()] ||
+            '+91 9307740350';
+          dynamicList.push({
+            name: viceCaptainMember.name,
+            role: "Vice Captain",
+            phone,
+            photoUrl: viceCaptainMember.photoUrl || (viceCaptainMember.name.toLowerCase().includes('pratik') ? '/team/pratik_desarda.jpg' : undefined),
+          });
+        } else {
+          dynamicList.push({
+            name: "Pratik Desarda",
+            role: "Vice Captain",
+            phone: "+91 9307740350",
+            photoUrl: '/team/pratik_desarda.jpg',
+          });
+        }
+
+        setTeamContacts(dynamicList);
+      })
+      .catch(() => {
+        // Retain verified baseline
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -189,9 +283,6 @@ export default function ContactPage() {
                     Send an Inquiry<span className="text-orange">.</span>
                   </h2>
                 </div>
-                <span className="text-[10px] font-mono text-grey font-bold bg-alice-blue px-2.5 py-1 rounded-md border border-jet-black/10">
-                  Direct Routing
-                </span>
               </div>
 
               {formState === 'success' ? (
@@ -229,8 +320,7 @@ export default function ContactPage() {
                         type="text" 
                         required 
                         autoComplete="name"
-                        className="w-full px-4 py-3 bg-alice-blue/40 border border-jet-black/15 focus:border-orange focus:ring-2 focus:ring-orange/20 focus:outline-none transition-all rounded-xl text-jet-black placeholder-grey/40 text-sm font-sans" 
-                        placeholder="e.g. Anand Mahindra" 
+                        className="w-full px-4 py-3 bg-alice-blue/40 border border-jet-black/15 focus:border-orange focus:ring-2 focus:ring-orange/20 focus:outline-none transition-all rounded-xl text-jet-black text-sm font-sans" 
                       />
                     </div>
 
@@ -242,8 +332,7 @@ export default function ContactPage() {
                         name="organization" 
                         type="text" 
                         autoComplete="organization"
-                        className="w-full px-4 py-3 bg-alice-blue/40 border border-jet-black/15 focus:border-orange focus:ring-2 focus:ring-orange/20 focus:outline-none transition-all rounded-xl text-jet-black placeholder-grey/40 text-sm font-sans" 
-                        placeholder="e.g. Tech Sponsor / EV Components" 
+                        className="w-full px-4 py-3 bg-alice-blue/40 border border-jet-black/15 focus:border-orange focus:ring-2 focus:ring-orange/20 focus:outline-none transition-all rounded-xl text-jet-black text-sm font-sans" 
                       />
                     </div>
                   </div>
@@ -259,8 +348,7 @@ export default function ContactPage() {
                         required 
                         autoComplete="email"
                         inputMode="email"
-                        className="w-full px-4 py-3 bg-alice-blue/40 border border-jet-black/15 focus:border-orange focus:ring-2 focus:ring-orange/20 focus:outline-none transition-all rounded-xl text-jet-black placeholder-grey/40 text-sm font-sans font-mono" 
-                        placeholder="name@company.com" 
+                        className="w-full px-4 py-3 bg-alice-blue/40 border border-jet-black/15 focus:border-orange focus:ring-2 focus:ring-orange/20 focus:outline-none transition-all rounded-xl text-jet-black text-sm font-sans font-mono" 
                       />
                     </div>
 
@@ -273,8 +361,7 @@ export default function ContactPage() {
                         type="tel" 
                         autoComplete="tel"
                         inputMode="tel"
-                        className="w-full px-4 py-3 bg-alice-blue/40 border border-jet-black/15 focus:border-orange focus:ring-2 focus:ring-orange/20 focus:outline-none transition-all rounded-xl text-jet-black placeholder-grey/40 text-sm font-sans font-mono" 
-                        placeholder="+91 98765 43210" 
+                        className="w-full px-4 py-3 bg-alice-blue/40 border border-jet-black/15 focus:border-orange focus:ring-2 focus:ring-orange/20 focus:outline-none transition-all rounded-xl text-jet-black text-sm font-sans font-mono" 
                       />
                     </div>
                   </div>
@@ -287,8 +374,7 @@ export default function ContactPage() {
                       name="message" 
                       rows={4} 
                       required 
-                      className="w-full p-4 bg-alice-blue/40 border border-jet-black/15 focus:border-orange focus:ring-2 focus:ring-orange/20 focus:outline-none transition-all rounded-xl text-jet-black placeholder-grey/40 text-sm font-sans resize-none leading-relaxed" 
-                      placeholder="Describe how you would like to support or collaborate with the Riders Bay engineering collective..."
+                      className="w-full p-4 bg-alice-blue/40 border border-jet-black/15 focus:border-orange focus:ring-2 focus:ring-orange/20 focus:outline-none transition-all rounded-xl text-jet-black text-sm font-sans resize-none leading-relaxed" 
                     ></textarea>
                   </div>
 
@@ -342,13 +428,13 @@ export default function ContactPage() {
               </p>
             </div>
             <div className="font-mono text-xs text-grey bg-white px-3.5 py-2 rounded-xl border border-jet-black/10 shrink-0 self-start md:self-auto">
-              <span className="text-orange font-bold">4</span> Direct Contacts
+              <span className="text-orange font-bold">{teamContacts.length}</span> Direct Contacts
             </div>
           </div>
 
-          {/* 4 Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-8">
-            {TEAM_CONTACTS.map((person, idx) => {
+          {/* Dynamic Key Contacts Cards (Faculty Mentor, Team Captain, Vice Captain) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 mb-8">
+            {teamContacts.map((person, idx) => {
               const initials = person.name
                 .split(' ')
                 .filter(n => !n.startsWith('Prof.'))
@@ -364,9 +450,17 @@ export default function ContactPage() {
                 >
                   <div>
                     <div className="flex items-center justify-between mb-4">
-                      <div className="w-12 h-12 rounded-xl bg-jet-black text-alice-blue flex items-center justify-center font-mono font-bold text-sm shadow-sm group-hover:bg-orange group-hover:text-jet-black transition-colors">
-                        {initials || "DH"}
-                      </div>
+                      {person.photoUrl ? (
+                        <img
+                          src={person.photoUrl}
+                          alt={person.name}
+                          className="w-12 h-12 rounded-xl object-cover border border-jet-black/10 shadow-sm"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-xl bg-jet-black text-alice-blue flex items-center justify-center font-mono font-bold text-sm shadow-sm group-hover:bg-orange group-hover:text-jet-black transition-colors">
+                          {initials || "DH"}
+                        </div>
+                      )}
                       <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-jet-black/5 text-grey">
                         [ 0{idx + 1} ]
                       </span>
@@ -423,11 +517,6 @@ export default function ContactPage() {
                   Neminagar, Chandwad, Nashik, Maharashtra – 423101
                 </span>
               </div>
-            </div>
-            <div className="shrink-0 flex items-center gap-3">
-              <span className="text-[11px] font-mono text-grey px-3 py-1.5 rounded-lg bg-alice-blue border border-jet-black/10 font-medium">
-                Mechanical Engg. Dept.
-              </span>
             </div>
           </div>
         </section>
