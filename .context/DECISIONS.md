@@ -38,6 +38,8 @@
 | **ADR-026** | Official SIEP Season 7.0 Rulebook AI Copilot with Non-Overridable Citations | 2026-11-13 | Accepted |
 | **ADR-027** | AI Copilot Dual-Domain Grounding, Gemini 2.5 Flash Engine & Zero-Dependency Rich Markdown Architecture | 2026-11-14 | Accepted |
 | **ADR-028** | Seamless Event-Driven Notification Bus, SPA Navigation & Real-Time Deck Sync | 2026-11-15 | Accepted |
+| **ADR-029** | Modular Bifurcation of Monolithic Dashboard & Activity Log Engines | 2026-11-15 | Accepted |
+| **ADR-030** | Modular Bifurcation of Navigation Engine & Task Detail Modal | 2026-11-15 | Accepted |
 
 ---
 
@@ -658,3 +660,84 @@
   - 100% synchronized badge counts across desktop, tablet, and mobile PWA.
   - Clean, deduplicated notification lists.
 
+
+---
+
+## 🧩 ADR-029: Modular Bifurcation of Monolithic Dashboard & Activity Log Engines
+- **Date:** 2026-11-15
+- **Status:** Accepted & Implemented
+- **Context:**
+  - The repository's top two source files had grown into massive monoliths:
+    1. `web/src/app/log/page.tsx` was 2,449 lines (mixed mobile feed, desktop tables, Google Drive video upload, and 4 inlined modals).
+    2. `web/src/components/dashboard/RolesManagementTab.tsx` was 1,530 lines (mixed stats, filters, roster table, password reveal, executive command sidebar, and 3 inlined full-screen modals).
+  - Navigating, modifying, or testing individual features (such as tweaking video upload parameters or updating role permissions) required scrolling through thousands of lines of unrelated markup, increased cognitive overhead, caused excessive re-renders, and created merge conflicts.
+- **Decisions:**
+  1. **Build Log Module Segmentation (`web/src/components/log/`):**
+     - `logConfig.tsx`: Status configs, SVG icons, badge styles, date formatting, and loading skeleton.
+     - `LogMobileView.tsx`: Mobile Hero header, status metric tiles, search & filter chips, and timeline activity feed.
+     - `LogDesktopView.tsx`: Operations banner, 4 stat cards, filter bar pills, full logs table, and pagination.
+     - `LogMediaSidebar.tsx`: Recent workshop build media gallery and quick action cards.
+     - `CreateLogModal.tsx`: Self-contained Add Build Log form with Google Drive resumable upload.
+     - `EditLogModal.tsx`: Self-contained Edit Log form, status selectors, and PATCH handler.
+     - `MobileLogDetailDrawer.tsx`: Mobile bottom sheet with embedded video player.
+     - `DeleteConfirmModal.tsx`: Dedicated delete confirmation dialog.
+     - `page.tsx`: Slim root orchestrator (436 lines, down from 2,449 lines).
+  2. **Roles Management Module Segmentation (`web/src/components/dashboard/roles/`):**
+     - `rolesConfig.ts`: Role presets, tier mappings, and props interface.
+     - `RolesStatCards.tsx`: 4 uniform executive metric cards.
+     - `RolesFilterBar.tsx`: Category filter tabs, Squad dropdown selector, and search input.
+     - `RolesTable.tsx`: Roster table, PIN visibility toggle, promote actions, and pagination.
+     - `ExecutiveCommandSidebar.tsx`: Executive Command roster (Captain & Vice Captain status).
+     - `EditMemberModal.tsx`: Profile picture upload, PIN modification, and domain leadership assignment.
+     - `AddMemberModal.tsx`: New team member form and tier checkboxes.
+     - `RevokeMemberModal.tsx`: Permissions revocation warning dialog.
+     - `RolesManagementTab.tsx`: Slim root orchestrator (382 lines, down from 1,530 lines).
+  3. **Zero API Contract or Visual Regressions:**
+     - Preserved all public props, route conventions, permissions, and visual designs identically.
+- **Consequences:**
+  - `web/src/app/log/page.tsx` reduced by **82.2%** (2,449 $\rightarrow$ 436 lines).
+  - `web/src/components/dashboard/RolesManagementTab.tsx` reduced by **75.0%** (1,530 $\rightarrow$ 382 lines).
+  - Isolated state management prevents unnecessary re-rendering across components.
+  - Making changes or adding new features to modals or tables is now fast, localized, and modular.
+
+---
+
+## 🧩 ADR-030: Modular Bifurcation of Navigation Engine & Task Detail Modal
+- **Date:** 2026-11-15
+- **Status:** Accepted & Implemented
+- **Context:**
+  - Following the success of ADR-029, the next two remaining monolithic files were:
+    1. `web/src/components/Navigation.tsx` (1,569 lines): Inlined desktop portal bar, public visitor bar, slide-over drawer, user dropdown, and PWA bottom bar.
+    2. `web/src/components/TaskDetailModal.tsx` (1,259 lines): Inlined task view header, quick status switcher, observation review banner, blocker management, scope metadata, subtasks checklist, discussion notes feed, action buttons, full edit form, and delete confirm modal.
+  - These two files represent core interactive hubs across the entire application. Maintaining them as single monolithic files made modifications high-risk and created friction.
+- **Decisions:**
+  1. **Navigation Engine Segmentation (`web/src/components/navigation/`):**
+     - `navConfig.ts`: Navigation route helpers and portal detection.
+     - `DesktopPortalNav.tsx`: Centered pill navigation bar, notification bell with unread badge, Rulebook AI button, and dropdown trigger.
+     - `DesktopPublicNav.tsx`: Public desktop visitor links (Home, About, Competition, Bike, Contact, Portal login, PWA install).
+     - `UserDropdownMenu.tsx`: Desktop user profile dropdown with avatar header, quick workbench links, materials, role management, and logout.
+     - `MobileSlideDrawer.tsx`: Slide-over mobile drawer for both authenticated members and public visitors.
+     - `GlobalMobileBottomBar.tsx`: PWA standalone Instagram-style bottom navigation bar, rendered exclusively when installed (`isStandalone === true`).
+     - `Navigation.tsx`: Slim root orchestrator (333 lines, down from 1,569 lines, -78.8%).
+  2. **Task Detail Modal Segmentation (`web/src/components/tasks/modal/`):**
+     - `taskModalConfig.ts`: Status options, priority badges, and formatDueDate countdown helper.
+     - `TaskModalHeader.tsx`: Squad badge, priority badge, task ID, title, and close button.
+     - `TaskStatusSwitcher.tsx`: 4-status switcher tabs and Under Review Observation banner with Lead/Core approval gate.
+     - `TaskBlockerSection.tsx`: Blocker alert banner and flag blocker input.
+     - `TaskMetadataSection.tsx`: Scope & deliverables, assigned members card (+ Assign to Me / Unassign Me), target due date, and log time inline form.
+     - `TaskSubtasksSection.tsx`: Subtasks progress bar, checklist items with toggle/delete, and add subtask input.
+     - `TaskCommentsSection.tsx`: Discussion notes feed and comment submission input.
+     - `TaskModalActions.tsx`: Bottom action buttons (Delete, Edit, Log Work link, Complete & Attach Video, Submit for Review).
+     - `TaskEditForm.tsx`: Full edit form with title, scope, team select, priority, member checklist, status, and due date.
+     - `TaskDeleteConfirmModal.tsx`: Permanent task deletion confirmation modal with spinner.
+     - `TaskDetailModal.tsx`: Slim root orchestrator (606 lines, down from 1,259 lines, -51.9%).
+  3. **Zero Breaking Changes & Preserved Invariants:**
+     - Preserved all event listeners (`siep_tab_change`, `siep_notifications_updated`, `siep_open_copilot`, `siep_open_activity_drawer`, `siep_open_notifications`, `popstate`, `Escape`).
+     - Preserved PWA standalone bottom bar constraint (ADR-007 / ADR-011).
+     - Preserved hierarchy completion approval constraint (`canApproveCompletion = isCore || isLead || isAdmin || user?.isCore || user?.isLead || user?.teamId === 'core'`).
+- **Consequences:**
+  - `web/src/components/Navigation.tsx` reduced by **78.8%** (1,569 $\rightarrow$ 333 lines).
+  - `web/src/components/TaskDetailModal.tsx` reduced by **51.9%** (1,259 $\rightarrow$ 606 lines).
+  - Total combined lines across the two files dropped from **2,828 lines** down to **939 lines** (-66.8%).
+  - Zero type errors (`npx tsc --noEmit` clean).
+  - Turbopack builds all 33/33 routes cleanly in ~1.1s.
