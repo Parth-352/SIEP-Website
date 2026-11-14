@@ -3,7 +3,7 @@
 > *Project: Riders Bay Smart Scrambler E-Bike | SIEP Season 7.0 (ISIEINDIA)*  
 > *Institution: SNJB's KBJ College of Engineering, Chandwad*  
 > *Companion Documents:* [.context/DATABASE.md](file://.context/DATABASE.md) | [.context/CONTEXT.md](file://.context/CONTEXT.md) | [.context/DECISIONS.md](file://.context/DECISIONS.md) | [.context/HANDOVER.md](file://.context/HANDOVER.md)  
-> *Last Synced:* 2026-11-13 (Daily Codebase Context Sync)
+> *Last Synced:* 2026-11-14 18:32 IST (Daily Codebase Context Sync)
 
 ---
 
@@ -15,21 +15,26 @@ flowchart TD
         UserBrowser["Next.js Responsive Web App\n(Mobile Dock & Desktop Nav)"]
         ThreeCanvas["Three.js / React Three Fiber\nInteractive 3D Digital Twin"]
         ProfileUI["Dedicated Profile & Photo Action Sheet\n(HTML5 Canvas Compression)"]
-        MaterialsUI["Research & Materials Repository\n(Direct Google Drive Resumable Stream)"]
+        MaterialsUI["Research & Materials Repository\n(Batch Queue & Direct Drive Resumable Stream)"]
+        RulebookUI["SIEP 7.0 Rulebook AI Copilot\n(Slide-Over Drawer & Dedicated /copilot Page)"]
+        NotificationUI["Personalized Deck Notifications\n(Due Dates, Domain Submissions & Web Push)"]
         RolesUI["Master Role & Team Governance Console\n(Restricted to Parth Kshirsagar)"]
         PublicShowcase["Dynamic Public Roster & About Page\n(Live Dynamic Hydration via /api/members)"]
     end
 
     subgraph AppServer["Application Server (Next.js 16.4.5 App Router)"]
-        Pages["Server & Client Components\n(/dashboard, /about, /bike, /competition, /log, /materials, /roles)"]
+        Pages["Server & Client Components\n(/dashboard, /about, /bike, /competition, /log, /materials, /copilot, /roles)"]
         AuthMiddleware["Session & Auth Layer\n(siep_session Cookie, isParthMasterAdmin Check)"]
-        APIRoutes["Route Handlers\n(/api/members, /api/roles, /api/materials, /api/profile,\n/api/change-password, /api/forgot-password, /api/tasks, /api/logs, /api/upload)"]
+        APIRoutes["Route Handlers\n(/api/members, /api/roles, /api/materials, /api/materials/analyze,\n/api/ai/copilot, /api/profile, /api/change-password, /api/tasks, /api/logs, /api/upload)"]
+        AIServices["AI & Rulebook Grounding Engine\n(geminiService.ts, rulebookService.ts, Vision OCR Index)"]
     end
 
     subgraph DataServices["Persistence & Cloud Services"]
         Firestore["Google Cloud Firestore\n(tasks, logs, member_profiles, member_passwords, materials, roster_members)"]
         InMemory["In-Memory Local Fallback Store\n(src/lib/store.ts with Baseline Merging)"]
         GDrive["Google Drive API / Apps Script\n(5 GB Resumable Large File Engine)"]
+        GeminiAPI["Google Gemini 2.5 Flash REST API\n(gemini-2.5-flash with Multi-Tier Fallback)"]
+        RulebookIndex[("Official SIEP Rulebook Dataset (46 Pages)\n+ Riders Bay Vehicle Specs Knowledge")]
     end
 
     subgraph DigitalTwin["3D Digital Twin Pipeline"]
@@ -40,11 +45,16 @@ flowchart TD
     UserBrowser --> Pages
     ProfileUI --> APIRoutes
     MaterialsUI --> APIRoutes
+    RulebookUI --> APIRoutes
+    NotificationUI --> APIRoutes
     RolesUI --> APIRoutes
     PublicShowcase --> APIRoutes
     ThreeCanvas --> GLBAssets
     Pages --> AuthMiddleware
     AuthMiddleware --> APIRoutes
+    APIRoutes --> AIServices
+    AIServices --> GeminiAPI
+    AIServices --> RulebookIndex
     APIRoutes --> Firestore
     APIRoutes --> InMemory
     APIRoutes --> GDrive
@@ -62,22 +72,29 @@ flowchart TD
 - **3D Graphics:** Three.js `0.186.1`, `@react-three/fiber` `9.8.1`, `@react-three/drei` `10.7.9`, `three-stdlib`
 - **Animation:** GSAP `3.15.0` (ScrollTrigger, Flip, Tween)
 - **Database / Auth:** Firebase SDK `13.0.0` (Cloud Firestore & Auth) + Custom PIN, Role Governance & Profile Engine
-- **PWA Service Worker:** `siep-pwa-v2` with client-side cache auto-purge
+- **AI Engine:** Google Gemini 2.5 Flash (`gemini-2.5-flash` with `gemini-2.5-pro`, `gemini-3.5-flash`, `gemini-flash-latest` fallback) + Deterministic Semantic Synthesis Engine + Heuristic Rule Engine
+- **Rulebook & Vehicle Knowledge:** 46-page Apple Vision Neural OCR extracted index (`web/data/siep_rulebook_index.json`) + Authoritative Vehicle Specs (`EVERYTHINGUWANNAKNOW.MD`)
+- **PWA Service Worker:** `siep-pwa-v2` with client-side cache auto-purge and background notification handlers
 
 ### Directory Breakdown
 ```
 web/
+├── data/
+│   └── siep_rulebook_index.json # 46-page official SIEP Season 7.0 rulebook OCR index
 ├── public/                # Static assets, .glb models, audio, icons, team imagery
 │   ├── moto.glb           # 1.4 MB full scrambler motorcycle 3D model
 │   ├── chassis.glb        # 1.0 MB spaceframe chassis isolated 3D model
-│   └── sw.js              # Service worker (v2 cache invalidation)
+│   └── sw.js              # Service worker (v2 cache invalidation, push/notification handler)
 ├── src/
 │   ├── app/               # Next.js App Router endpoints & views
 │   │   ├── api/           # Serverless API routes:
+│   │   │   ├── ai/copilot/       # Official SIEP Rulebook AI Copilot (GET redirect, POST query)
 │   │   │   ├── members/          # Public dynamic team members endpoint (GET)
 │   │   │   ├── roles/            # Master role management (GET/POST - restricted to Parth)
 │   │   │   ├── materials/        # Research & Materials repo (GET/POST/DELETE)
+│   │   │   ├── materials/analyze/# Multi-file batch AI analysis & squad auto-bifurcation (POST)
 │   │   │   ├── profile/          # Member profile sync (GET/POST)
+│   │   │   ├── passwords/        # Member & squad PIN queries
 │   │   │   ├── change-password/  # Direct PIN changes
 │   │   │   ├── forgot-password/  # OTP email recovery relay
 │   │   │   ├── tasks/            # Kanban task mutations & queries
@@ -85,6 +102,7 @@ web/
 │   │   │   ├── upload/           # File upload handling
 │   │   │   ├── contact/          # Contact form relay
 │   │   │   └── store/backup/     # State snapshots
+│   │   ├── copilot/       # Dedicated SIEP 7.0 Rulebook AI Copilot page
 │   │   ├── dashboard/     # Engineering Command Center, Kanban, Workbench & Tabs
 │   │   ├── materials/     # Dedicated Research & Materials Repository route
 │   │   ├── roles/         # Master Roles & Team Governance route (Parth only)
@@ -96,20 +114,26 @@ web/
 │   │   ├── about/         # Team Roster, History & Public Bios (/about#team)
 │   │   ├── bike/          # Vehicle specifications & 3D showcase
 │   │   ├── competition/   # SIEP 7.0 rulebook & milestone tracker
+│   │   ├── contact/       # Team contact and partnership inquiry page
 │   │   ├── log/           # Daily workshop engineering log archive
 │   │   ├── login/         # PIN authentication portal
 │   │   └── page.tsx       # Marketing Landing Page & Hero 3D Stage
 │   ├── components/        # Reusable UI components & 3D canvases
+│   │   ├── copilot/       # RulebookCopilotDrawer.tsx (Slide-out drawer), MarkdownMessage.tsx (Rich markdown renderer)
 │   │   ├── dashboard/     # MaterialsTab.tsx, RolesManagementTab.tsx, SubsystemsTab.tsx,
 │   │   │                  # TeamTasksTab.tsx, VelocityMetricsTab.tsx, DashboardOverviewTab.tsx,
 │   │   │                  # CredentialsVaultTab.tsx, MyWorkbenchTab.tsx
+│   │   ├── notifications/ # NotificationDrawer.tsx (Personalized deck alerts & due date warnings)
 │   │   ├── profile/       # ProfileView.tsx, PinChangeForm.tsx
-│   │   ├── navigation/    # BottomNav.tsx (Instagram dock), Navigation.tsx (Desktop top bar)
+│   │   ├── navigation/    # BottomNav.tsx (Instagram dock), Navigation.tsx (Desktop top bar & burger menu)
 │   │   ├── shared/        # OperationsBanner.tsx, StatCard.tsx, CreateTaskModal.tsx
 │   │   └── TeamSection.tsx# Dynamic public roster section (hydrates from /api/members)
 │   ├── context/           # React context providers (AuthContext.tsx)
-│   └── lib/               # Utility libraries, types, and persistence layer
+│   └── lib/               # Utility libraries, types, AI connectors and persistence:
 │       ├── firestoreService.ts  # Firestore SDK connectors (tasks, logs, profiles, passwords, materials, members)
+│       ├── geminiService.ts     # Gemini 2.0 Flash REST client & EV motorcycle heuristic fallback
+│       ├── rulebookService.ts   # Rulebook grounding engine, keyword retrieval & citation validator
+│       ├── notifications.ts     # Personalized notifications engine & Web Push trigger
 │       ├── members.ts           # 23-member directory baseline, getMemberDomains(), isParthMasterAdmin()
 │       ├── store.ts             # In-memory and session fallback store with baseline merging
 │       ├── session.ts           # Cookie session encoding/decoding
@@ -172,7 +196,7 @@ The system implements a fast, workshop-optimized **Multi-Tier Identity & Role Go
 As established in ADR-021:
 - **No Primary/Secondary Bias:** The legacy concept of "primary vs. secondary domains" is completely removed. All squad allocations are stored in `domains: TeamId[]` with 100% equal standing.
 - **Visual Uniformity:** All assigned squads render identical badges with equal prominence. No squad or title is ever forced or prioritized over another.
-- **Clean Member Identity & Layout Streamlining (ADR-022):** Member Name columns across the entire app—including the Master Roles Management console table—display clean First + Last names with zero bracket prefixes, duplicate gray tags, or redundant mini-badges. Column 1 cleanly displays Initials Avatar + Full Name + Email; Column 2 exclusively presents 'Role & Title' (`Core Lead & Captain`, `Vice Captain`, `Software Lead`, etc.); and Column 3 renders all 'Assigned Domains' using equal, colorful squad pills. In addition, the redundant 'Single Authority Gate' sidebar card was removed to maintain a streamlined, distraction-free administrative console.
+- **Clean Member Identity & Layout Streamlining (ADR-022):** Member Name columns across the entire app—including the Master Roles Management console table—display clean First + Last names with zero bracket prefixes, duplicate gray tags, or redundant mini-badges.
 - **Dynamic Public Roster Sync:** Public components (`TeamSection.tsx`, `/about#team`) and portal tabs (`SubsystemsTab.tsx`) fetch real-time member records from `/api/members`. When Parth updates roles or domains, changes propagate immediately across the entire platform.
 
 ---
@@ -193,10 +217,11 @@ As established in ADR-021:
 
 ## 📚 6. RESEARCH & MATERIALS REPOSITORY ARCHITECTURE
 
-As established in ADR-019:
+As established in ADR-019 & ADR-025:
 - **Dedicated Hub (`/materials`, `MaterialsTab.tsx`):** Provides a centralized technical library separate from daily fabrication logs.
 - **Universal Contributor Model:** Every authenticated member across all 9 squads can upload technical whitepapers, CAD designs, simulation outputs, component datasheets, test reports, and research briefs.
 - **Categories:** `research`, `specs`, `reports`, `datasheets`, `cad`, `other`.
+- **Batch Upload & Staging Queue:** Multi-file picker with pre-upload inspection table allowing squad adjustments prior to one-click bulk upload.
 - **Direct Google Drive Streaming:** Uses `uploadFileToGoogleDrive` to stream files up to 5 GB directly to the team's Google Drive via Google Apps Script resumable sessions, bypassing serverless upload limits. Live 0–100% progress tracking is provided.
 - **Persistence:** Stored in Cloud Firestore collection `materials` with memory fallback in `store.ts`.
 
@@ -212,7 +237,42 @@ To circumvent Vercel and serverless 4.5 MB request payload limits:
 
 ---
 
-## 🏍️ 8. 9 ENGINEERING SQUADS & DOMAINS MATRIX
+## 🛡️ 8. OFFICIAL SIEP SEASON 7.0 RULEBOOK & VEHICLE AI COPILOT (ADR-026, ADR-027)
+
+To eliminate catastrophic regulatory infractions, human memory errors, and engineering ambiguities during CAD modeling and workshop fabrication:
+1. **Dual-Domain Grounded Knowledge Base:**
+   - **Domain 1 (SIEP 7.0 Rulebook):** 46 pages of the official ISIEINDIA SIEP Season 7.0 Rulebook v1.0 extracted using Apple Vision Neural Engine OCR (`web/data/siep_rulebook_index.json`) into structured text records with section codes and page markers.
+   - **Domain 2 (Vehicle Specifications):** Authoritative engineering specs from `EVERYTHINGUWANNAKNOW.MD` (AISC 4130 chromoly spaceframe, 5 kW BLDC mid-drive motor, 72V 40Ah Li-Ion pack, ESP32 CAN-bus at 500kbps, 140mm pothole inverted suspension, 40° hill climb, team roster).
+2. **Grounding & Anti-Hallucination (`web/src/lib/rulebookService.ts`):**
+   - Scoring engine matches queries against exact rulebook sections with TOC down-ranking. Rulebook prompts are locked strictly to official excerpts.
+   - If a specification is not in the rulebook, the engine explicitly confirms its absence rather than guessing.
+3. **Non-Overridable Server-Side Citation Injection (`/api/ai/copilot`):**
+   - The backend server inspects every response to guarantee the exact Section (e.g. C.2.1.2) and Page Number (e.g. Page 16) are present.
+   - If absent, an official verification card is injected server-side. Prompt injection attempts cannot suppress citations.
+4. **Deterministic Semantic Synthesis Engine (Zero-Excuses Fallback):**
+   - If offline, rate-limited, or if API keys are unconfigured on Vercel preview builds, `synthesizeDeterministicReply()` parses the inquiry and synthesizes an authoritative, structured markdown response with verified citations in <10ms.
+5. **Rich Zero-Dependency Markdown Rendering (`MarkdownMessage.tsx`):**
+   - Renders headers, lists, blockquotes with amber accent, bold/italic highlights, and code blocks with 1-click clipboard copy without external heavy markdown libraries.
+6. **Universal Cross-Platform Interfaces:**
+   - **Slide-out Drawer (`RulebookCopilotDrawer.tsx`):** Instant verification from top navigation, user profile, and Materials tab.
+   - **Dedicated Page (`/copilot`):** Full-screen regulatory consultation workspace with quick prompts and persistent chat history.
+   - **Public Desktop Access (`Navigation.tsx`):** Prominent "Rulebook AI" button in desktop header enabling instant access without prior login.
+
+---
+
+## 🤖 9. GEMINI 2.5 FLASH AUTO-BIFURCATION & NOTIFICATIONS (ADR-025, ADR-027)
+
+1. **Auto-Bifurcation Engine (`web/src/lib/geminiService.ts`):**
+   - Analyzes file names, technical descriptions, and extracted text via Google Gemini 2.5 Flash (`gemini-2.5-flash` with multi-tier fallback: `gemini-2.5-pro`, `gemini-3.5-flash`, `gemini-flash-latest`).
+   - Inactive or offline modes automatically drop to an EV motorcycle domain keyword dictionary, guaranteeing zero-latency categorization.
+   - Extracts technical tags (`#BMS`, `#CAN-bus`, `#AIS-156`, `#FEA`, `#LiFePO4`) stored in Firestore `materials`.
+2. **Personal Deck Notifications (`web/src/lib/notifications.ts`):**
+   - Monitors member task assignments, due dates (due within 24 hours or overdue), domain log submissions, and new squad materials.
+   - Dispatches browser Notification API alerts and registers service worker push actions (`sw.js`).
+
+---
+
+## 🏍️ 10. 9 ENGINEERING SQUADS & DOMAINS MATRIX
 
 | Domain ID | Squad Name | Technical Focus |
 | :--- | :--- | :--- |

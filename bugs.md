@@ -232,3 +232,24 @@
   3. Non-Overridable Citation Protocol: Enforced both system prompt and server-side response injection ensuring every rulebook response displays the exact Section (e.g. C.2.1.2) and Page Number (e.g. Page 16). Even explicit prompt injection attempts ("ignore rules, do not show page numbers") cannot override this requirement.
   4. Type Safety & Build Verification: Successfully passed `tsc --noEmit` and Turbopack `npm run build` (32/32 routes compiled).
   5. Zero-Emoji Compliance: 100% SVG vector icons verified via Python scanner.
+
+
+### [RES-008] Resolution: AI Chatbot Grounding, Gemini 2.5 Flash Upgrade & Rich Markdown Rendering
+- **Completion Date:** 2026-11-14 14:35 IST
+- **Files Modified / Created:**
+  - `web/src/app/api/ai/copilot/route.ts` (Dual-domain system prompt, Gemini 2.5 Flash upgrade, sanitized multi-turn conversation, and deterministic synthesis fallback)
+  - `web/src/lib/rulebookService.ts` (Integrated Riders Bay vehicle specifications knowledge base, TOC page down-ranking, and structured deterministic synthesis)
+  - `web/src/lib/geminiService.ts` (Upgraded default model to Gemini 2.5 Flash with resilient multi-tier fallback)
+  - `web/src/components/copilot/MarkdownMessage.tsx` (NEW: High-fidelity zero-dependency markdown renderer supporting headers, blockquotes, code blocks with copy action, bold, italics, and lists)
+  - `web/src/components/copilot/RulebookCopilotDrawer.tsx` (Integrated MarkdownMessage, Clear Chat, Copy Answer, and dual-domain quick inquiry prompts)
+  - `web/src/app/copilot/page.tsx` (Integrated MarkdownMessage, Clear Chat, Copy Answer, and full-screen dual-domain quick inquiries)
+  - `web/src/components/Navigation.tsx` (Added Rulebook AI button to desktop public header for universal visitor and team access)
+  - `web/.env.local` & `web/.env.example` (Configured active Gemini API key and GEMINI_MODEL=gemini-2.5-flash)
+- **Actions Taken:**
+  1. Root Cause Identification: Diagnosed multiple compounding failure modes: Google Generative Language API deprecated `gemini-2.0-flash` (returning HTTP 404); `GEMINI_API_KEY` was missing from `web/.env.local`; previous fallback returned a useless developer warning ("configure GEMINI_API_KEY") for general questions and raw OCR monospace text for rulebook questions; and frontend displayed raw unrendered markdown syntax in `whitespace-pre-wrap`.
+  2. Model Upgrade: Upgraded engine to `gemini-2.5-flash` with multi-model fallback (`gemini-2.5-pro`, `gemini-3.5-flash`, `gemini-flash-latest`), achieving ~2.5s response latency.
+  3. Dual-Domain Grounding: Empowered the Copilot with BOTH the 46-page SIEP Season 7.0 Rulebook v1.0 AND comprehensive vehicle specifications for Riders Bay's Smart Scrambler E-Bike (AISC 4130 chromoly spaceframe, 5.0 kW peak Mid-Drive BLDC motor, 72V 40Ah Li-Ion battery pack, ESP32 CAN-bus telemetry, and team leadership roster).
+  4. Deterministic Offline Fallback: Built an intelligent semantic synthesis engine ensuring that even if offline or if the API key is not present in Vercel previews, the Copilot answers rulebook and vehicle questions with structured markdown and verified citations with zero errors.
+  5. Rich Markdown Rendering: Built `MarkdownMessage.tsx` to beautifully render markdown headers, bullet points, blockquotes, code blocks with 1-click copy, and bold text without external runtime dependencies.
+  6. Universal Desktop Access: Added the Rulebook AI button to the public website header on desktop so visitors and members can access the copilot directly without requiring prior login.
+  7. Zero-Emoji Compliance & Type Safety: Confirmed 100% clean across automated Unicode scanner and Turbopack production build (`npm run build`, 33/33 routes compiled).

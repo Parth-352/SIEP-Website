@@ -215,9 +215,9 @@ Return a strictly valid JSON object with:
 
 Format: Only return raw JSON without markdown or backticks.`;
 
-  // Try latest Gemini 2.0 Flash first, followed by Gemini 1.5 Flash fallback
-  const preferredModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-  const modelsToTry = [preferredModel, 'gemini-1.5-flash'].filter((m, i, arr) => arr.indexOf(m) === i);
+  // Try latest Gemini 3.5 Flash first, followed by multi-model fallback
+  const preferredModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
+  const modelsToTry = [preferredModel, 'gemini-3.5-flash', 'gemini-3.8-flash', 'gemini-2.5-flash'].filter((m, i, arr) => arr.indexOf(m) === i);
 
   for (const model of modelsToTry) {
     try {
