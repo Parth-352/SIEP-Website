@@ -11,6 +11,9 @@ import {
   ScoredPage,
 } from '@/lib/rulebookService';
 
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -59,6 +62,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Query message is required.' }, { status: 400 });
     }
 
+    const cleanMsg = message.trim().toLowerCase().replace(/[^a-z0-9\s]/g, '');
+    const greetingWords = ['hi', 'hello', 'hey', 'heya', 'hola', 'sup', 'yo', 'greetings', 'good morning', 'good evening', 'good afternoon'];
+    if (greetingWords.includes(cleanMsg)) {
+      return NextResponse.json({
+        success: true,
+        reply: `**Hey there!** I'm your **SIEP Season 7.0 Copilot** for Riders Bay.\n\nAsk me anything about:\n- **Official Season 7.0 Rules:** Ground clearance, chassis tubing, kill switches, paddock stands, battery scrutiny\n- **Riders Bay Scrambler Specs:** 72V 40Ah battery pack, 5.0 kW mid-drive BLDC motor, AISC 4130 spaceframe, telemetry, or team roster`,
+        isRulebook: false,
+        citations: [],
+        modelUsed: 'instant-copilot',
+      });
+    }
+
     const apiKey =
       process.env.GEMINI_API_KEY ||
       process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
@@ -103,13 +118,7 @@ CHATBOT BEHAVIOR MANDATES:
     // Try Gemini API if key is available
     if (apiKey) {
       const preferredModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
-      const modelsToTry = [
-        preferredModel,
-        'gemini-3.5-flash',
-        'gemini-3.8-flash',
-        'gemini-2.5-flash',
-        'gemini-flash-latest',
-      ].filter((m, i, arr) => arr.indexOf(m) === i);
+      const modelsToTry = [preferredModel, 'gemini-3.8-flash'].filter((m, i, arr) => arr.indexOf(m) === i);
 
       // Clean and sanitize recent conversation history
       const sanitizedHistory: { role: 'user' | 'model'; parts: { text: string }[] }[] = [];
@@ -157,6 +166,7 @@ CHATBOT BEHAVIOR MANDATES:
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
+            signal: AbortSignal.timeout(9000),
           });
 
           if (res.ok) {
