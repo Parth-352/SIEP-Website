@@ -7,7 +7,7 @@
 
 ---
 
-## 📑 QUICK ADR INDEX (001 - 027)
+## 📑 QUICK ADR INDEX (001 - 028)
 | ADR | Title | Date | Status |
 | :--- | :--- | :--- | :--- |
 | **ADR-001** | Next.js 16 App Router + React 19 + Tailwind CSS v4 | 2026-11-10 | Accepted |
@@ -37,6 +37,7 @@
 | **ADR-025** | Multi-Document Batch Upload, Gemini AI Auto-Bifurcation, Tag Indexing & Personal Deck Notifications | 2026-11-13 | Accepted |
 | **ADR-026** | Official SIEP Season 7.0 Rulebook AI Copilot with Non-Overridable Citations | 2026-11-13 | Accepted |
 | **ADR-027** | AI Copilot Dual-Domain Grounding, Gemini 2.5 Flash Engine & Zero-Dependency Rich Markdown Architecture | 2026-11-14 | Accepted |
+| **ADR-028** | Seamless Event-Driven Notification Bus, SPA Navigation & Real-Time Deck Sync | 2026-11-15 | Accepted |
 
 ---
 
@@ -625,3 +626,35 @@
   - Flawless, instantaneous response generation (~2.5s via Gemini 2.5 Flash, <10ms via deterministic fallback).
   - Elegant visual presentation matching premium modern AI interfaces.
   - Zero regression risk in offline or keyless environments.
+
+---
+
+## 🔔 ADR-028: Seamless Event-Driven Notification Bus, SPA Navigation & Real-Time Deck Sync
+- **Date:** 2026-11-15
+- **Status:** Accepted & Implemented
+- **Context:**
+  - The notification drawer suffered from several UX defects:
+    1. Clicking notification links performed disruptive hard browser reloads (`window.location.href = notif.targetUrl`), breaking the single-page application experience.
+    2. Deep linking to tasks routed to `/dashboard?tab=tasks&taskId=...`, which did not match the dashboard's internal tab identifier (`team_tasks`), causing the tab switch to fail and the task detail modal to never open.
+    3. Duplicate notifications with identical titles and content were generated across repeated sync loops.
+    4. Marking items read updated local drawer state but failed to synchronize in real time with the navbar bell badge count.
+    5. Mobile viewport lacked a notification bell in the top navigation bar when logged in, and had no direct entry point in the slide-over menu.
+- **Decisions:**
+  1. **Event-Driven Client-Side SPA Transitions:**
+     - Replaced hard `window.location.href` navigation with `window.dispatchEvent(new CustomEvent('siep_tab_change', { detail: { tab } }))` and `router.push`.
+     - When navigating to task alerts, dispatched `siep_open_task` event with `taskId` so `dashboard/page.tsx` selects the task and sets `isDetailModalOpen(true)` automatically.
+  2. **Tab Aliasing & URL Deep Linking:**
+     - Added automatic aliasing in `dashboard/page.tsx` so `tab=tasks` resolves smoothly to `team_tasks`.
+     - Added query param watcher for `taskId` to open task modals directly upon deep link arrival.
+  3. **Strict Content-Key Deduplication:**
+     - Updated `generateDeckNotifications` with composite content keys (`${type}_${teamId}_${title.toLowerCase().trim()}`) and `seenIds` set to eliminate all duplicate document and task alerts.
+  4. **Cross-Component Unread Badge Synchronization:**
+     - Added global `siep_notifications_updated` custom event and `storage` listener in `Navigation.tsx` utilizing `deckTasksRef` and `deckMaterialsRef` to update bell badge counts instantly upon marking alerts read.
+  5. **Mobile Header & Drawer Parity:**
+     - Added the notification bell with live badge count to the mobile header when authenticated.
+     - Added a dedicated "Deck Alerts" card to the mobile slide-over drawer with real-time count.
+- **Consequences:**
+  - Fluid, instantaneous notification interaction with zero full-page refreshes.
+  - 100% synchronized badge counts across desktop, tablet, and mobile PWA.
+  - Clean, deduplicated notification lists.
+
