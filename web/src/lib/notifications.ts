@@ -36,8 +36,21 @@ export function markNotificationAsRead(id: string) {
     const set = getReadNotificationIds();
     set.add(id);
     localStorage.setItem(STORAGE_KEY_READ, JSON.stringify(Array.from(set)));
+    window.dispatchEvent(new CustomEvent('siep_notifications_updated'));
   } catch (err) {
     console.warn('Error saving read notification:', err);
+  }
+}
+
+export function markAllNotificationsAsRead(ids: string[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    const set = getReadNotificationIds();
+    ids.forEach((id) => set.add(id));
+    localStorage.setItem(STORAGE_KEY_READ, JSON.stringify(Array.from(set)));
+    window.dispatchEvent(new CustomEvent('siep_notifications_updated'));
+  } catch (err) {
+    console.warn('Error saving all read notifications:', err);
   }
 }
 
@@ -63,8 +76,20 @@ export function generateDeckNotifications(
 
   const readIds = getReadNotificationIds();
   const notifications: DeckNotification[] = [];
+  const seenIds = new Set<string>();
+  const seenContentKeys = new Set<string>();
   const now = Date.now();
   const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+  function addNotif(notif: DeckNotification) {
+    const contentKey = `${notif.type}_${notif.teamId || ''}_${notif.title.toLowerCase().trim()}`;
+    if (seenIds.has(notif.id) || seenContentKeys.has(contentKey)) {
+      return;
+    }
+    seenIds.add(notif.id);
+    seenContentKeys.add(contentKey);
+    notifications.push(notif);
+  }
 
   const userDomains: TeamId[] = [
     user.teamId,
@@ -95,7 +120,7 @@ export function generateDeckNotifications(
       // Overdue
       if (diff < 0) {
         const id = `overdue_${task.id}_${task.dueDate}`;
-        notifications.push({
+        addNotif({
           id,
           type: 'reminder',
           title: `Overdue Task: "${task.title}"`,
@@ -104,7 +129,7 @@ export function generateDeckNotifications(
           teamName: TEAMS[task.teamId]?.name || task.teamId,
           timestamp: dueTime,
           priority: 'urgent',
-          targetUrl: `/dashboard?tab=tasks&taskId=${task.id}`,
+          targetUrl: `/dashboard?tab=team_tasks&taskId=${task.id}`,
           read: readIds.has(id),
           isPersonalDeck: true,
         });
@@ -112,7 +137,7 @@ export function generateDeckNotifications(
       // Due within 24 hours
       else if (diff <= ONE_DAY_MS) {
         const id = `due_soon_${task.id}_${task.dueDate}`;
-        notifications.push({
+        addNotif({
           id,
           type: 'reminder',
           title: `Task Due Today: "${task.title}"`,
@@ -121,7 +146,7 @@ export function generateDeckNotifications(
           teamName: TEAMS[task.teamId]?.name || task.teamId,
           timestamp: now,
           priority: 'high',
-          targetUrl: `/dashboard?tab=tasks&taskId=${task.id}`,
+          targetUrl: `/dashboard?tab=team_tasks&taskId=${task.id}`,
           read: readIds.has(id),
           isPersonalDeck: true,
         });
@@ -137,7 +162,7 @@ export function generateDeckNotifications(
       if (!inMySquad) return;
 
       const id = `review_req_${task.id}_${task.updatedAt || now}`;
-      notifications.push({
+      addNotif({
         id,
         type: 'review_needed',
         title: `Sign-off Required: "${task.title}"`,
@@ -146,7 +171,7 @@ export function generateDeckNotifications(
         teamName: TEAMS[task.teamId]?.name || task.teamId,
         timestamp: task.updatedAt || now,
         priority: 'high',
-        targetUrl: `/dashboard?tab=tasks&taskId=${task.id}`,
+        targetUrl: `/dashboard?tab=team_tasks&taskId=${task.id}`,
         read: readIds.has(id),
         isPersonalDeck: true,
       });
@@ -154,13 +179,13 @@ export function generateDeckNotifications(
   }
 
   // 3. New Research Materials in User's Squads
-  materials.slice(0, 5).forEach((mat) => {
+  materials.slice(0, 10).forEach((mat) => {
     const inMySquad = user.isCore || user.teamId === 'core' || userDomainSet.has(mat.teamId);
     const isOwnUpload = mat.authorEmail?.toLowerCase() === user.email?.toLowerCase();
     if (!inMySquad || isOwnUpload) return;
 
     const id = `mat_notif_${mat.id}`;
-    notifications.push({
+    addNotif({
       id,
       type: 'material',
       title: `New Document: "${mat.title}"`,
@@ -169,7 +194,7 @@ export function generateDeckNotifications(
       teamName: mat.teamName,
       timestamp: mat.createdAt || now,
       priority: 'normal',
-      targetUrl: `/dashboard?tab=materials`,
+      targetUrl: `/dashboard?tab=materials&materialId=${mat.id}`,
       read: readIds.has(id),
       isPersonalDeck: true,
     });

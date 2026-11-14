@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { UserProfile, Task, ResearchMaterial } from '@/lib/types';
 import {
   DeckNotification,
   generateDeckNotifications,
   markNotificationAsRead,
+  markAllNotificationsAsRead,
   requestBrowserNotificationPermission,
   isNativeNotificationEnabled,
   setNativeNotificationEnabled,
@@ -27,6 +29,8 @@ export default function NotificationDrawer({
   tasks = [],
   materials = [],
 }: NotificationDrawerProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [activeTab, setActiveTab] = useState<'my_deck' | 'all'>('my_deck');
   const [notifications, setNotifications] = useState<DeckNotification[]>([]);
   const [nativePermission, setNativePermission] = useState<NotificationPermission>('default');
@@ -59,6 +63,16 @@ export default function NotificationDrawer({
   }, [user, tasks, materials, nativeEnabled]);
 
   const handleToggleNative = async () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      alert('Native notifications are not supported in this browser. Please add Riders Bay to your Home Screen or open in Chrome/Safari.');
+      return;
+    }
+
+    if (Notification.permission === 'denied') {
+      alert('Notifications are blocked in your browser site settings. Please unblock notifications for this site to receive alerts.');
+      return;
+    }
+
     if (nativePermission !== 'granted') {
       const result = await requestBrowserNotificationPermission();
       setNativePermission(result);
@@ -85,8 +99,42 @@ export default function NotificationDrawer({
   };
 
   const handleMarkAllRead = () => {
-    notifications.forEach((n) => markNotificationAsRead(n.id));
+    const ids = notifications.map((n) => n.id);
+    markAllNotificationsAsRead(ids);
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
+  const handleNotificationClick = (notif: DeckNotification) => {
+    markNotificationAsRead(notif.id);
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
+    );
+
+    try {
+      const target = new URL(notif.targetUrl, window.location.origin);
+      const targetTab = target.searchParams.get('tab');
+      const targetTaskId = target.searchParams.get('taskId');
+
+      if (pathname === '/dashboard') {
+        if (targetTab) {
+          const tabId = targetTab === 'tasks' ? 'team_tasks' : targetTab;
+          window.dispatchEvent(new CustomEvent('siep_tab_change', { detail: tabId }));
+        }
+        if (targetTaskId) {
+          window.dispatchEvent(
+            new CustomEvent('siep_open_task', { detail: { taskId: targetTaskId } })
+          );
+        }
+        window.history.pushState(null, '', notif.targetUrl);
+        onClose();
+      } else {
+        onClose();
+        router.push(notif.targetUrl);
+      }
+    } catch {
+      onClose();
+      router.push(notif.targetUrl);
+    }
   };
 
   const filteredNotifications = useMemo(() => {
@@ -252,10 +300,7 @@ export default function NotificationDrawer({
               return (
                 <div
                   key={notif.id}
-                  onClick={() => {
-                    markNotificationAsRead(notif.id);
-                    window.location.href = notif.targetUrl;
-                  }}
+                  onClick={() => handleNotificationClick(notif)}
                   className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative group shadow-2xs hover:shadow-xs ${priorityClass} ${
                     notif.read ? 'opacity-70' : ''
                   }`}

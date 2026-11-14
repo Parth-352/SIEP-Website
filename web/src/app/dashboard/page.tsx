@@ -69,7 +69,7 @@ function DashboardContent() {
   useEffect(() => {
     const tabParam = searchParams.get('tab');
     if (tabParam) {
-      if (tabParam === 'kanban') {
+      if (tabParam === 'kanban' || tabParam === 'tasks') {
         setActiveTab('team_tasks');
       } else if (
         [
@@ -93,7 +93,8 @@ function DashboardContent() {
   // Handle immediate tab change dispatched from Burger Menu or Global Nav
   useEffect(() => {
     const handleCustomTab = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
+      const rawDetail = (e as CustomEvent).detail;
+      const detail = (rawDetail === 'tasks' || rawDetail === 'kanban') ? 'team_tasks' : rawDetail;
       if (
         detail &&
         [
@@ -213,6 +214,33 @@ function DashboardContent() {
   // Task Detail Modal state
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  // Automatically open task detail modal when taskId parameter or custom event is received
+  useEffect(() => {
+    const taskIdParam = searchParams.get('taskId');
+    if (taskIdParam && tasks.length > 0) {
+      const found = tasks.find((t) => t.id === taskIdParam);
+      if (found) {
+        setSelectedTask(found);
+        setIsDetailModalOpen(true);
+      }
+    }
+  }, [searchParams, tasks]);
+
+  useEffect(() => {
+    const handleOpenTask = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.taskId && tasks.length > 0) {
+        const found = tasks.find((t) => t.id === detail.taskId);
+        if (found) {
+          setSelectedTask(found);
+          setIsDetailModalOpen(true);
+        }
+      }
+    };
+    window.addEventListener('siep_open_task', handleOpenTask);
+    return () => window.removeEventListener('siep_open_task', handleOpenTask);
+  }, [tasks]);
 
   // Task Complete with Video Modal state
   const [taskToComplete, setTaskToComplete] = useState<Task | null>(null);

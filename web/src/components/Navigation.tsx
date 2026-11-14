@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePwaInstall } from '@/components/PwaInstallProvider';
 import { TEAMS } from '@/lib/teams';
@@ -34,6 +34,8 @@ export default function Navigation() {
   const [deckTasks, setDeckTasks] = useState<Task[]>([]);
   const [deckMaterials, setDeckMaterials] = useState<ResearchMaterial[]>([]);
   const [deckNotificationsCount, setDeckNotificationsCount] = useState<number>(0);
+  const deckTasksRef = useRef<Task[]>([]);
+  const deckMaterialsRef = useRef<ResearchMaterial[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -47,6 +49,8 @@ export default function Navigation() {
         const matsList = Array.isArray(matRes.materials) ? matRes.materials : [];
         setDeckTasks(tasksList);
         setDeckMaterials(matsList);
+        deckTasksRef.current = tasksList;
+        deckMaterialsRef.current = matsList;
 
         const list = generateDeckNotifications(user, tasksList, matsList);
         const unread = list.filter((n) => !n.read && n.isPersonalDeck).length;
@@ -57,15 +61,26 @@ export default function Navigation() {
     };
     fetchDeckData();
 
+    const handleNotifsUpdated = () => {
+      if (!user) return;
+      const list = generateDeckNotifications(user, deckTasksRef.current, deckMaterialsRef.current);
+      const unread = list.filter((n) => !n.read && n.isPersonalDeck).length;
+      setDeckNotificationsCount(unread);
+    };
+
     const handleOpenNotifs = () => setIsNotificationDrawerOpen(true);
     const handleOpenCopilot = () => setIsCopilotOpen(true);
     window.addEventListener('siep_open_activity_drawer', handleOpenNotifs);
     window.addEventListener('siep_open_notifications', handleOpenNotifs);
     window.addEventListener('siep_open_copilot', handleOpenCopilot);
+    window.addEventListener('siep_notifications_updated', handleNotifsUpdated);
+    window.addEventListener('storage', handleNotifsUpdated);
     return () => {
       window.removeEventListener('siep_open_activity_drawer', handleOpenNotifs);
       window.removeEventListener('siep_open_notifications', handleOpenNotifs);
       window.removeEventListener('siep_open_copilot', handleOpenCopilot);
+      window.removeEventListener('siep_notifications_updated', handleNotifsUpdated);
+      window.removeEventListener('storage', handleNotifsUpdated);
     };
   }, [user]);
 
@@ -703,6 +718,24 @@ export default function Navigation() {
 
           {/* Mobile Header Actions & Hamburger Button */}
           <div className="flex md:hidden items-center gap-2">
+            {user && (
+              <button
+                type="button"
+                onClick={() => setIsNotificationDrawerOpen(true)}
+                title="Personal Deck Alerts"
+                className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs relative"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                {deckNotificationsCount > 0 && (
+                  <span className="min-w-4 h-4 px-1 rounded-full bg-orange-500 text-white text-[9px] font-bold flex items-center justify-center absolute -top-1 -right-1 ring-2 ring-white">
+                    {deckNotificationsCount}
+                  </span>
+                )}
+              </button>
+            )}
+
             <button
               onClick={toggleMenu}
               className="w-10 h-10 rounded-xl bg-zinc-100/90 hover:bg-zinc-200 text-jet-black focus:outline-none flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs"
@@ -1083,7 +1116,42 @@ export default function Navigation() {
                   </svg>
                 </Link>
 
-                {/* 8. SIEP Rulebook Copilot */}
+                {/* 8. Personal Deck Alerts */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeMenu();
+                    setIsNotificationDrawerOpen(true);
+                  }}
+                  className="w-full rounded-2xl p-3 sm:p-3.5 flex items-center justify-between gap-3.5 transition-all text-left bg-white hover:bg-zinc-50 border border-zinc-100/90 hover:border-zinc-200/80 shadow-2xs cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-11 h-11 rounded-xl bg-orange-50 border border-orange-200 text-orange-600 flex items-center justify-center shrink-0">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[15px] sm:text-base font-bold text-zinc-900 tracking-tight block">
+                        Deck Alerts
+                      </span>
+                      <span className="text-[10px] text-zinc-500 font-medium block">
+                        Tasks, deadlines & review notices
+                      </span>
+                    </div>
+                  </div>
+                  {deckNotificationsCount > 0 ? (
+                    <span className="px-2 py-0.5 rounded-full bg-orange-500 text-white font-mono text-xs font-bold shadow-2xs">
+                      {deckNotificationsCount}
+                    </span>
+                  ) : (
+                    <svg className="w-5 h-5 shrink-0 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                    </svg>
+                  )}
+                </button>
+
+                {/* 9. SIEP Rulebook Copilot */}
                 <button
                   type="button"
                   onClick={() => {
