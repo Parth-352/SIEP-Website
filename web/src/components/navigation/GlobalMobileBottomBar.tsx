@@ -180,32 +180,32 @@ export default function GlobalMobileBottomBar({
               <span className="text-[10px] font-mono tracking-tight mt-0.5">About</span>
             </Link>
 
-            {/* 3. The Bike */}
+            {/* 3. Competition */}
             <Link
-              href="/bike"
-              title="The Bike"
+              href="/competition"
+              title="Competition"
               className="flex flex-col items-center justify-center py-0.5 px-2 group active:scale-95 transition-transform"
             >
               <div
                 className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center font-bold transition-all shadow-2xs ${
-                  pathname === '/bike'
+                  pathname === '/competition'
                     ? 'border-orange bg-orange text-white'
                     : 'border-jet-black bg-white text-jet-black group-hover:border-orange group-hover:text-orange'
                 }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                 </svg>
               </div>
-              <span className="text-[10px] font-mono tracking-tight mt-0.5 font-bold text-jet-black">Bike</span>
+              <span className="text-[10px] font-mono tracking-tight mt-0.5 font-bold text-jet-black">Comp</span>
             </Link>
 
-            {/* 4. Competition */}
+            {/* 4. Contact */}
             <Link
-              href="/competition"
-              title="Competition"
+              href="/contact"
+              title="Contact"
               className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all group ${
-                pathname === '/competition' ? 'text-orange font-bold' : 'text-grey hover:text-jet-black'
+                pathname === '/contact' ? 'text-orange font-bold' : 'text-grey hover:text-jet-black'
               }`}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -213,10 +213,10 @@ export default function GlobalMobileBottomBar({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth="2"
-                  d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
+                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                 />
               </svg>
-              <span className="text-[10px] font-mono tracking-tight mt-0.5">Comp</span>
+              <span className="text-[10px] font-mono tracking-tight mt-0.5">Contact</span>
             </Link>
 
             {/* 5. Portal Login */}

@@ -43,14 +43,6 @@ export default function DesktopPublicNav({
         Competition
       </Link>
       <Link 
-        href="/bike" 
-        className={`uppercase tracking-wider text-xs transition-colors ${
-          pathname === '/bike' ? 'text-orange font-bold' : 'text-jet-black/80 font-semibold hover:text-orange'
-        }`}
-      >
-        The Bike
-      </Link>
-      <Link 
         href="/contact" 
         className={`uppercase tracking-wider text-xs transition-colors ${
           pathname === '/contact' ? 'text-orange font-bold' : 'text-jet-black/80 font-semibold hover:text-orange'

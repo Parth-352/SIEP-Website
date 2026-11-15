@@ -3,11 +3,11 @@
 > *Project: Riders Bay Smart Scrambler E-Bike (SIEP Season 7.0)*  
 > *These decisions are intentional. Agents must consult these before proposing major refactorings.*  
 > *Companion Documents:* [.context/ARCHITECTURE.md](file://.context/ARCHITECTURE.md) | [.context/DATABASE.md](file://.context/DATABASE.md) | [.context/CONTEXT.md](file://.context/CONTEXT.md) | [.context/HANDOVER.md](file://.context/HANDOVER.md)  
-> *Last Synced:* 2026-11-14 18:32 IST (Daily Codebase Context Sync)
+> *Last Synced:* 2026-11-15 05:40 IST (Daily Codebase Context Sync)
 
 ---
 
-## 📑 QUICK ADR INDEX (001 - 028)
+## 📑 QUICK ADR INDEX (001 - 031)
 | ADR | Title | Date | Status |
 | :--- | :--- | :--- | :--- |
 | **ADR-001** | Next.js 16 App Router + React 19 + Tailwind CSS v4 | 2026-11-10 | Accepted |
@@ -41,6 +41,7 @@
 | **ADR-029** | Modular Bifurcation of Monolithic Dashboard & Activity Log Engines | 2026-11-15 | Accepted |
 | **ADR-030** | Modular Bifurcation of Navigation Engine & Task Detail Modal | 2026-11-15 | Accepted |
 | **ADR-031** | Complete Rework of The Bike Page Architecture & 3D Model Staging Protocol | 2026-11-15 | Accepted |
+| **ADR-032** | Staging "The Bike" in Testing/Validation Phase & Detachment from Public Navigation | 2026-11-15 | Accepted |
 
 ---
 
@@ -770,3 +771,27 @@
   - Zero WebGL render lag or mobile GPU battery drain.
   - The Bike page is now a world-class collegiate engineering portfolio showcasing deep EV technical competence.
   - All 33 Next.js routes compile cleanly under Turbopack in ~2 seconds.
+
+---
+
+## 🧪 ADR-032: Staging "The Bike" in Testing/Validation Phase & Detachment from Public Navigation
+- **Date:** 2026-11-15
+- **Status:** Accepted & Implemented
+- **Context:**
+  - Following the complete architectural rework of "The Bike" page (ADR-031), team leadership requested that the page not be exposed on the final public production website yet.
+  - User directive: `"bro isko naa.... abhi final ispe mt rakh.... do one thing... isko sirf testing phase me rakh.... isko nikal final version se... like dont delete.... bs detach... jab final banega tab add kar denge"`.
+  - The page and its modular components must NOT be deleted. They must remain fully functional for internal testing, evaluation, and scrutiny, but detached from public menus until physical vehicle fabrication and scrutineering are complete.
+- **Decisions:**
+  1. **Detachment from Public Navigation Menus:**
+     - Removed `/bike` link from `DesktopPublicNav.tsx`. Desktop nav now cleanly features: `Home`, `About`, `Competition`, `Contact`, and `Portal Login`.
+     - Removed `/bike` navigation card from `MobileSlideDrawer.tsx`.
+     - Replaced `/bike` with `/contact` in `GlobalMobileBottomBar.tsx` for public visitors, preserving the symmetrical 5-button mobile bottom dock (`Home`, `About`, `Comp`, `Contact`, `Login`).
+     - Updated CTA link on `web/src/app/about/page.tsx` from `/bike` to `/competition` ("Competition Blueprint").
+  2. **Internal Testing & Pre-Release Banner:**
+     - Preserved `/bike` route and all underlying components in `web/src/components/bike/`.
+     - Added an amber-tinted industrial `Engineering Prototype // Testing Phase` banner at the top of `web/src/app/bike/page.tsx`, clearly identifying the vehicle architecture as in active physical fabrication & proving ground testing, detached from public navigation until physical unveiling.
+     - Preserved `/bike` in `web/src/middleware.ts` to allow direct access for testing without forced login redirection.
+- **Consequences:**
+  - Public visitors see a streamlined, production-ready website with zero broken links or unfinished vehicle claims.
+  - Team members and evaluators can continue testing and refining `/bike` directly at `https://ridersbay.vercel.app/bike`.
+  - When physical vehicle scrutiny is completed, re-attaching `/bike` to public navigation requires only restoring the link in the 3 navigation components.

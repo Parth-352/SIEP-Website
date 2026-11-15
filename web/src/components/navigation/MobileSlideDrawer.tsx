@@ -499,28 +499,6 @@ export default function MobileSlideDrawer({
               </Link>
 
               <Link
-                href="/bike"
-                onClick={onClose}
-                className={`w-full rounded-2xl p-3 sm:p-3.5 flex items-center justify-between gap-3.5 transition-all text-left ${
-                  pathname === '/bike'
-                    ? 'bg-amber-50/90 border border-amber-200/80 shadow-2xs'
-                    : 'bg-white hover:bg-zinc-50 border border-zinc-100/90 hover:border-zinc-200/80'
-                }`}
-              >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-11 h-11 rounded-xl bg-zinc-100/80 border border-zinc-200/50 flex items-center justify-center shrink-0 text-zinc-700">
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                    </svg>
-                  </div>
-                  <span className="text-[15px] sm:text-base font-bold text-zinc-900 tracking-tight">The Bike</span>
-                </div>
-                <svg className="w-5 h-5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-
-              <Link
                 href="/competition"
                 onClick={onClose}
                 className={`w-full rounded-2xl p-3 sm:p-3.5 flex items-center justify-between gap-3.5 transition-all text-left ${

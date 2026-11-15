@@ -3,7 +3,7 @@
 > *Project: Riders Bay Smart Scrambler E-Bike | SIEP Season 7.0 (ISIEINDIA)*  
 > *Institution: SNJB's KBJ College of Engineering, Chandwad*  
 > *Companion Documents:* [.context/ARCHITECTURE.md](file://.context/ARCHITECTURE.md) | [.context/CONTEXT.md](file://.context/CONTEXT.md) | [.context/DECISIONS.md](file://.context/DECISIONS.md) | [.context/HANDOVER.md](file://.context/HANDOVER.md)  
-> *Last Synced:* 2026-11-14 18:32 IST (Daily Codebase Context Sync)
+> *Last Synced:* 2026-11-15 05:40 IST (Daily Codebase Context Sync)
 
 ---
 
@@ -12,7 +12,7 @@
 The application utilizes a resilient dual-tier persistence layer:
 1. **Primary Cloud Persistence:** Google Cloud Firestore (Firebase SDK `v13.0.0`).
 2. **Local Fallback & Baseline Merging:** In-memory + session storage (`web/src/lib/store.ts`) with authoritative baseline merging (`web/src/lib/members.ts`), ensuring 100% offline functionality in the pit-lane or during unconfigured test environments.
-3. **Static Rulebook Vision Dataset & Vehicle Engineering Knowledge:** High-speed indexed JSON (`web/data/siep_rulebook_index.json`, 46 pages) combined with authoritative vehicle engineering specs (`EVERYTHINGUWANNAKNOW.MD`) embedded in `rulebookService.ts`, powering the dual-domain AI Copilot.
+3. **Static Rulebook Vision Dataset & Vehicle Engineering Knowledge:** High-speed indexed JSON (`web/data/siep_rulebook_index.json`, 46 pages) combined with authoritative vehicle engineering specs (`EVERYTHINGUWANNAKNOW.MD`) and the master bike dataset (`web/src/components/bike/bikeSpecsData.ts`), powering the dual-domain AI Copilot and the CAD Blueprint Technical Showcase.
 
 ```mermaid
 flowchart LR
@@ -23,6 +23,8 @@ flowchart LR
     Firestore -.->|Self-Healing Baseline Merge| Fallback
     App --> CopilotEngine["rulebookService.ts"]
     CopilotEngine --> RulebookData[("Vision OCR Index (siep_rulebook_index.json)\n+ Vehicle Specs Knowledge")]
+    App --> BikeSuite["web/src/components/bike/"]
+    BikeSuite --> BikeSpecsData[("bikeSpecsData.ts (Master Specs,\nCAD Hotspots, 8 Subsystems, CAE & Trials)")]
 ```
 
 ---
@@ -216,6 +218,18 @@ Vehicle engineering specifications directly grounded from `EVERYTHINGUWANNAKNOW.
 - **Battery System:** 72V 40Ah (2.88 kWh) Swappable Li-Ion (NMC 21700), Smart BMS with active CAN-bus telemetry, 100A continuous discharge.
 - **Suspension & Brakes:** Inverted front forks (140mm travel), adjustable rear gas-charged monoshock (120mm travel), dual-disc hydraulic calipers with regenerative blending.
 - **Telemetry & Electronics:** ESP32-S3 microcontroller, dual CAN 2.0B at 500 kbps, 4G LTE IoT telemetry module, 12V 15A isolated DC-DC converter.
+
+### Master Dataset: `web/src/components/bike/bikeSpecsData.ts` (ADR-031)
+Authoritative single source of truth for all vehicle engineering metrics, blueprint hotspot mappings, subsystem technical details, CAE validation parameters, and proving ground trial benchmarks:
+
+| Exported Constant | Structure / Type | Description |
+| :--- | :--- | :--- |
+| `TELEMETRY_STATS` | `Array<{ label, value, unit, change, trend }>` | 6 high-visibility performance indicators (5.0 kW peak, 72V 40Ah, 85 km/h, 52 Nm, 1340 mm, 180 mm) |
+| `COMPONENT_HOTSPOTS` | `Array<{ id, x, y, title, partNumber, subsystem, description, stats, rulebookRef, safetyFactor }>` | 6 interactive coordinates for 2D CAD blueprint (Battery, Motor, Trellis Frame, USD Fork, Monoshock, VCU) |
+| `SUBSYSTEMS_DATA` | `Record<string, SubsystemDetail>` | 8 deep-dive engineering profiles (Chassis, Powertrain, Battery, Telemetry, Suspension, Brakes, Safety, Aero) with FOS, materials & SIEP rules |
+| `TECH_SPECS_DATA` | `Array<{ category, name, value, detail, status }>` | 30+ categorized technical specs with search and filter capabilities |
+| `CAE_VALIDATION_DATA` | `Array<{ title, type, meshElements, maxStress, safetyFactor, status, description, findings }>` | Structural FEA & Thermal CFD virtual validation cards |
+| `PROVING_GROUND_TRIALS`| `Array<{ title, targetMetric, simulatedResult, complianceStatus, rulebookRef, icon, notes }>` | 4 SIEP dynamic proving ground trials (Acceleration, Hill Climb, Bump Durability, Range) |
 
 ---
 

@@ -3,7 +3,7 @@
 > *Project: Riders Bay Smart Scrambler E-Bike | SIEP Season 7.0 (ISIEINDIA)*  
 > *Institution: SNJB's KBJ College of Engineering, Chandwad, Nashik*  
 > *Companion Documents:* [.context/ARCHITECTURE.md](file://.context/ARCHITECTURE.md) | [.context/DATABASE.md](file://.context/DATABASE.md) | [.context/DECISIONS.md](file://.context/DECISIONS.md) | [.context/HANDOVER.md](file://.context/HANDOVER.md)  
-> *Last Synced:* 2026-11-14 18:32 IST (Daily Codebase Context Sync)
+> *Last Synced:* 2026-11-15 05:40 IST (Daily Codebase Context Sync)
 
 ---
 
@@ -11,7 +11,7 @@
 Riders Bay is an electric vehicle development team designing and fabricating an indigenous **Smart Scrambler Electric Motorcycle** for the **Student Innovation Electric Pursuit (SIEP Season 7.0)** organized by ISIEINDIA.
 
 - **Vehicle Architecture:** High-strength Chromoly steel spaceframe, 72V 40Ah swappable Li-ion battery pack with smart BMS, 5 kW peak BLDC mid-drive powertrain, and an ESP32 CAN 2.0B telemetry unit.
-- **3D Digital Twin:** Real-time 3D web inspection model with component explosion, stress-test overlays, and CAD download portal (`Electric_Scrambler_Exo.blend`, `web/public/moto.glb`, `web/public/chassis.glb`).
+- **3D Digital Twin Pipeline:** Real-time 3D web inspection model with component explosion and stress overlays (`Electric_Scrambler_Exo.blend`, `web/public/moto.glb`, `web/public/chassis.glb`). *Staged for physical unveiling per ADR-031.*
 - **Web Application (`/web`):** Next.js 16.4.5, React 19.3.0, Tailwind CSS v4, Firebase Firestore & PIN auth. Features real-time Engineering Dashboard, unified Kanban sprint board, workshop daily build logs with Google Drive video streaming, dedicated Research & Materials repository, Master Role & Team Governance console, official SIEP 7.0 Rulebook AI Copilot with non-overridable citations, and dynamic public showcase.
 
 ---
@@ -34,14 +34,14 @@ Riders Bay is an electric vehicle development team designing and fabricating an 
 ---
 
 ## 📜 3. RECENT GIT COMMITS & REPOSITORY ACTIVITY
-- `9ed8a00` - `fix(copilot): add GET handler redirect for /api/ai/copilot and create dedicated /copilot page`
-- `446ae8f` - `feat(navigation): add rulebook ai button to mobile header and slide-over menu`
-- `8c1eb91` - `feat(copilot): official siep season 7.0 rulebook ai copilot with non-overridable section and page citations`
-- `3b03834` - `docs(handover): record gemini 2.0 flash model upgrade`
-- `5aa96c3` - `feat(gemini): upgrade default model to Gemini 2.0 Flash with JSON mode and multi-tier fallback`
+- `6276bce` - `docs(handover): record The Bike rework production deployment`
+- `1e209de` - `feat(bike): complete rework of The Bike page and 3D model staging protocol`
+- `1d4acba` - `docs(handover): record contact page update deployment`
+- `72f4301` - `feat(contact): dynamic leadership liaisons, clean inquiry form inputs, and campus badge cleanup`
+- `0f87abf` - `docs(handover): record successful vercel production deployment`
 
-> **In-Flight Working Tree State (ADR-027 & RES-008 Active):**
-> 13 modified & untracked files actively implementing AI Copilot Gemini 2.5 Flash upgrade, dual-domain knowledge grounding (SIEP 7.0 Rulebook + Riders Bay Vehicle Specs), deterministic semantic synthesis fallback engine, zero-dependency rich markdown rendering (`MarkdownMessage.tsx`), and public desktop header access. Type-checked clean (`cd web && npx tsc --noEmit` -> 0 errors) and production build clean (`npm run build` -> 33/33 routes compiled).
+> **Active Repository & Working Tree State:**  
+> Clean working tree on `main`, up to date with `origin/main`. TypeScript compiles clean with 0 errors (`cd web && npx tsc --noEmit`). Production build compiles all 33 static & dynamic routes cleanly in ~2.1s under Turbopack (`npm run build`).
 
 ---
 
@@ -52,7 +52,7 @@ SIEP Website/
 │   ├── ARCHITECTURE.md            # System architecture, stack & UI topology
 │   ├── DATABASE.md                # Firestore database schemas & access models
 │   ├── CONTEXT.md                 # Project mission, squads & git activity
-│   ├── DECISIONS.md               # Architecture Decision Records (ADRs 001 - 027)
+│   ├── DECISIONS.md               # Architecture Decision Records (ADRs 001 - 031)
 │   └── HANDOVER.md                # Active tasks & agent pickup points
 ├── web/                           # Next.js 16.4.5 + React 19 Web Application
 │   ├── data/
@@ -84,19 +84,32 @@ SIEP Website/
 │   │   │   ├── build-log/         # Dedicated Build Log timeline route
 │   │   │   ├── profile/           # Dedicated Member Profile route
 │   │   │   ├── about/             # Dynamic team roster & history (/about#team)
-│   │   │   ├── bike/              # Vehicle specifications & 3D showcase
+│   │   │   ├── bike/              # Complete engineering showcase & CAD schematic blueprint viewer
 │   │   │   ├── competition/       # SIEP 7.0 rulebook & milestone tracker
+│   │   │   ├── contact/           # Team contact and partnership inquiry page
 │   │   │   ├── log/               # Daily workshop engineering log archive
 │   │   │   ├── login/             # PIN authentication portal
-│   │   │   └── page.tsx           # Marketing Landing Page & Hero 3D Stage
+│   │   │   └── page.tsx           # Marketing Landing Page & Hero Stage
 │   │   ├── components/            # React 19 UI components & Three.js 3D viewers
-│   │   │   ├── copilot/           # RulebookCopilotDrawer.tsx (Slide-out drawer), MarkdownMessage.tsx (Rich markdown)
+│   │   │   ├── bike/              # The Bike Engineering Showcase Suite (ADR-031):
+│   │   │   │   ├── bikeSpecsData.ts        # Authoritative master dataset
+│   │   │   │   ├── BikeHeroSection.tsx     # Display typography & 6-card telemetry ribbon
+│   │   │   │   ├── BikeSchematicViewer.tsx # Interactive 2D vector blueprint & hotspots
+│   │   │   │   ├── SubsystemsExplorer.tsx  # 8-subsystem deep-dive matrix
+│   │   │   │   ├── TechSpecsTable.tsx      # Searchable & filtered tech specs table
+│   │   │   │   ├── CaeValidationSection.tsx# Structural FEA & Thermal CFD validation
+│   │   │   │   ├── ProvingGroundSection.tsx# SIEP Season 7.0 dynamic trials mapping
+│   │   │   │   └── BikeCtaHub.tsx          # Technical cross-linking CTA hub
+│   │   │   ├── copilot/           # RulebookCopilotDrawer.tsx, MarkdownMessage.tsx
 │   │   │   ├── dashboard/         # MaterialsTab.tsx, RolesManagementTab.tsx, SubsystemsTab.tsx,
 │   │   │   │                      # TeamTasksTab.tsx, VelocityMetricsTab.tsx, DashboardOverviewTab.tsx,
 │   │   │   │                      # CredentialsVaultTab.tsx, MyWorkbenchTab.tsx
-│   │   │   ├── notifications/     # NotificationDrawer.tsx (Personal deck alerts & warnings)
+│   │   │   │   └── roles/         # Modular Roles Governance Suite (ADR-029)
+│   │   │   ├── log/               # Modular Build Log Suite (ADR-029)
+│   │   │   ├── navigation/        # Modular Navigation Engine (ADR-030)
+│   │   │   ├── tasks/             # Modular Tasks Suite & modal/ (ADR-030)
+│   │   │   ├── notifications/     # NotificationDrawer.tsx (Personal deck alerts)
 │   │   │   ├── profile/           # ProfileView.tsx, PinChangeForm.tsx
-│   │   │   ├── navigation/        # BottomNav.tsx (Instagram dock), Navigation.tsx (Desktop top bar)
 │   │   │   ├── shared/            # OperationsBanner.tsx, StatCard.tsx, CreateTaskModal.tsx
 │   │   │   └── TeamSection.tsx    # Dynamic public roster section (hydrates from /api/members)
 │   │   ├── context/               # AuthContext.tsx (PIN auth & multi-domain roles)
@@ -125,7 +138,9 @@ SIEP Website/
 - **PIN Authentication:** Universal fallback PIN `935200`. Custom PINs stored per member in Firestore `member_passwords/{cleanEmail}` with automatic alias sync for Parth's email.
 - **Master Role Authority:** Strictly guarded by `isParthMasterAdmin(email)` matching `parthkshirsagrr@gmail.com` and its alias. Non-authorized access to `/roles` or `/api/roles` is blocked.
 - **Absolute Domain Equality:** All assigned squads exist in `domains: TeamId[]` with 100% equal prominence and badges. No primary/secondary hierarchy.
-- **Dual-Domain AI Copilot & Citations:** Immutable server-side enforcement. All competition and scrutiny answers must cite official Section and Page numbers; vehicle specifications are grounded directly in `EVERYTHINGUWANNAKNOW.MD`. Powered by Gemini 2.5 Flash with deterministic semantic synthesis fallback.
+- **3D Model Staging Protocol (ADR-031):** The 3D model viewer on `/bike` and `/` background is staged/hidden from public view pending pre-competition scrutiny refinement; raw GLBs remain preserved in `web/public/`.
+- **Modular Component Architecture (ADR-029, ADR-030):** Large functional blocks are bifurcated into modular directory suites (`roles/`, `log/`, `navigation/`, `tasks/modal/`).
+- **Dual-Domain AI Copilot & Citations:** Immutable server-side enforcement. All competition and scrutiny answers must cite official Section and Page numbers; vehicle specifications are grounded directly in `EVERYTHINGUWANNAKNOW.MD` and `bikeSpecsData.ts`. Powered by Gemini 2.5 Flash with deterministic semantic synthesis fallback.
 - **Batch Document AI Processing:** Staged review queue with Gemini 2.5 Flash auto-bifurcation and offline heuristic fallback.
 - **Dynamic Public Roster Sync:** Public site (`TeamSection.tsx`) and internal directory (`SubsystemsTab.tsx`) fetch real-time data from `/api/members`.
 - **Dedicated Materials Repository:** Centralized hub at `/materials` (`MaterialsTab.tsx`) with direct Google Drive resumable streaming up to 5 GB for all authenticated members.
