@@ -1,48 +1,61 @@
 # 📋 ACTIVE SESSION HANDOVER & STATE
-> **Last Updated:** 2026-11-15 11:51 IST | **Branch:** `main`  
-> **Head Commit:** `d57d75c` feat(bike): stage The Bike in testing phase and detach from public navigation  
+> **Last Updated:** 2026-11-15 12:40 IST | **Branch:** `main`  
 > **Production Live URLs:** `https://ridersbay.vercel.app` | Internal testing: `https://ridersbay.vercel.app/bike`  
 > *This document is the single source of truth for in-flight work across breaks and sessions. Agents and developers must read this before starting and update it before stopping.*
 
 ---
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
-- **Production Status:** Clean working state on `main`. All 33 static & dynamic Next.js routes compile clean under Turbopack in ~1.8s.
-- **The Bike Staging & Detachment (ADR-032):**
-  1. Per user instruction (`"bs detach... jab final banega tab add kar denge"`), `/bike` is staged strictly in testing phase and detached from public navigation menus.
-  2. Preserved all newly built modular components (`web/src/components/bike/`) and the `/bike` route.
-  3. Removed public `/bike` links from `DesktopPublicNav.tsx` and `MobileSlideDrawer.tsx`.
-  4. Symmetrically adjusted `GlobalMobileBottomBar.tsx` for mobile public visitors by replacing the Bike slot with Contact (`/contact`), keeping a 5-item dock (`Home`, `About`, `Comp`, `Contact`, `Login`).
-  5. Updated CTA on `web/src/app/about/page.tsx` from `/bike` to `/competition`.
-  6. Added an amber `Engineering Prototype // Testing Phase` banner at the top of `web/src/app/bike/page.tsx` for direct internal testing & scrutiny.
-- **TypeScript Verification:** Clean (`cd web && npx tsc --noEmit` passes with 0 errors).
-- **Turbopack Build:** Clean (`cd web && npm run build` passes 33/33 routes).
+- **Production Status:** Clean working state on `main`. All 33 static & dynamic Next.js routes compile clean under Turbopack in ~1.6s.
+- **Round 3 Modular Bifurcation Completed (ADR-033):**
+  1. `web/src/components/dashboard/TeamTasksTab.tsx`: Modularized from 1,213 lines $\rightarrow$ **230 lines** (-81.0%) across 5 sub-modules in `web/src/components/dashboard/tasks/`.
+  2. `web/src/components/dashboard/MaterialsTab.tsx`: Modularized from 1,169 lines $\rightarrow$ **418 lines** (-64.2%) across 5 sub-modules in `web/src/components/dashboard/materials/`.
+  3. `web/src/components/TeamSection.tsx`: Modularized from 1,072 lines $\rightarrow$ **307 lines** (-71.4%) across 5 sub-modules in `web/src/components/team/`.
+  4. Total lines reduced across the 3 monolithic components: **from 3,454 lines down to 955 lines (-72.4%)**.
+  5. ZERO components over 1,000 lines remain in `web/src/components/`!
+- **Automated Verification:**
+  - Automated verification script (`scripts/verify-bifurcation-round3.mjs`) ran and passed all line limits, sub-module sizes, domain normalizations, badge formats, and named re-export checks.
+  - TypeScript verification clean (`cd web && npx tsc --noEmit` -> 0 errors).
+  - Next.js Turbopack build clean (`cd web && npm run build` -> 33/33 routes).
 
 ---
 
 ## 📂 2. FILES MODIFIED IN THIS TURN
 
-### Public Navigation & Staging:
-- `web/src/components/navigation/DesktopPublicNav.tsx` (Removed `/bike` link)
-- `web/src/components/navigation/MobileSlideDrawer.tsx` (Removed `/bike` drawer card)
-- `web/src/components/navigation/GlobalMobileBottomBar.tsx` (Replaced `/bike` with `/contact`)
-- `web/src/app/about/page.tsx` (Redirected CTA button to `/competition`)
-- `web/src/app/bike/page.tsx` (Added `Engineering Prototype // Testing Phase` notice banner)
+### Bifurcated Component Suites:
+- `web/src/components/dashboard/TeamTasksTab.tsx` (Reduced to 230 lines)
+  - `web/src/components/dashboard/tasks/taskBadgeUtils.ts`
+  - `web/src/components/dashboard/tasks/MobileTeamTasksView.tsx`
+  - `web/src/components/dashboard/tasks/DesktopTaskControls.tsx`
+  - `web/src/components/dashboard/tasks/DesktopTaskTable.tsx`
+  - `web/src/components/dashboard/tasks/DesktopTaskKanban.tsx`
+- `web/src/components/dashboard/MaterialsTab.tsx` (Reduced to 418 lines)
+  - `web/src/components/dashboard/materials/materialsConstants.tsx`
+  - `web/src/components/dashboard/materials/MaterialsStatsSection.tsx`
+  - `web/src/components/dashboard/materials/MaterialsFilterBar.tsx`
+  - `web/src/components/dashboard/materials/MaterialsTable.tsx`
+  - `web/src/components/dashboard/materials/BatchUploadModal.tsx`
+- `web/src/components/TeamSection.tsx` (Reduced to 307 lines)
+  - `web/src/components/team/teamTypes.ts`
+  - `web/src/components/team/teamRosterData.ts`
+  - `web/src/components/team/MemberCard.tsx`
+  - `web/src/components/team/MobilePlayerCard.tsx`
+  - `web/src/components/team/MobileTeamAccordion.tsx`
 
-### Living Context Memory Hub (`.context/`):
-- `.context/DECISIONS.md` (Recorded ADR-032)
-- `.context/HANDOVER.md` (Updated active handover & status)
+### Verification Script & Living Memory Hub:
+- `scripts/verify-bifurcation-round3.mjs` (Automated invariant verification script)
+- `.context/DECISIONS.md` (Recorded ADR-033)
+- `.context/HANDOVER.md` (Updated session status)
 
 ---
 
 ## 🎯 3. VERIFICATION CHECKLIST & PICKUP POINTS
 - [x] Context check run (`bash scripts/context-check.sh`).
+- [x] Automated verification script passed (`node scripts/verify-bifurcation-round3.mjs`).
 - [x] TypeScript verification clean (`cd web && npx tsc --noEmit` -> 0 errors).
 - [x] Turbopack build clean (`cd web && npm run build` -> 33/33 routes).
-- [x] Public navigation detached from `/bike`.
-- [x] Internal `/bike` route preserved and operational for testing.
+- [x] ADR-033 recorded in `.context/DECISIONS.md`.
 - [ ] Push to `origin main` and deploy to Vercel production.
-- [x] Context check run (`bash scripts/context-check.sh`).
 - [x] Git log and branch state verified (`git log -n 5 --oneline` -> head `6276bce`).
 - [x] Clean TypeScript compilation confirmed (`cd web && npx tsc --noEmit` -> 0 errors).
 - [x] All 5 `.context/` memory files fully updated and cross-referenced.
