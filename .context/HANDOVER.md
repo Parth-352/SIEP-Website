@@ -1,6 +1,6 @@
 # 📋 ACTIVE SESSION HANDOVER & STATE
-> **Last Updated:** 2026-11-15 12:42 IST | **Branch:** `main`  
-> **Head Commit:** `5fd9b6d` refactor(bifurcation): modularize TeamTasksTab, MaterialsTab, and TeamSection into single-responsibility suites  
+> **Last Updated:** 2026-11-15 13:20 IST | **Branch:** `main`  
+> **Head Commit:** `f36e142` docs(handover): record commit 5fd9b6d  
 > **Production Live URLs:** `https://ridersbay.vercel.app` | Internal testing: `https://ridersbay.vercel.app/bike`  
 > *This document is the single source of truth for in-flight work across breaks and sessions. Agents and developers must read this before starting and update it before stopping.*
 
@@ -8,6 +8,8 @@
 
 ## 🚦 1. CURRENT WORKSPACE STATUS
 - **Production Status:** Clean working state on `main`. All 33 static & dynamic Next.js routes compile clean under Turbopack in ~1.6s.
+- **Codebase Directory Map Established (`.context/CODEBASE_MAP.md`):**
+  - Created authoritative, human-friendly "Kya Cheez Kidhar Hai" reference guide covering all 33 routes, 15+ component suites, 14 API endpoints, core libraries, Firestore models, CAD/Blender assets, and quick-lookup cheatsheet.
 - **Round 3 Modular Bifurcation Completed (ADR-033):**
   1. `web/src/components/dashboard/TeamTasksTab.tsx`: Modularized from 1,213 lines $\rightarrow$ **230 lines** (-81.0%) across 5 sub-modules in `web/src/components/dashboard/tasks/`.
   2. `web/src/components/dashboard/MaterialsTab.tsx`: Modularized from 1,169 lines $\rightarrow$ **418 lines** (-64.2%) across 5 sub-modules in `web/src/components/dashboard/materials/`.

@@ -2,8 +2,8 @@
 > **High-Level Project Context, Engineering Squads & Active Repository State**  
 > *Project: Riders Bay Smart Scrambler E-Bike | SIEP Season 7.0 (ISIEINDIA)*  
 > *Institution: SNJB's KBJ College of Engineering, Chandwad, Nashik*  
-> *Companion Documents:* [.context/ARCHITECTURE.md](file://.context/ARCHITECTURE.md) | [.context/DATABASE.md](file://.context/DATABASE.md) | [.context/DECISIONS.md](file://.context/DECISIONS.md) | [.context/HANDOVER.md](file://.context/HANDOVER.md)  
-> *Last Synced:* 2026-11-15 05:40 IST (Daily Codebase Context Sync)
+> *Companion Documents:* [.context/CODEBASE_MAP.md](file://.context/CODEBASE_MAP.md) *(Kya Cheez Kidhar Hai)* | [.context/ARCHITECTURE.md](file://.context/ARCHITECTURE.md) | [.context/DATABASE.md](file://.context/DATABASE.md) | [.context/DECISIONS.md](file://.context/DECISIONS.md) | [.context/HANDOVER.md](file://.context/HANDOVER.md)  
+> *Last Synced:* 2026-11-15 13:20 IST (Codebase Map & Bifurcation Sync)
 
 ---
 
@@ -49,10 +49,11 @@ Riders Bay is an electric vehicle development team designing and fabricating an 
 ```
 SIEP Website/
 ├── .context/                      # Living Agent Memory Hub
+│   ├── CODEBASE_MAP.md            # Complete directory map (Kya cheez kidhar hai)
 │   ├── ARCHITECTURE.md            # System architecture, stack & UI topology
 │   ├── DATABASE.md                # Firestore database schemas & access models
 │   ├── CONTEXT.md                 # Project mission, squads & git activity
-│   ├── DECISIONS.md               # Architecture Decision Records (ADRs 001 - 031)
+│   ├── DECISIONS.md               # Architecture Decision Records (ADRs 001 - 033)
 │   └── HANDOVER.md                # Active tasks & agent pickup points
 ├── web/                           # Next.js 16.4.5 + React 19 Web Application
 │   ├── data/
