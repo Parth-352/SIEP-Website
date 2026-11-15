@@ -1,15 +1,12 @@
 # 🗺️ RIDERS BAY CODEBASE MAP (KYA CHIZE KIDHAR HAI)
 > **Authoritative Project Directory Map, Feature Location Guide & Codebase Index**  
-> *Project: Riders Bay Smart Scrambler E-Bike | SIEP Season 7.0 (ISIEINDIA)*  
-> *Institution: SNJB's Late Sau. Kantabai Bhavarlalji Jain College of Engineering, Chandwad, Nashik*  
-> *Companion Documents:* [.context/ARCHITECTURE.md](file://.context/ARCHITECTURE.md) | [.context/DATABASE.md](file://.context/DATABASE.md) | [.context/DECISIONS.md](file://.context/DECISIONS.md) | [.context/HANDOVER.md](file://.context/HANDOVER.md)  
-> *Last Synced:* 2026-11-15 13:20 IST | **Branch:** `main`
+> *Project: Riders Bay Smart Scrambler E-Bike | SIEP Season 7.0 (ISIEINDIA) | SNJB COE*  
+> *Companion Documents:* [.context/INDEX.md](file://.context/INDEX.md) | [.context/ARCHITECTURE.md](file://.context/ARCHITECTURE.md) | [.context/DATABASE.md](file://.context/DATABASE.md) | [.context/DECISIONS.md](file://.context/DECISIONS.md) | [.context/HANDOVER.md](file://.context/HANDOVER.md)  
 
 ---
 
 ## ⚡ 1. QUICK NAVIGATION CHEAT SHEET ("KYA DHOONDH RAHE HO?")
-
-Agar aapko specific features ya code dhundhna hai, toh seedha yahan dekhein:
+Seedha specific features ya code yahan dekhein:
 
 | Agar aapko yeh chahiye... | Toh yahan jao... | File / Directory Path |
 | :--- | :--- | :--- |
@@ -78,41 +75,28 @@ Agar aapko specific features ya code dhundhna hai, toh seedha yahan dekhein:
 
 Next.js 16 App Router handles 33 static and dynamic routes. Yahan har route ka location aur purpose hai:
 
-### A. Public Website Routes (Kisi login ke bina khulte hain)
-- **`/`** — [web/src/app/page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/page.tsx)  
-  *Homepage / Hero Showcase:* Hero typography, mission statement, stats, 3D model banner, and public CTAs.
-- **`/about`** — [web/src/app/about/page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/about/page.tsx)  
-  *About Riders Bay:* College background (SNJB Chandwad), history, institutional advisors, and embeds `<TeamSection />`.
-- **`/competition`** — [web/src/app/competition/page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/competition/page.tsx)  
-  *SIEP Season 7.0:* Scrambler category details, proving ground trials, schedule, and rulebook criteria.
-- **`/contact`** — [web/src/app/contact/page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/contact/page.tsx)  
-  *Contact & Partnerships:* Leadership liaisons (Mentor, Captain, Vice Captain from `/api/members`) and inquiry message form.
-- **`/bike`** — [web/src/app/bike/page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/bike/page.tsx)  
-  *Engineering Prototype (Testing Phase):* Staged for internal track scrutiny (ADR-031/ADR-032). Features CAD 2D blueprint viewer, 8-subsystem matrix, CAE validation, and full technical specifications. Detached from public nav.
+### A. Public Website Routes (No login required)
+| Route | Source File | Purpose |
+| :--- | :--- | :--- |
+| `/` | [page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/page.tsx) | Homepage hero typography, mission statement, stats, public CTAs |
+| `/about` | [page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/about/page.tsx) | College background (SNJB Chandwad), history, embeds `<TeamSection />` |
+| `/competition` | [page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/competition/page.tsx) | SIEP Season 7.0 scrambler trials, schedule, and scoring criteria |
+| `/contact` | [page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/contact/page.tsx) | Leadership liaisons (Mentor, Captain, Vice Captain) & inquiry form |
+| `/bike` | [page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/bike/page.tsx) | Staged engineering prototype testing showcase (ADR-031/ADR-032) |
+| `/login` | [page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/login/page.tsx) | PIN Authentication Portal (6-digit PIN, default: `935200`, OTP reset) |
 
-### B. Authentication & Portal Access
-- **`/login`** — [web/src/app/login/page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/login/page.tsx)  
-  *PIN Authentication Portal:* Allows members to sign in using their 6-digit PIN (default: `935200`), with email OTP recovery modal.
-
-### C. Member Portal Standalone Routes (PIN Authentication Required)
-- **`/dashboard`** — [web/src/app/dashboard/page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/dashboard/page.tsx)  
-  *Command Center Orchestrator:* Houses the full internal operating system with tab switcher (`tasks`, `materials`, `roles`, `overview`, `teams`, `reports`, `vault`, `workbench`).
-- **`/tasks`** — [web/src/app/tasks/page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/tasks/page.tsx)  
-  *Dedicated Sprint Kanban:* Direct deep-link to the full tasks workspace.
-- **`/materials`** — [web/src/app/materials/page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/materials/page.tsx)  
-  *Dedicated Materials Repo:* Direct deep-link to engineering papers, CAD, and Google Drive uploads.
-- **`/roles`** — [web/src/app/roles/page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/roles/page.tsx)  
-  *Master Role Console:* Direct route strictly restricted to Parth Kshirsagar for team governance.
-- **`/teams`** — [web/src/app/teams/page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/teams/page.tsx)  
-  *Subsystems & Directory:* Direct route to 9 squad details and member profiles.
-- **`/reports`** — [web/src/app/reports/page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/reports/page.tsx)  
-  *Velocity & Analytics:* Sprint burn-up, squad task completion velocity, and stats.
-- **`/build-log`** & **`/log`** — [web/src/app/build-log/page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/build-log/page.tsx)  
-  *Workshop Timeline:* Daily physical fabrication logs, video attachments, and scrutiny sign-offs.
-- **`/profile`** — [web/src/app/profile/page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/profile/page.tsx)  
-  *Personal Member Deck:* Edit custom photo, display name, and change individual PIN.
-- **`/copilot`** — [web/src/app/copilot/page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/copilot/page.tsx)  
-  *Rulebook AI Assistant:* Dedicated fullscreen chat with Gemini 2.5 Flash for rulebook questions.
+### C. Member Portal Deep-Link Routes (PIN Authentication Required)
+| Route | Source File | Destination Tab |
+| :--- | :--- | :--- |
+| `/dashboard` | [page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/dashboard/page.tsx) | Full operations nexus (10 operational views) |
+| `/tasks` | [page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/tasks/page.tsx) | Dedicated Sprint Kanban (`?tab=team_tasks`) |
+| `/materials` | [page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/materials/page.tsx) | Dedicated Materials repo (`?tab=materials`) |
+| `/roles` | [page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/roles/page.tsx) | Master Role Console strictly for Parth (`?tab=roles`) |
+| `/teams` | [page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/teams/page.tsx) | Subsystems & Directory (`?tab=teams`) |
+| `/reports` | [page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/reports/page.tsx) | Velocity metrics & analytics (`?tab=metrics`) |
+| `/build-log`, `/log` | [page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/log/page.tsx) | Workshop physical fabrication logs |
+| `/profile` | [page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/profile/page.tsx) | Personal Member Deck & PIN change (`?tab=profile`) |
+| `/copilot` | [page.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/app/copilot/page.tsx) | Dedicated fullscreen Rulebook AI Assistant chat |
 
 ---
 
@@ -300,32 +284,16 @@ flowchart TD
 ---
 
 ## 🏍️ 8. 3D DIGITAL TWIN & CAD PIPELINE
-
-- **Authoritative CAD Master:**  
-  [Electric_Scrambler_Exo.blend](file:///Users/parth/Desktop/SIEP%20Website/Electric_Scrambler_Exo.blend) (Blender 5.2.2 LTS). Spaceframe geometry, mid-drive motor placement, and battery pack housing.
-- **WebGL Compressed Assets:**  
-  - [web/public/moto.glb](file:///Users/parth/Desktop/SIEP%20Website/web/public/moto.glb) (~896 KB compressed full vehicle)
-  - [web/public/chassis.glb](file:///Users/parth/Desktop/SIEP%20Website/web/public/chassis.glb) (~125 KB tubular spaceframe)
-- **3D Staging Protocol (ADR-031):**  
-  Active WebGL canvas is hidden from the public production showcase pending final physical scrutineering. Raw GLB assets remain safely preserved in `web/public/`.
-- **2D Vector Blueprint:**  
-  [BikeSchematicViewer.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/components/bike/BikeSchematicViewer.tsx) renders interactive vector geometry with real millimeter dimensions (1,340 mm wheelbase, 180 mm ground clearance).
+- **CAD Master:** [Electric_Scrambler_Exo.blend](file:///Users/parth/Desktop/SIEP%20Website/Electric_Scrambler_Exo.blend) (Blender 5.2.2 LTS).
+- **WebGL Assets:** [moto.glb](file:///Users/parth/Desktop/SIEP%20Website/web/public/moto.glb) (~896 KB), [chassis.glb](file:///Users/parth/Desktop/SIEP%20Website/web/public/chassis.glb) (~125 KB). Staged pending final scrutiny (ADR-031/032).
+- **2D Blueprint:** [BikeSchematicViewer.tsx](file:///Users/parth/Desktop/SIEP%20Website/web/src/components/bike/BikeSchematicViewer.tsx) renders interactive vector dimensions (1,340 mm wheelbase, 180 mm ground clearance).
 
 ---
 
 ## 📚 9. LIVING AGENT MEMORY HUB (`.context/`)
-
-Whenever an agent or developer works on this codebase, these 5 documents maintain total continuity:
-
-1. **[CODEBASE_MAP.md](file:///Users/parth/Desktop/SIEP%20Website/.context/CODEBASE_MAP.md) (This File):**  
-   "Kya cheez kidhar hai" — complete index of files, directories, routes, and components.
-2. **[ARCHITECTURE.md](file:///Users/parth/Desktop/SIEP%20Website/.context/ARCHITECTURE.md):**  
-   Detailed system architecture, tech stack versions, modular component suites breakdown, and data flow.
-3. **[DATABASE.md](file:///Users/parth/Desktop/SIEP%20Website/.context/DATABASE.md):**  
-   Firestore database models (`tasks`, `materials`, `build_logs`, `user_profiles`, `member_passwords`, `team_roles`).
-4. **[DECISIONS.md](file:///Users/parth/Desktop/SIEP%20Website/.context/DECISIONS.md):**  
-   Architectural Decision Records index (ADR-001 through ADR-033) detailing why decisions were made.
-5. **[HANDOVER.md](file:///Users/parth/Desktop/SIEP%20Website/.context/HANDOVER.md):**  
-   In-flight session state, recent changes, verification commands, and immediate next steps.
-6. **[CONTEXT.md](file:///Users/parth/Desktop/SIEP%20Website/.context/CONTEXT.md):**  
-   High-level vehicle specs, 9 squads summary, and runtime invariants.
+1. **[INDEX.md](file:///Users/parth/Desktop/SIEP%20Website/.context/INDEX.md):** Master catalog and directory manifests.
+2. **[CODEBASE_MAP.md](file:///Users/parth/Desktop/SIEP%20Website/.context/CODEBASE_MAP.md):** "Kya cheez kidhar hai" — route & component index.
+3. **[ARCHITECTURE.md](file:///Users/parth/Desktop/SIEP%20Website/.context/ARCHITECTURE.md):** Topology, tech stack, modular suites, and data flow.
+4. **[DATABASE.md](file:///Users/parth/Desktop/SIEP%20Website/.context/DATABASE.md):** Firestore models (`tasks`, `materials`, `build_logs`, `member_profiles`, `member_passwords`, `roster_members`).
+5. **[DECISIONS.md](file:///Users/parth/Desktop/SIEP%20Website/.context/DECISIONS.md):** ADR master register (ADR-001 through ADR-034 sharded into 3 volumes).
+6. **[HANDOVER.md](file:///Users/parth/Desktop/SIEP%20Website/.context/HANDOVER.md):** In-flight session state, verification commands, and next steps.

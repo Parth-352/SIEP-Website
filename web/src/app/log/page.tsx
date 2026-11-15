@@ -1,28 +1,20 @@
 "use client";
 
-import React, { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { TEAMS } from '@/lib/teams';
 import { WorkLog, TeamId, Task, LogWorkStatus } from '@/lib/types';
-import TaskCompleteModal from '@/components/TaskCompleteModal';
 import { useBackgroundSync } from '@/components/BackgroundSyncProvider';
-import { getOfflineCachedLogs, cacheOfflineLogs } from '@/lib/offlineDb';
-
 import {
-  getLogWorkStatus,
   LogLoadingSkeleton,
-} from '@/components/log/logConfig';
-import LogMobileView from '@/components/log/LogMobileView';
-import LogDesktopView from '@/components/log/LogDesktopView';
-import CreateLogModal from '@/components/log/CreateLogModal';
-import EditLogModal from '@/components/log/EditLogModal';
-import DeleteConfirmModal from '@/components/log/DeleteConfirmModal';
-import MobileLogDetailDrawer from '@/components/log/MobileLogDetailDrawer';
+  useLogData,
+  LogMobileView,
+  LogDesktopView,
+  LogModalsHost,
+} from '@/components/log';
 
 function LogPageContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { user, loading: authLoading, isCore, isLead } = useAuth();
   const { enqueueLogUpload } = useBackgroundSync();
 
@@ -36,10 +28,6 @@ function LogPageContent() {
   );
 
   const [isMounted, setIsMounted] = useState(false);
-  const [logs, setLogs] = useState<WorkLog[]>([]);
-  const [loadingLogs, setLoadingLogs] = useState(true);
-  const [selectedTeamFilter, setSelectedTeamFilter] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
 
   // Task Complete with Video Modal state
   const [taskToComplete, setTaskToComplete] = useState<Task | null>(null);
@@ -55,134 +43,35 @@ function LogPageContent() {
   const [deleteConfirmLog, setDeleteConfirmLog] = useState<WorkLog | null>(null);
   const [selectedMobileDetailLog, setSelectedMobileDetailLog] = useState<WorkLog | null>(null);
 
-  // Desktop filters
-  const [mobileStatusFilter, setMobileStatusFilter] = useState<'all' | LogWorkStatus>('all');
-  const [desktopLogPill, setDesktopLogPill] = useState<'all' | 'builds' | 'tests' | 'design' | 'analysis'>('all');
-  const [desktopLogPage, setDesktopLogPage] = useState<number>(1);
-  const [desktopLogTimeFilter, setDesktopLogTimeFilter] = useState<'all' | '24h' | '7d' | '30d'>('all');
-  const [desktopLogSearch, setDesktopLogSearch] = useState<string>('');
-
-  // Dynamic filtered logs feed for desktop
-  const desktopFilteredLogs = useMemo(() => {
-    return logs.filter((log) => {
-      const txt = `${log.stepTitle || ''} ${log.description || ''}`.toLowerCase();
-
-      // 1. Category Pill Filter
-      if (
-        desktopLogPill === 'builds' &&
-        !(txt.includes('weld') || txt.includes('build') || txt.includes('fab') || log.status === 'completed')
-      )
-        return false;
-      if (
-        desktopLogPill === 'tests' &&
-        !(txt.includes('test') || txt.includes('dyno') || log.status === 'testing')
-      )
-        return false;
-      if (
-        desktopLogPill === 'design' &&
-        !(txt.includes('cad') || txt.includes('design') || txt.includes('ui') || log.teamId === 'design' || log.teamId === 'software')
-      )
-        return false;
-      if (
-        desktopLogPill === 'analysis' &&
-        !(txt.includes('analysis') || txt.includes('fea') || log.teamId === 'research')
-      )
-        return false;
-
-      // 2. Time Filter
-      if (desktopLogTimeFilter === '24h') {
-        const logTime = log.createdAt ? new Date(log.createdAt).getTime() : 0;
-        if (Date.now() - logTime > 24 * 60 * 60 * 1000) return false;
-      } else if (desktopLogTimeFilter === '7d') {
-        const logTime = log.createdAt ? new Date(log.createdAt).getTime() : 0;
-        if (Date.now() - logTime > 7 * 24 * 60 * 60 * 1000) return false;
-      } else if (desktopLogTimeFilter === '30d') {
-        const logTime = log.createdAt ? new Date(log.createdAt).getTime() : 0;
-        if (Date.now() - logTime > 30 * 24 * 60 * 60 * 1000) return false;
-      }
-
-      // 3. Search Query
-      if (desktopLogSearch.trim()) {
-        const q = desktopLogSearch.toLowerCase().trim();
-        const titleMatch = (log.stepTitle || '').toLowerCase().includes(q);
-        const descMatch = (log.description || '').toLowerCase().includes(q);
-        const memberMatch =
-          (log.membersPresent || []).some((m) => m.toLowerCase().includes(q)) ||
-          (log.authorName || '').toLowerCase().includes(q);
-        const teamMatch = (log.teamName || log.teamId || '').toLowerCase().includes(q);
-        if (!titleMatch && !descMatch && !memberMatch && !teamMatch) return false;
-      }
-
-      return true;
-    });
-  }, [logs, desktopLogPill, desktopLogTimeFilter, desktopLogSearch]);
-
-  // Dynamic status counts calculated live from Firestore logs (respects team selection)
-  const statusCounts = useMemo(() => {
-    const counts: Record<LogWorkStatus, number> = {
-      in_progress: 0,
-      testing: 0,
-      completed: 0,
-      on_hold: 0,
-      review: 0,
-    };
-    const pool =
-      selectedTeamFilter === 'all'
-        ? logs
-        : logs.filter((l) => l.teamId === selectedTeamFilter);
-
-    pool.forEach((l) => {
-      const st = getLogWorkStatus(l);
-      counts[st] = (counts[st] || 0) + 1;
-    });
-    return counts;
-  }, [logs, selectedTeamFilter]);
-
-  // Dynamic filtered logs feed for mobile
-  const visibleMobileLogs = useMemo(() => {
-    return logs.filter((log) => {
-      // 1. Team filter
-      if (selectedTeamFilter !== 'all' && log.teamId !== selectedTeamFilter) {
-        return false;
-      }
-      // 2. Status filter
-      if (mobileStatusFilter !== 'all') {
-        const st = getLogWorkStatus(log);
-        if (st !== mobileStatusFilter) return false;
-      }
-      // 3. Search query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const match =
-          (log.stepTitle || '').toLowerCase().includes(q) ||
-          (log.description || '').toLowerCase().includes(q) ||
-          (log.teamName || '').toLowerCase().includes(q) ||
-          (log.membersPresent || []).some((m) => m.toLowerCase().includes(q));
-        if (!match) return false;
-      }
-      return true;
-    });
-  }, [logs, selectedTeamFilter, mobileStatusFilter, searchQuery]);
-
-  // Handle URL query parameter for team filter and task pre-filling
-  useEffect(() => {
-    const urlTeam = searchParams.get('team') || searchParams.get('teamId');
-    if (urlTeam && (urlTeam === 'all' || TEAMS[urlTeam as TeamId])) {
-      setSelectedTeamFilter(urlTeam);
-      if (urlTeam !== 'all') {
-        setFormInitialTeamId(urlTeam as TeamId);
-      }
-    }
-    const taskParam = searchParams.get('task') || searchParams.get('taskTitle');
-    if (taskParam) {
-      setFormInitialTitle(decodeURIComponent(taskParam));
-      setIsFormOpen(true);
-    }
-    const newParam = searchParams.get('new') === 'true' || searchParams.get('action') === 'new';
-    if (newParam) {
-      setIsFormOpen(true);
-    }
-  }, [searchParams]);
+  // Dynamic log data & filter hooks
+  const {
+    logs,
+    setLogs,
+    loadingLogs,
+    selectedTeamFilter,
+    setSelectedTeamFilter,
+    searchQuery,
+    setSearchQuery,
+    mobileStatusFilter,
+    setMobileStatusFilter,
+    desktopLogPill,
+    setDesktopLogPill,
+    desktopLogPage,
+    setDesktopLogPage,
+    desktopLogTimeFilter,
+    setDesktopLogTimeFilter,
+    desktopLogSearch,
+    setDesktopLogSearch,
+    desktopFilteredLogs,
+    statusCounts,
+    visibleMobileLogs,
+  } = useLogData({
+    user,
+    isCoreAdmin,
+    onOpenForm: () => setIsFormOpen(true),
+    setFormInitialTitle,
+    setFormInitialTeamId,
+  });
 
   // Listen for direct open log form events
   useEffect(() => {
@@ -198,66 +87,12 @@ function LogPageContent() {
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login?from=/log');
-      return;
     }
   }, [user, authLoading, router]);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
-  // Fetch logs with clean async pattern + offline fallback
-  const loadLogs = useCallback(async () => {
-    if (!user) return;
-    setLoadingLogs(true);
-
-    // Hydrate from offline cache immediately
-    getOfflineCachedLogs().then((cached) => {
-      if (cached && cached.length > 0) {
-        setLogs(cached);
-      }
-    });
-
-    const teamQuery =
-      !isCoreAdmin && user
-        ? user.teamId
-        : selectedTeamFilter !== 'all'
-        ? selectedTeamFilter
-        : '';
-    const url = teamQuery ? `/api/logs?teamId=${teamQuery}` : '/api/logs';
-
-    try {
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.success && Array.isArray(data.logs)) {
-        setLogs(data.logs);
-        cacheOfflineLogs(data.logs);
-      }
-    } catch (err) {
-      console.warn('Network offline or failed, using cached logs:', err);
-    } finally {
-      setLoadingLogs(false);
-    }
-  }, [user, isCoreAdmin, selectedTeamFilter]);
-
-  // Listen to background sync completion events
-  useEffect(() => {
-    const handleLogSynced = (e: any) => {
-      const newLog = e.detail;
-      if (newLog) {
-        setLogs((prev) => [
-          newLog,
-          ...prev.filter((l) => l.id !== newLog.id && !l.id.startsWith('temp-log-')),
-        ]);
-      }
-    };
-    window.addEventListener('siep_log_synced', handleLogSynced);
-    return () => window.removeEventListener('siep_log_synced', handleLogSynced);
-  }, []);
-
-  useEffect(() => {
-    loadLogs();
-  }, [loadLogs]);
 
   // Handle new log submission
   const handleLogSubmitted = (
@@ -278,7 +113,6 @@ function LogPageContent() {
     },
     videoFile: File | null
   ) => {
-    // 1. Optimistic local insertion
     const tempId = `temp-log-${Date.now()}`;
     const optimisticLog: WorkLog = {
       id: tempId,
@@ -288,7 +122,6 @@ function LogPageContent() {
     };
     setLogs((prev) => [optimisticLog, ...prev]);
 
-    // 2. Enqueue background upload
     enqueueLogUpload({
       logData: logPayload,
       videoFile: videoFile || undefined,
@@ -319,11 +152,9 @@ function LogPageContent() {
 
   return (
     <main className="min-h-screen bg-alice-blue text-jet-black pt-20 sm:pt-24 pb-12 sm:pb-16 px-3 sm:px-6 lg:px-8 font-sans">
-      {/* Background CAD Accent */}
       <div className="fixed inset-0 opacity-[0.02] pointer-events-none bg-[radial-gradient(#2B303A_1px,transparent_1px)] [background-size:24px_24px]"></div>
 
       <div className="max-w-7xl mx-auto relative z-10 space-y-5 sm:space-y-8">
-        {/* Mobile View */}
         <LogMobileView
           canCreateBuildLog={canCreateBuildLog}
           onOpenAddLog={handleOpenNewBuildLog}
@@ -339,7 +170,6 @@ function LogPageContent() {
           onSelectLog={(log) => setSelectedMobileDetailLog(log)}
         />
 
-        {/* Desktop View */}
         <LogDesktopView
           logs={logs}
           desktopFilteredLogs={desktopFilteredLogs}
@@ -360,61 +190,32 @@ function LogPageContent() {
         />
       </div>
 
-      {/* Add Log Modal */}
-      <CreateLogModal
-        isOpen={isFormOpen && canCreateBuildLog}
-        onClose={() => setIsFormOpen(false)}
+      <LogModalsHost
         user={user}
         isCoreAdmin={isCoreAdmin}
-        initialTitle={formInitialTitle}
-        initialStatus={formInitialStatus}
-        initialTeamId={formInitialTeamId}
+        canCreateBuildLog={canCreateBuildLog}
+        isFormOpen={isFormOpen}
+        setIsFormOpen={setIsFormOpen}
+        formInitialTitle={formInitialTitle}
+        formInitialStatus={formInitialStatus}
+        formInitialTeamId={formInitialTeamId}
         onSubmitLog={handleLogSubmitted}
-      />
-
-      {/* Edit Log Modal */}
-      <EditLogModal
         editingLog={editingLog}
-        onClose={() => setEditingLog(null)}
-        isCoreAdmin={isCoreAdmin}
+        setEditingLog={setEditingLog}
         onLogUpdated={(updated) =>
           setLogs((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
         }
-      />
-
-      {/* Delete Log Confirmation Modal */}
-      <DeleteConfirmModal
         deleteConfirmLog={deleteConfirmLog}
-        onClose={() => setDeleteConfirmLog(null)}
+        setDeleteConfirmLog={setDeleteConfirmLog}
         onLogDeleted={(deletedId) =>
           setLogs((prev) => prev.filter((item) => item.id !== deletedId))
         }
-      />
-
-      {/* Mobile Detail Drawer */}
-      <MobileLogDetailDrawer
-        selectedLog={selectedMobileDetailLog}
-        onClose={() => setSelectedMobileDetailLog(null)}
-        isCoreAdmin={isCoreAdmin}
-        user={user}
-        onEdit={(log) => {
-          setSelectedMobileDetailLog(null);
-          setEditingLog(log);
-        }}
-        onDelete={(log) => {
-          setSelectedMobileDetailLog(null);
-          setDeleteConfirmLog(log);
-        }}
-      />
-
-      {/* Task Complete Modal */}
-      <TaskCompleteModal
-        isOpen={isCompleteModalOpen}
-        task={taskToComplete}
-        onClose={() => {
-          setIsCompleteModalOpen(false);
-          setTaskToComplete(null);
-        }}
+        selectedMobileDetailLog={selectedMobileDetailLog}
+        setSelectedMobileDetailLog={setSelectedMobileDetailLog}
+        taskToComplete={taskToComplete}
+        isCompleteModalOpen={isCompleteModalOpen}
+        setIsCompleteModalOpen={setIsCompleteModalOpen}
+        setTaskToComplete={setTaskToComplete}
         onTaskCompleted={(updatedTask, createdLog) => {
           if (createdLog) {
             setLogs((prev) => [createdLog, ...prev]);

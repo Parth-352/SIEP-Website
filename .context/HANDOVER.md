@@ -1,65 +1,68 @@
-# 📋 ACTIVE SESSION HANDOVER & STATE
-> **Last Updated:** 2026-11-15 13:20 IST | **Branch:** `main`  
-> **Head Commit:** `f36e142` docs(handover): record commit 5fd9b6d  
-> **Production Live URLs:** `https://ridersbay.vercel.app` | Internal testing: `https://ridersbay.vercel.app/bike`  
-> *This document is the single source of truth for in-flight work across breaks and sessions. Agents and developers must read this before starting and update it before stopping.*
+# 🤝 AGENT HANDOVER DOCUMENT
+> **Living Context for Seamless Agent-to-Agent Session Continuity**  
+> *Project: Riders Bay Smart Scrambler E-Bike | SIEP Season 7.0 (ISIEINDIA)*  
+> *Last Updated:* 2026-11-15 14:10 IST | **Branch:** `main`
 
 ---
 
-## 🚦 1. CURRENT WORKSPACE STATUS
-- **Production Status:** Clean working state on `main`. All 33 static & dynamic Next.js routes compile clean under Turbopack in ~1.6s.
-- **Codebase Directory Map Established (`.context/CODEBASE_MAP.md`):**
-  - Created authoritative, human-friendly "Kya Cheez Kidhar Hai" reference guide covering all 33 routes, 15+ component suites, 14 API endpoints, core libraries, Firestore models, CAD/Blender assets, and quick-lookup cheatsheet.
-- **Round 3 Modular Bifurcation Completed (ADR-033):**
-  1. `web/src/components/dashboard/TeamTasksTab.tsx`: Modularized from 1,213 lines $\rightarrow$ **230 lines** (-81.0%) across 5 sub-modules in `web/src/components/dashboard/tasks/`.
-  2. `web/src/components/dashboard/MaterialsTab.tsx`: Modularized from 1,169 lines $\rightarrow$ **418 lines** (-64.2%) across 5 sub-modules in `web/src/components/dashboard/materials/`.
-  3. `web/src/components/TeamSection.tsx`: Modularized from 1,072 lines $\rightarrow$ **307 lines** (-71.4%) across 5 sub-modules in `web/src/components/team/`.
-  4. Total lines reduced across the 3 monolithic components: **from 3,454 lines down to 955 lines (-72.4%)**.
-  5. ZERO components over 1,000 lines remain in `web/src/components/`!
-- **Automated Verification:**
-  - Automated verification script (`scripts/verify-bifurcation-round3.mjs`) ran and passed all line limits, sub-module sizes, domain normalizations, badge formats, and named re-export checks.
-  - TypeScript verification clean (`cd web && npx tsc --noEmit` -> 0 errors).
-  - Next.js Turbopack build clean (`cd web && npm run build` -> 33/33 routes).
+## 📌 1. RECENT ACCOMPLISHMENTS (ROUND 4 BIFURCATION & 300-LINE BOUND)
+1. **Universal 300-Line Upper Bound & Index-Ahead Architecture Standard (ADR-034):**
+   - Established that **zero source files** in `web/src/app`, `web/src/components/`, or `.context/` shall exceed 300 lines.
+   - All bifurcated suites include an `index.ts` or `INDEX.md` manifest so any agent or developer knows what is inside before reading.
+2. **Decomposition of All 5 Next.js Page Routes Exceeding 300 Lines:**
+   - **`web/src/app/dashboard/page.tsx`** (1,173 $\rightarrow$ **267 lines**, -77.2%):
+     - Decomposed into 5 custom hooks in `components/dashboard/hooks/` (`useDashboardData`, `useDashboardNavigation`, `useDashboardFilters`, `useDashboardTaskActions`, `useDashboardBackup`).
+     - Decomposed into 2 layout containers in `components/dashboard/layout/` (`DashboardTabContent`, `DashboardModalsHost`).
+   - **`web/src/app/login/page.tsx`** (724 $\rightarrow$ **142 lines**, -80.4%):
+     - Decomposed into `components/login/` (`LoginFormCard`, `LoginHeroHeader`, and `ForgotPinModal`).
+     - Further sharded `ForgotPinModal` into 4 focused sub-steps in `components/login/forgot/` (`ForgotEmailStep`, `ForgotOtpStep`, `ForgotNewPinStep`, `ForgotSuccessStep`).
+   - **`web/src/app/contact/page.tsx`** (534 $\rightarrow$ **59 lines**, -89.0%):
+     - Decomposed into `components/contact/` (`SupportAreasGrid`, `InquiryForm`, `KeyTeamContacts`, `CampusLocationBanner`, `types.ts`).
+   - **`web/src/app/log/page.tsx`** (436 $\rightarrow$ **237 lines**, -45.6%):
+     - Decomposed into `components/log/` (`useLogData.ts`, `LogModalsHost.tsx`).
+   - **`web/src/app/copilot/page.tsx`** (347 $\rightarrow$ **166 lines**, -52.2%):
+     - Decomposed into `components/copilot/` (`CopilotHeader`, `CopilotMessageList`, `CopilotPromptPills`, `CopilotInputForm`, `types.ts`).
+   - **Total page layer reduction:** 3,820 lines $\rightarrow$ **1,477 lines** across all 16 page routes (**-61.3%**). Zero pages exceed 300 lines!
+3. **Record Files Sharding & Master Index (`.context/`):**
+   - Sharded `DECISIONS.md` (837 $\rightarrow$ **57 lines**) into 3 indexed volumes:
+     - `ADR_VOL1.md` (ADR-001 to ADR-015, ~168 lines)
+     - `ADR_VOL2.md` (ADR-016 to ADR-024, ~82 lines)
+     - `ADR_VOL3.md` (ADR-025 to ADR-034, ~105 lines)
+   - Created **`.context/INDEX.md`** as the master records registry.
+   - Streamlined `ARCHITECTURE.md` (291 lines) and `CODEBASE_MAP.md` (299 lines).
+4. **Automated Verification:**
+   - Ran `scripts/verify-bifurcation-pages.mjs` — passed all invariants and 300-line limits.
+   - Ran `cd web && npx tsc --noEmit` — 0 errors.
+   - Ran `cd web && npm run build` — Turbopack compiled all 33/33 routes successfully.
 
 ---
 
-## 📂 2. FILES MODIFIED IN THIS TURN
-
-### Bifurcated Component Suites:
-- `web/src/components/dashboard/TeamTasksTab.tsx` (Reduced to 230 lines)
-  - `web/src/components/dashboard/tasks/taskBadgeUtils.ts`
-  - `web/src/components/dashboard/tasks/MobileTeamTasksView.tsx`
-  - `web/src/components/dashboard/tasks/DesktopTaskControls.tsx`
-  - `web/src/components/dashboard/tasks/DesktopTaskTable.tsx`
-  - `web/src/components/dashboard/tasks/DesktopTaskKanban.tsx`
-- `web/src/components/dashboard/MaterialsTab.tsx` (Reduced to 418 lines)
-  - `web/src/components/dashboard/materials/materialsConstants.tsx`
-  - `web/src/components/dashboard/materials/MaterialsStatsSection.tsx`
-  - `web/src/components/dashboard/materials/MaterialsFilterBar.tsx`
-  - `web/src/components/dashboard/materials/MaterialsTable.tsx`
-  - `web/src/components/dashboard/materials/BatchUploadModal.tsx`
-- `web/src/components/TeamSection.tsx` (Reduced to 307 lines)
-  - `web/src/components/team/teamTypes.ts`
-  - `web/src/components/team/teamRosterData.ts`
-  - `web/src/components/team/MemberCard.tsx`
-  - `web/src/components/team/MobilePlayerCard.tsx`
-  - `web/src/components/team/MobileTeamAccordion.tsx`
-
-### Verification Script & Living Memory Hub:
-- `scripts/verify-bifurcation-round3.mjs` (Automated invariant verification script)
-- `.context/DECISIONS.md` (Recorded ADR-033)
-- `.context/HANDOVER.md` (Updated session status)
+## 📂 2. VERIFIED MODIFIED & CREATED FILES
+- **Page Routes Refactored:**
+  - `web/src/app/dashboard/page.tsx` (267 lines)
+  - `web/src/app/login/page.tsx` (142 lines)
+  - `web/src/app/contact/page.tsx` (59 lines)
+  - `web/src/app/log/page.tsx` (237 lines)
+  - `web/src/app/copilot/page.tsx` (166 lines)
+- **New Modular Components & Hooks:**
+  - `web/src/components/dashboard/hooks/` (`useDashboardData.ts`, `useDashboardNavigation.ts`, `useDashboardFilters.ts`, `useDashboardTaskActions.ts`, `useDashboardBackup.ts`, `index.ts`)
+  - `web/src/components/dashboard/layout/` (`DashboardTabContent.tsx`, `DashboardModalsHost.tsx`, `index.ts`)
+  - `web/src/components/login/` (`LoginHeroHeader.tsx`, `LoginFormCard.tsx`, `ForgotPinModal.tsx`, `index.ts`, `forgot/`)
+  - `web/src/components/contact/` (`types.ts`, `SupportAreasGrid.tsx`, `InquiryForm.tsx`, `KeyTeamContacts.tsx`, `CampusLocationBanner.tsx`, `index.ts`)
+  - `web/src/components/log/` (`useLogData.ts`, `LogModalsHost.tsx`, `index.ts`)
+  - `web/src/components/copilot/` (`types.ts`, `CopilotHeader.tsx`, `CopilotMessageList.tsx`, `CopilotPromptPills.tsx`, `CopilotInputForm.tsx`, `index.ts`)
+- **Documentation & Record System:**
+  - `.context/INDEX.md` (Master records catalog)
+  - `.context/DECISIONS.md` (Master ADR index)
+  - `.context/decisions/` (`ADR_VOL1.md`, `ADR_VOL2.md`, `ADR_VOL3.md`)
+  - `.context/ARCHITECTURE.md` (< 300 lines)
+  - `.context/CODEBASE_MAP.md` (< 300 lines)
+  - `scripts/verify-bifurcation-pages.mjs`
 
 ---
 
-## 🎯 3. VERIFICATION CHECKLIST & PICKUP POINTS
-- [x] Context check run (`bash scripts/context-check.sh`).
-- [x] Automated verification script passed (`node scripts/verify-bifurcation-round3.mjs`).
-- [x] TypeScript verification clean (`cd web && npx tsc --noEmit` -> 0 errors).
-- [x] Turbopack build clean (`cd web && npm run build` -> 33/33 routes).
-- [x] ADR-033 recorded in `.context/DECISIONS.md`.
-- [ ] Push to `origin main` and deploy to Vercel production.
-- [x] Git log and branch state verified (`git log -n 5 --oneline` -> head `6276bce`).
-- [x] Clean TypeScript compilation confirmed (`cd web && npx tsc --noEmit` -> 0 errors).
-- [x] All 5 `.context/` memory files fully updated and cross-referenced.
-- [ ] Next In-Flight Focus: Ready for new engineering features, sprint task updates, or competition submission deliverables.
+## ⚡ 3. VERIFICATION CHECKLIST FOR NEXT AGENT
+- [x] Run `node scripts/verify-bifurcation-pages.mjs` (All passes)
+- [x] Run `cd web && npx tsc --noEmit` (0 errors)
+- [x] Run `cd web && npm run build` (All 33 routes static & proxy compiled)
+- [ ] Deploy to Vercel production and confirm live status on `https://ridersbay.vercel.app`

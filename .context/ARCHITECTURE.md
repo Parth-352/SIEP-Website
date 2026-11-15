@@ -42,22 +42,11 @@ flowchart TD
         GLBAssets["Compressed Draco GLB Assets (Staged for Physical Unveiling)\n(/web/public/moto.glb, /chassis.glb)"]
     end
 
-    UserBrowser --> Pages
+    UserBrowser --> Pages --> AuthMiddleware --> APIRoutes
     BikeSchematic --> Pages
-    ProfileUI --> APIRoutes
-    MaterialsUI --> APIRoutes
-    RulebookUI --> APIRoutes
-    NotificationUI --> APIRoutes
-    RolesUI --> APIRoutes
-    PublicShowcase --> APIRoutes
-    Pages --> AuthMiddleware
-    AuthMiddleware --> APIRoutes
-    APIRoutes --> AIServices
-    AIServices --> GeminiAPI
-    AIServices --> RulebookIndex
-    APIRoutes --> Firestore
-    APIRoutes --> InMemory
-    APIRoutes --> GDrive
+    ProfileUI & MaterialsUI & RulebookUI & NotificationUI & RolesUI & PublicShowcase --> APIRoutes
+    APIRoutes --> AIServices --> GeminiAPI & RulebookIndex
+    APIRoutes --> Firestore & InMemory & GDrive
     BlenderFile -.->|glTF-transform & Draco| GLBAssets
 ```
 
@@ -119,36 +108,18 @@ web/
 │   │   ├── login/         # PIN authentication portal
 │   │   └── page.tsx       # Marketing Landing Page (High-velocity hero)
 │   ├── components/        # Reusable UI components & engineering suites
-│   │   ├── bike/          # The Bike Engineering Showcase Suite (ADR-031):
-│   │   │   ├── bikeSpecsData.ts        # Authoritative master dataset (hotspots, subsystems, specs, CAE, trials)
-│   │   │   ├── BikeHeroSection.tsx     # Display typography, mission narrative & 6-card telemetry ribbon
-│   │   │   ├── BikeSchematicViewer.tsx # Interactive 2D vector blueprint, dimensions & 6 clickable hotspots
-│   │   │   ├── SubsystemsExplorer.tsx  # 8-subsystem deep-dive matrix (materials, safety factors, rules)
-│   │   │   ├── TechSpecsTable.tsx      # Searchable & category-filtered technical specs table
-│   │   │   ├── CaeValidationSection.tsx# Structural FEA & Thermal CFD validation showcase
-│   │   │   ├── ProvingGroundSection.tsx# SIEP Season 7.0 dynamic trials mapping
-│   │   │   └── BikeCtaHub.tsx          # Cross-linking CTA hub to Materials, Logs, Copilot, Contact
-│   │   ├── copilot/       # RulebookCopilotDrawer.tsx (Slide-out drawer), MarkdownMessage.tsx (Rich markdown)
-│   │   ├── dashboard/     # MaterialsTab.tsx, RolesManagementTab.tsx, SubsystemsTab.tsx,
-│   │   │                  # TeamTasksTab.tsx, VelocityMetricsTab.tsx, DashboardOverviewTab.tsx,
-│   │   │                  # CredentialsVaultTab.tsx, MyWorkbenchTab.tsx
-│   │   │   └── roles/     # Modular Roles Governance Suite (ADR-029):
-│   │   │       ├── rolesConfig.ts, RolesToolbar.tsx, RolesStatsRibbon.tsx, RolesTable.tsx,
-│   │   │       ├── ExecutiveCommandSidebar.tsx, EditMemberModal.tsx, AddMemberModal.tsx, RevokeMemberModal.tsx
-│   │   ├── log/           # Modular Build Log Suite (ADR-029):
-│   │   │   ├── logConfig.tsx, LogDesktopView.tsx, LogMobileView.tsx, LogMediaSidebar.tsx,
-│   │   │   ├── CreateLogModal.tsx, EditLogModal.tsx, DeleteConfirmModal.tsx, MobileLogDetailDrawer.tsx
-│   │   ├── navigation/    # Modular Navigation Engine (ADR-030):
-│   │   │   ├── navConfig.ts, DesktopPortalNav.tsx, DesktopPublicNav.tsx, UserDropdownMenu.tsx,
-│   │   │   ├── MobileSlideDrawer.tsx, GlobalMobileBottomBar.tsx, BottomNav.tsx, DashboardTabBar.tsx
-│   │   ├── tasks/         # Modular Task Workspace & Modal Suite (ADR-030):
-│   │   │   └── modal/     # taskModalConfig.ts, TaskModalHeader.tsx, TaskStatusSwitcher.tsx,
-│   │   │                  # TaskBlockerSection.tsx, TaskMetadataSection.tsx, TaskSubtasksSection.tsx,
-│   │   │                  # TaskCommentsSection.tsx, TaskModalActions.tsx, TaskEditForm.tsx, TaskDeleteConfirmModal.tsx
+│   │   ├── bike/          # The Bike Engineering Showcase Suite (ADR-031 / ADR-032)
+│   │   ├── copilot/       # Rulebook Copilot Suite (Header, Messages, Pills, Input, Drawer)
+│   │   ├── dashboard/     # 10 Operational tabs, hooks/ (5 hooks), layout/ (2 hosts), tasks/, materials/, roles/
+│   │   ├── log/           # Modular Build Log Suite (useLogData, LogModalsHost, Mobile/Desktop views)
+│   │   ├── login/         # Modular Login Suite (ForgotPinModal, LoginFormCard, LoginHeroHeader)
+│   │   ├── contact/       # Modular Contact Suite (InquiryForm, SupportAreasGrid, KeyTeamContacts)
+│   │   ├── navigation/    # Modular Navigation Engine (DesktopPortalNav, DesktopPublicNav, MobileSlideDrawer)
+│   │   ├── tasks/         # Modular Task Detail Modal Suite (Header, StatusSwitcher, Actions, EditForm)
 │   │   ├── notifications/ # NotificationDrawer.tsx (Personalized deck alerts & due date warnings)
 │   │   ├── profile/       # ProfileView.tsx, PinChangeForm.tsx
-│   │   ├── shared/        # OperationsBanner.tsx, StatCard.tsx, CreateTaskModal.tsx
-│   │   └── TeamSection.tsx# Dynamic public roster section (hydrates from /api/members)
+│   │   ├── team/          # Modular Team Showcase Suite (MemberCard, MobileTeamAccordion, roster)
+│   │   └── shared/        # OperationsBanner.tsx, StatCard.tsx, CreateTaskModal.tsx
 │   ├── context/           # React context providers (AuthContext.tsx)
 │   └── lib/               # Utility libraries, types, AI connectors and persistence:
 │       ├── firestoreService.ts  # Firestore SDK connectors (tasks, logs, profiles, passwords, materials, members)
@@ -310,31 +281,11 @@ To eliminate catastrophic regulatory infractions, human memory errors, and engin
 
 ---
 
-## 🛠️ 11. THE BIKE ENGINEERING SUITE & 3D MODEL STAGING PROTOCOL (ADR-031)
-
-To deliver a world-class collegiate engineering portfolio while honoring pre-competition scrutiny confidentiality:
-1. **3D Model Staging Protocol:**
-   - The interactive 3D WebGL viewer has been staged and temporarily disabled from public view on `/bike` and the homepage hero background (`Canvas3D.tsx`).
-   - Raw production Draco-compressed GLB assets (`web/public/moto.glb`, `web/public/chassis.glb`) and authoritative Blender digital twin (`Electric_Scrambler_Exo.blend`) remain preserved for future unveiling following competition scrutiny.
-2. **Interactive 2D CAD Schematic Blueprint (`BikeSchematicViewer.tsx`):**
-   - High-density vector technical drawing with millimeter precision grid, scale markers, and key vehicle dimensions:
-     - Wheelbase: `1,340 mm`
-     - Ground Clearance: `180 mm`
-     - Seat Height: `810 mm`
-     - Rake Angle: `26°`
-   - 6 Interactive clickable component hotspots (Battery Pack, Mid-Drive Motor, Trellis Frame, Inverted USD Fork, Monoshock, Telemetry VCU) revealing subsystem telemetry, safety factors, and rulebook references.
-3. **8-Subsystem Deep-Dive Explorer (`SubsystemsExplorer.tsx`):**
-   - Full technical matrices for Chassis, Powertrain, Battery, Telemetry, Suspension, Braking, Safety, and Aerodynamics.
-   - Grounded specifications including materials (AISC 4130, Al 6061-T6, NMC 21700), safety factors (FOS 2.8+), and exact SIEP Rulebook compliance codes.
-4. **CAE Finite Element Analysis & CFD Aerodynamic Validation (`CaeValidationSection.tsx`):**
-   - Structural FEA cards: Torsional Rigidity (`1,420 Nm/deg`), Front Impact Von Mises stress (`210 MPa` vs `460 MPa` yield), Swingarm Bending (`FOS 3.1`).
-   - Thermal CFD cards: Battery module heat dissipation (`<42°C` under 1C discharge), Motor cooling airflow dynamics.
-5. **SIEP Season 7.0 Proving Ground Trials Matrix (`ProvingGroundSection.tsx`):**
-   - Quantitative evaluation across four mandatory dynamic scrutiny tests:
-     - Acceleration Trial (0–50 m in `<4.8 s`)
-     - Hill Climb (40° incline ascent at `>25 km/h`)
-     - Bump & Pothole Durability (140 mm inverted fork suspension travel)
-     - Endurance & Efficiency Range (`85 km` continuous range)
-6. **Authoritative Master Engineering Dataset (`web/src/components/bike/bikeSpecsData.ts`):**
-   - Centralized, strictly typed single source of truth for all vehicle metrics, telemetry ribbons, subsystem details, CAD hotspots, and trials.
+## 🛠️ 11. THE BIKE SUITE & 3D STAGING PROTOCOL (ADR-031 / ADR-032)
+1. **3D Staging Protocol:** 3D WebGL viewer is staged pending pre-competition scrutiny; Draco GLB assets (`moto.glb`, `chassis.glb`) preserved in `web/public/`.
+2. **2D CAD Blueprint (`BikeSchematicViewer.tsx`):** Precision vector drawing with millimeter dimensions (Wheelbase 1,340 mm, Clearance 180 mm, Seat 810 mm, Rake 26°) and 6 interactive component hotspots.
+3. **8-Subsystem Matrix (`SubsystemsExplorer.tsx`):** Technical matrices for Chassis, Powertrain, Battery, Telemetry, Suspension, Braking, Safety, and Aerodynamics.
+4. **CAE Structural & CFD Thermal Validation (`CaeValidationSection.tsx`):** Torsional Rigidity (1,420 Nm/deg), Front Impact (210 MPa vs 460 MPa yield), Battery cooling (<42°C under 1C).
+5. **SIEP Proving Ground Trials (`ProvingGroundSection.tsx`):** 0–50 m launch (<4.8 s), 40° hill climb (>25 km/h), 140 mm suspension travel, 85 km range.
+6. **Master Engineering Dataset (`bikeSpecsData.ts`):** Centralized, strictly typed single source of truth.
 
